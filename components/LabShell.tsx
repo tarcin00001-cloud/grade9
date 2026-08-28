@@ -69,50 +69,49 @@ export default function LabShell({ children, labId, theme = "circuit", title, su
       {/* Grade 9 Standard Header Layout */}
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-[clamp(.5rem,1.8vw,1.5rem)] py-[clamp(.35rem,1vh,.75rem)] pointer-events-none shrink-0">
         
-        {/* Left: Hint & Fullscreen */}
-        <div className="pointer-events-auto shrink-0 w-[clamp(7.5rem,19vw,15.625rem)] flex items-center justify-start gap-2 md:gap-3">
+        {/* Left: Hint then Fullscreen */}
+        <div className="pointer-events-auto shrink-0 flex items-center justify-start gap-2">
           {hint && (
             <button 
               onClick={handleHint} title="Need a hint?"
-              className="flex items-center justify-center px-4 h-10 md:h-11 bg-white rounded-full text-sky-700 shadow-md hover:bg-sky-50 transition-colors gap-2 font-bold text-sm md:text-base border border-sky-100"
+              className="flex items-center justify-center px-4 h-9 md:h-10 bg-white rounded-full text-sky-700 shadow-sm hover:bg-sky-50 transition-colors gap-1.5 font-bold text-sm border border-sky-100/80"
             >
-              <Lightbulb size={18} strokeWidth={2.5} />
+              <Volume2 size={16} strokeWidth={2.5} />
               <span>Hint</span>
             </button>
           )}
 
           <button 
             onClick={toggleFullscreen} title="Fullscreen"
-            className="flex items-center justify-center w-10 h-10 md:w-11 md:h-11 bg-white rounded-full text-sky-700 shadow-md hover:bg-sky-50 transition-colors border border-sky-100"
+            className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-white rounded-full text-sky-700 shadow-sm hover:bg-sky-50 transition-colors border border-sky-100/80"
           >
-            {isFullscreen ? <Minimize size={18} strokeWidth={2.5} /> : <Maximize size={18} strokeWidth={2.5} />}
+            {isFullscreen ? <Minimize size={16} strokeWidth={2.5} /> : <Maximize size={16} strokeWidth={2.5} />}
           </button>
         </div>
 
         {/* Center: Title & Subtitle */}
-        <div className="pointer-events-auto flex-1 flex flex-col items-center mt-2 text-center shrink-0">
-          <h1 className="text-[clamp(1.5rem,3.2vw,2.75rem)] font-bold text-[#dc2626] drop-shadow-sm leading-tight">{title}</h1>
-          {subtitle && <p className="text-[clamp(.9rem,1.8vw,1.5rem)] font-semibold text-[#ef4444] mt-1">{subtitle}</p>}
+        <div className="pointer-events-auto flex-1 flex flex-col items-center text-center shrink-0 px-2">
+          <h1 className="text-[clamp(1.5rem,3.2vw,2.5rem)] font-black text-sky-950 drop-shadow-xs leading-tight tracking-tight">{title}</h1>
+          {subtitle && <p className="text-[clamp(.85rem,1.6vw,1.25rem)] font-bold text-sky-600 mt-0.5">{subtitle}</p>}
         </div>
 
-        {/* Right: Listen & Reset */}
-        <div className="flex items-center justify-end gap-2 md:gap-3 pointer-events-auto shrink-0 w-[clamp(7.5rem,19vw,15.625rem)]">
-          
+        {/* Right: Speaker then Reset */}
+        <div className="flex items-center justify-end gap-2 pointer-events-auto shrink-0">
           {instruction && (
             <button 
-              onClick={() => speakInstructions(instruction)} title="Listen"
-              className="flex items-center justify-center w-10 h-10 md:w-11 md:h-11 bg-white rounded-full text-sky-700 shadow-md hover:bg-sky-50 transition-colors border border-sky-100"
+              onClick={() => speakInstructions(instruction)} title="Listen to instructions"
+              className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-white rounded-full text-sky-700 shadow-sm hover:bg-sky-50 transition-colors border border-sky-100/80"
             >
-              <Volume2 size={20} strokeWidth={2.5} />
+              <Volume2 size={18} strokeWidth={2.5} />
             </button>
           )}
 
           {onReset && (
             <button 
               onClick={onReset} title="Reset"
-              className="flex items-center justify-center px-4 h-10 md:h-11 bg-white rounded-full text-sky-700 shadow-md hover:bg-sky-50 transition-colors gap-2 font-bold text-sm md:text-base border border-sky-100"
+              className="flex items-center justify-center px-4 h-9 md:h-10 bg-white hover:bg-sky-50 rounded-full text-sky-700 transition-colors gap-1.5 font-bold text-sm border border-sky-100/80 shadow-sm"
             >
-              <RotateCcw size={18} strokeWidth={2.5} />
+              <RotateCcw size={16} strokeWidth={2.5} />
               <span>Reset</span>
             </button>
           )}
