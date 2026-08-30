@@ -25,7 +25,7 @@ function runPhysicsTick(bodies) {
     }
   }
   // V8 struggles: type-checking + GC pressure
-  // Result: ~14-18 FPS  ⚠
+  // Result: ~14-18 FPS  
 }`;
 
 const CPP_CODE = `// physics_sim.cpp  (compiles → physics.wasm)
@@ -46,7 +46,7 @@ extern "C" void runPhysicsTick(Body* bodies, int n) {
     }
   }
   // Compiled to native machine code — zero overhead
-  // Result: 60 FPS  ✓
+  // Result: 60 FPS  
 }`;
 
 const WASM_BYTES = `; physics.wasm  (compiled binary)
@@ -68,7 +68,7 @@ const COMPILE_STEPS = [
   { label: "Optimizing with -O3 flags...", color: "#6366f1", ms: 800 },
   { label: "Emitting WebAssembly bytecode...", color: "#3b82f6", ms: 600 },
   { label: "Linking memory segments...", color: "#06b6d4", ms: 500 },
-  { label: "✓ physics.wasm ready (2.8 KB)", color: "#10b981", ms: 0 },
+  { label: " physics.wasm ready (2.8 KB)", color: "#10b981", ms: 0 },
 ];
 
 // ─── FPS Meter ────────────────────────────────────────────────────────────────
@@ -389,7 +389,7 @@ export default function WebAssembly9() {
                         style={{ color: step.color }}
                         className="text-[10px]"
                       >
-                        {i < compileStep ? "✓" : "›"} {step.label}
+                        {i < compileStep ? "" : "›"} {step.label}
                       </motion.div>
                     ))}
                   </div>
@@ -429,7 +429,7 @@ export default function WebAssembly9() {
                 <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-lg font-mono text-xs font-black border ${
                   mode === "JS" ? "bg-rose-950/80 border-rose-700/50 text-rose-300" : "bg-emerald-950/80 border-emerald-700/50 text-emerald-300"
                 }`}>
-                  {mode === "JS" ? `~${jsFps} FPS ⚠` : `${wasmFps} FPS ✓`}
+                  {mode === "JS" ? `~${jsFps} FPS ` : `${wasmFps} FPS `}
                 </div>
               )}
 

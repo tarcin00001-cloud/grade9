@@ -33,7 +33,7 @@ function IndexingSVG({
 
       <rect width="900" height="500" fill="url(#gridDb)" />
 
-      {/* ── Flat Array Mode (Full Table Scan) ── */}
+      {/* ── Flat Table Mode (Full Table Scan) ── */}
       {mode === "FLAT" && (
         <g transform="translate(50, 200)">
           <text x="400" y="-40" fill="#94a3b8" fontSize="18" fontWeight="bold" textAnchor="middle">FLAT TABLE (Full Scan Required)</text>
@@ -166,7 +166,7 @@ export default function DatabaseIndexing9() {
     <LabShell labId="databaseindexing9" theme="studio" title="Database Indexing Structures" subtitle="L22 · Database Engineering"
       instruction="A Database without an index is just a flat file. Click Search to watch the engine perform a grueling 'Full Table Scan' to find 87. Then, build a B-Tree Index and search again. Notice how it logarithmicly skips half the data every step." compact>
       
-      <Celebration isActive={hasWon} message="O(log n) Efficiency Achieved! By building an Index, the database transformed a massive flat Array into a balanced tree, drastically reducing the number of read operations required to find a record." onReplay={() => {
+      <Celebration isActive={hasWon} message="O(log n) Efficiency Achieved! By building an Index, the database transformed a massive flat table into a balanced tree, drastically reducing the number of read operations required to find a record." onReplay={() => {
         setMode("FLAT"); setScanPath([]); setHasWon(false);
       }} />
 

@@ -133,10 +133,10 @@ function NetworkSVG({
       {/* Rules Display inside NGINX box */}
       <rect x={360} y={175} width={120} height={55} rx={6} fill="#020617" stroke={hasDeny ? "#f43f5e44" : "#1e293b"} strokeWidth={1}/>
       <text x={368} y={191} fill={hasDeny ? "#fb7185" : "#334155"} fontSize={8} fontFamily="monospace">
-        {hasDeny ? "✓ deny 198.51.100.1;" : "deny ???;"}
+        {hasDeny ? " deny 198.51.100.1;" : "deny ???;"}
       </text>
       <text x={368} y={205} fill={hasProxy ? "#34d399" : "#334155"} fontSize={8} fontFamily="monospace">
-        {hasProxy ? "✓ proxy_pass" : "proxy_pass ???;"}
+        {hasProxy ? " proxy_pass" : "proxy_pass ???;"}
       </text>
       <text x={368} y={219} fill={hasProxy ? "#34d399" : "#334155"} fontSize={8} fontFamily="monospace">
         {hasProxy ? "  10.0.0.1:8080;" : ""}
@@ -187,7 +187,7 @@ function NetworkSVG({
         {packetType === "DDOS" && packetState === "BLOCKED" && (
           <motion.g key="ddos-blocked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <circle cx={proxyX - 10} cy={210} r={22} fill="#1c0214" stroke={ddosColor} strokeWidth={3} filter="url(#glow-net)"/>
-            <text x={proxyX - 10} y={205} fill={ddosColor} fontSize={14} fontWeight="black" textAnchor="middle">✕</text>
+            <text x={proxyX - 10} y={205} fill={ddosColor} fontSize={14} fontWeight="black" textAnchor="middle"></text>
             <text x={proxyX - 10} y={218} fill="#fb7185" fontSize={8} textAnchor="middle">BLOCKED</text>
           </motion.g>
         )}
@@ -227,14 +227,14 @@ function NetworkSVG({
             transition={{ duration: 1.2, ease: "linear" }}
           >
             <rect x={-40} y={-14} width={80} height={28} rx={5} fill={goodColor} filter="url(#glow-net)"/>
-            <text x={0} y={4} fill="#fff" fontSize={9} fontWeight="bold" textAnchor="middle">200 OK ✓</text>
+            <text x={0} y={4} fill="#fff" fontSize={9} fontWeight="bold" textAnchor="middle">200 OK </text>
           </motion.g>
         )}
       </AnimatePresence>
 
       {/* ── Labels for Private Zone ── */}
       <rect x={640} y={100} width={160} height={18} rx={4} fill="#041810"/>
-      <text x={720} y={113} fill="#065f46" fontSize={9} fontWeight="bold" textAnchor="middle">🔒 PRIVATE NETWORK</text>
+      <text x={720} y={113} fill="#065f46" fontSize={9} fontWeight="bold" textAnchor="middle"> PRIVATE NETWORK</text>
 
     </svg>
   );
@@ -497,17 +497,17 @@ export default function ReverseProxies9() {
 
           {/* Status Bar */}
           <div className={`shrink-0 rounded-xl p-2.5 text-xs font-mono text-center transition-all ${
-            !deployed ? "bg-slate-900/60 text-slate-500 border border-slate-800" :
+            !deployed ? "bg-slate-50/90 text-slate-500 border border-slate-800" :
             packetState === "BLOCKED" ? "bg-rose-950/60 text-rose-300 border border-rose-800/50" :
             packetState === "RETURNED" ? "bg-emerald-950/60 text-emerald-300 border border-emerald-800/50" :
             "bg-violet-950/40 text-violet-400 border border-violet-800/40"
           }`}>
-            {!deployed && "⚙ Write your nginx.conf rules and click Deploy Config"}
-            {deployed && packetState === "IDLE" && "✓ NGINX is live — simulate traffic above"}
+            {!deployed && " Write your nginx.conf rules and click Deploy Config"}
+            {deployed && packetState === "IDLE" && " NGINX is live — simulate traffic above"}
             {deployed && packetState === "FLYING" && `→ ${packetType === "DDOS" ? "DDoS attack" : "GET request"} traveling to NGINX...`}
-            {deployed && packetState === "BLOCKED" && "✕ DDoS IP 198.51.100.1 denied at the edge — backend never saw the packet!"}
-            {deployed && packetState === "FORWARDED" && (packetType === "DDOS" ? "⚠ No deny rule — attack reached backend!" : "→ NGINX forwarding to 10.0.0.1:8080...")}
-            {deployed && packetState === "RETURNED" && "✓ 200 OK — backend responded safely through NGINX!"}
+            {deployed && packetState === "BLOCKED" && " DDoS IP 198.51.100.1 denied at the edge — backend never saw the packet!"}
+            {deployed && packetState === "FORWARDED" && (packetType === "DDOS" ? " No deny rule — attack reached backend!" : "→ NGINX forwarding to 10.0.0.1:8080...")}
+            {deployed && packetState === "RETURNED" && " 200 OK — backend responded safely through NGINX!"}
           </div>
 
         </div>

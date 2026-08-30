@@ -270,7 +270,7 @@ export default function Ransomware9() {
 
         {/* Phase Indicator */}
         <div className="shrink-0 flex justify-center">
-            {phase === "INFECTING" && <div className="text-rose-500 font-bold animate-pulse text-lg tracking-widest">⚠️ ENCRYPTION IN PROGRESS ⚠️</div>}
+            {phase === "INFECTING" && <div className="text-rose-500 font-bold animate-pulse text-lg tracking-widest"> ENCRYPTION IN PROGRESS </div>}
             {phase === "GAME_OVER" && <div className="text-rose-600 font-black text-xl">MISSION FAILED - DATA LOST</div>}
             {phase === "SAVED" && <div className="text-emerald-500 font-black text-xl">THREAT CONTAINED - BACKUPS SAFE</div>}
             {phase === "IDLE" && <div className="text-slate-500 font-bold">SYSTEM NORMAL</div>}

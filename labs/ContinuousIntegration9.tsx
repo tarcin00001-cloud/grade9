@@ -53,8 +53,8 @@ function StageNode({ stage, status }: { stage: typeof ALL_STAGES[0]; status: Sta
       </div>
       <span className="text-[10px] font-black text-center leading-tight">{stage.label}</span>
       {status === "RUNNING" && <span className="text-[8px] animate-pulse">running...</span>}
-      {status === "PASSED" && <span className="text-[8px] text-emerald-500">✓ passed</span>}
-      {status === "FAILED" && <span className="text-[8px] text-rose-500">✕ failed</span>}
+      {status === "PASSED" && <span className="text-[8px] text-emerald-500"> passed</span>}
+      {status === "FAILED" && <span className="text-[8px] text-rose-500"> failed</span>}
       {status === "SKIPPED" && <span className="text-[8px] text-slate-700">skipped</span>}
     </motion.div>
   );
@@ -95,7 +95,7 @@ export default function ContinuousIntegration9() {
     const type = isBuggy ? "buggy" : "clean";
     setCommitType(type);
     playZap();
-    addLog(`[${new Date().toLocaleTimeString()}] Pipeline triggered: ${isBuggy ? "🐛 buggy commit" : "✅ clean commit"}`);
+    addLog(`[${new Date().toLocaleTimeString()}] Pipeline triggered: ${isBuggy ? " buggy commit" : " clean commit"}`);
 
     let failed = false;
 
@@ -115,7 +115,7 @@ export default function ContinuousIntegration9() {
 
       if (willFail) {
         setRunState(s => ({ ...s, [stage.id]: "FAILED" }));
-        addLog(`  ✕ ${stage.label}: FAILED — ${stage.id === "unit" ? "test_auth.spec.js failed: expected 200 got 401" : "integration check failed: API contract broken"}`);
+        addLog(`   ${stage.label}: FAILED — ${stage.id === "unit" ? "test_auth.spec.js failed: expected 200 got 401" : "integration check failed: API contract broken"}`);
         playError();
         failed = true;
 
@@ -130,21 +130,21 @@ export default function ContinuousIntegration9() {
         break;
       } else {
         setRunState(s => ({ ...s, [stage.id]: "PASSED" }));
-        addLog(`  ✓ ${stage.label}: PASSED`);
+        addLog(`   ${stage.label}: PASSED`);
         playPop();
       }
     }
 
     if (failed) {
       setPipelineResult("FAILED");
-      addLog(`\n❌ Pipeline FAILED — bug caught before deployment!`);
+      addLog(`\n Pipeline FAILED — bug caught before deployment!`);
       if (isBuggy && enabledStages.has("unit") && !hasWon) {
         setHasWon(true);
         setTimeout(reportComplete, 1500);
       }
     } else {
       setPipelineResult("SUCCESS");
-      addLog(`\n🚀 Pipeline PASSED — deployed to production!`);
+      addLog(`\n Pipeline PASSED — deployed to production!`);
       playSuccess();
     }
 
@@ -262,7 +262,7 @@ export default function ContinuousIntegration9() {
                   }`}
                 >
                   {pipelineResult === "SUCCESS" ? <Zap size={13}/> : <XCircle size={13}/>}
-                  {pipelineResult === "SUCCESS" ? "🚀 Deployed to production successfully!" : "❌ Pipeline halted — bug caught, production protected!"}
+                  {pipelineResult === "SUCCESS" ? " Deployed to production successfully!" : " Pipeline halted — bug caught, production protected!"}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -283,8 +283,8 @@ export default function ContinuousIntegration9() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className={`${
-                      line.includes("FAILED") || line.includes("❌") ? "text-rose-400" :
-                      line.includes("PASSED") || line.includes("🚀") ? "text-emerald-400" :
+                      line.includes("FAILED") || line.includes("") ? "text-rose-400" :
+                      line.includes("PASSED") || line.includes("") ? "text-emerald-400" :
                       line.includes("SKIPPED") ? "text-slate-600" :
                       line.includes("running") ? "text-violet-400" :
                       "text-slate-400"

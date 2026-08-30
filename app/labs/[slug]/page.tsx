@@ -61,12 +61,13 @@ import ComputingBenefits44 from "@/labs/ComputingBenefits44";
 import SemanticWeb45 from "@/labs/SemanticWeb45";
 import RoboticSurgery46 from "@/labs/RoboticSurgery46";
 import PropositionalLogic42 from "@/labs/PropositionalLogic42";
+import TestingStrategies43 from "@/labs/TestingStrategies43";
 
 export function generateStaticParams() {
   return LABS.map((lab) => ({ slug: lab.slug }));
 }
 
-export default async function LabPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const lab = LABS.find((item) => item.slug === slug);
   if (!lab) notFound();
@@ -128,6 +129,7 @@ export default async function LabPage({ params }: { params: Promise<{ slug: stri
   if (slug === "semanticweb45") return <SemanticWeb45 />;
   if (slug === "roboticsurgery46") return <RoboticSurgery46 />;
   if (slug === "propositionallogic42") return <PropositionalLogic42 />;
+  if (slug === "testingstrategies43") return <TestingStrategies43 />;
 
   return <PlannedLabPage lab={lab} />;
 }

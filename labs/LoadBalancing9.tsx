@@ -61,7 +61,7 @@ function LoadBalancingSVG({
         <rect x="0" y="0" width="100" height="60" fill="#0f172a" rx="4" stroke={serverLoads.s1 > 8 ? "#ef4444" : "#10b981"} strokeWidth="2" />
         <text x="50" y="25" fill="#fff" fontSize="14" fontWeight="bold" textAnchor="middle">Server 1</text>
         <text x="50" y="45" fill={serverLoads.s1 > 8 ? "#ef4444" : "#a7f3d0"} fontSize="12" fontWeight="bold" textAnchor="middle">Load: {serverLoads.s1}</text>
-        {serverLoads.s1 > 8 && <text x="50" y="-10" fill="#fb7185" fontSize="20" textAnchor="middle" filter="url(#glow-fire)" className="animate-pulse">🔥 CRASHING!</text>}
+        {serverLoads.s1 > 8 && <text x="50" y="-10" fill="#fb7185" fontSize="20" textAnchor="middle" filter="url(#glow-fire)" className="animate-pulse"> CRASHING!</text>}
       </g>
 
       {/* Server 2 */}

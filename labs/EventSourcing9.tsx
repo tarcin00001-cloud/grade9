@@ -203,7 +203,7 @@ export default function EventSourcing9() {
               <TrendingDown size={13}/> Withdraw -$75
             </button>
             <button onClick={() => addEvent("FEE", -5, "Monthly account maintenance fee")} disabled={!isAtHead}
-              className="w-full py-2.5 rounded-xl text-xs font-black bg-slate-900/60 border border-slate-700/50 text-slate-400 hover:bg-slate-800/60 transition-all disabled:opacity-30 flex items-center justify-center gap-2">
+              className="w-full py-2.5 rounded-xl text-xs font-black bg-slate-50/90 border border-slate-700/50 text-slate-400 hover:bg-slate-800/60 transition-all disabled:opacity-30 flex items-center justify-center gap-2">
               Bank Fee -$5
             </button>
             <button onClick={reset} className="w-full py-2 rounded-xl text-xs font-bold bg-slate-800/60 border border-slate-700 text-slate-500 hover:bg-slate-700 transition-all flex items-center justify-center gap-1">
@@ -216,7 +216,7 @@ export default function EventSourcing9() {
         <div className="flex-1 min-h-0 flex flex-col gap-2">
 
           <div className="shrink-0 flex items-center justify-between px-1">
-            <div className="text-xs font-bold text-slate-400">📜 Immutable Event Ledger (append-only, never overwritten)</div>
+            <div className="text-xs font-bold text-slate-400"> Immutable Event Ledger (append-only, never overwritten)</div>
             <div className="text-[9px] font-mono text-slate-600">{events.length} events total</div>
           </div>
 

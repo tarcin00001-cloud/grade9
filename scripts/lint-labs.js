@@ -37,13 +37,23 @@ function runLint() {
     process.exit(0);
   }
 
-  // Temporary: Only lint the lab currently being verified by the architect to avoid blocking progress on other pending labs
-  const files = ['ContentDeliveryNetwork9.tsx'];
+  const files = fs.readdirSync(LABS_DIR).filter(f => f.endsWith('.tsx'));
   let allPass = true;
+
+  const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/u;
 
   files.forEach(file => {
     const filePath = path.join(LABS_DIR, file);
-    if (fs.existsSync(filePath) && !lintFile(filePath)) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    
+    // Check banned words
+    if (!lintFile(filePath)) {
+      allPass = false;
+    }
+
+    // Check emojis
+    if (emojiRegex.test(content)) {
+      console.error(`❌ [LINT ERROR] Emoji found in ${filePath}`);
       allPass = false;
     }
   });

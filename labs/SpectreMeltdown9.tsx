@@ -650,7 +650,7 @@ export default function SpectreMeltdown9() {
                                 Extract Secret Byte
                               </button>
                             ) : (
-                              <span className="text-[10px] text-amber-600 font-extrabold text-center uppercase block mt-1">
+                              <span className="text-[10px] text-amber-600 font-black text-center uppercase block mt-1">
                                 Cache Miss! Probe other pages in the grid.
                               </span>
                             )}
@@ -708,7 +708,7 @@ export default function SpectreMeltdown9() {
                           }`}
                         >
                           <div className="flex flex-col items-center justify-center gap-2 h-full w-full">
-                            <span className="text-[10px] font-extrabold text-slate-400 uppercase">Page Offset</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Page Offset</span>
                             <span className="text-xl font-black text-slate-800 font-mono">{char}</span>
                             
                             {isProbed && spyProbeStatus === "done" && (

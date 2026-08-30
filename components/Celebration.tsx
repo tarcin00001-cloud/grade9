@@ -3,12 +3,26 @@ import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useWindowSize } from "react-use";
 import { AnimatePresence, motion } from "framer-motion";
-import { Sparkles, RotateCcw } from "lucide-react";
+import { Sparkles, Play, RotateCcw } from "lucide-react";
 const Confetti = dynamic(() => import("react-confetti"), { ssr: false });
 
-interface CelebrationProps { isActive: boolean; hideModal?: boolean; message?: string; onReplay?: () => void; }
+interface CelebrationProps { 
+  isActive: boolean; 
+  hideModal?: boolean; 
+  message?: string; 
+  onReplay?: () => void;
+  actionLabel?: string;
+  actionIcon?: React.ReactNode;
+}
 
-export default function Celebration({ isActive, hideModal = false, message = "Congrats! You have completed the lab.", onReplay }: CelebrationProps) {
+export default function Celebration({ 
+  isActive, 
+  hideModal = false, 
+  message = "Congrats! You have completed the lab.", 
+  onReplay,
+  actionLabel = "Play Again",
+  actionIcon
+}: CelebrationProps) {
   const { width, height } = useWindowSize(); 
   const [show, setShow] = useState(false);
 
@@ -56,10 +70,10 @@ export default function Celebration({ isActive, hideModal = false, message = "Co
               {onReplay && (
                 <button 
                   onClick={handleReplay}
-                  className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-lg shadow-md transition-transform hover:scale-105 active:scale-95"
+                  className="flex items-center justify-center gap-2 w-full bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-4 rounded-xl font-black text-lg uppercase tracking-widest shadow-md transition-transform hover:scale-105 active:scale-95"
                 >
-                  <RotateCcw size={20} />
-                  Play Again
+                  {actionIcon || <RotateCcw size={20} />}
+                  {actionLabel}
                 </button>
               )}
             </motion.div>

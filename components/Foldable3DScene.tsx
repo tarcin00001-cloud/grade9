@@ -4,6 +4,7 @@ import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, Html, Center, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
+import './configureThreeConsole';
 
 interface Foldable3DSceneProps {
   hardware: "compact" | "laptop" | "tablet";

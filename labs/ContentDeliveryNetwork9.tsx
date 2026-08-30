@@ -9,6 +9,7 @@ import LabShell from "@/components/LabShell";
 import Celebration from "@/components/Celebration";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
+import { AlertTriangle, Zap } from "lucide-react";
 
 interface StationConfig {
   id: string;
@@ -560,7 +561,7 @@ export default function ContentDeliveryNetwork9() {
             exit={{ opacity: 0, y: 10 }}
             className="absolute bottom-2 left-1/2 -translate-x-1/2 z-40 bg-amber-500 text-white font-mono font-bold text-[8.5px] sm:text-[9.5px] px-3 py-1 rounded-full shadow-lg border border-amber-300 flex items-center gap-2"
           >
-            <span>⚠️</span>
+            <AlertTriangle size={12} className="shrink-0" />
             <span>{warningMessage}</span>
           </motion.div>
         )}
@@ -631,26 +632,26 @@ function MainServerDepot({
   return (
     <div
       ref={(el) => { nodeRefs.current.server = el; }}
-      className={`relative w-full h-full min-h-0 rounded-2xl bg-gradient-to-b from-cyan-950 via-slate-800 to-cyan-900 border-4 shadow-xl p-2 sm:p-2.5 pr-3 flex flex-col justify-between items-center z-20 overflow-visible text-slate-100 transition-all duration-500 ${
+      className={`relative w-full h-full min-h-0 rounded-2xl bg-gradient-to-b from-slate-100 via-slate-200 to-slate-300 border-4 shadow-xl p-2 sm:p-2.5 pr-3 flex flex-col justify-between items-center z-20 overflow-visible text-slate-800 transition-all duration-500 ${
         isCoolAndNominal
-          ? "border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.4)]"
+          ? "border-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.35)]"
           : isOverloaded
-          ? "border-cyan-500 shadow-[0_0_22px_rgba(6,182,212,0.35)]"
-          : "border-cyan-700 shadow-[0_0_16px_rgba(6,182,212,0.2)]"
+          ? "border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]"
+          : "border-slate-400 shadow-lg"
       }`}
     >
       {/* 4 Corner Hex Bolt Screws */}
-      <div className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-cyan-800 border border-cyan-600 flex items-center justify-center shadow-xs">
-        <div className="w-1 h-0.5 bg-cyan-300 rounded-xs" />
+      <div className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center shadow-xs">
+        <div className="w-1 h-0.5 bg-slate-500 rounded-xs" />
       </div>
-      <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-800 border border-cyan-600 flex items-center justify-center shadow-xs">
-        <div className="w-1 h-0.5 bg-cyan-300 rounded-xs" />
+      <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center shadow-xs">
+        <div className="w-1 h-0.5 bg-slate-500 rounded-xs" />
       </div>
-      <div className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full bg-cyan-800 border border-cyan-600 flex items-center justify-center shadow-xs">
-        <div className="w-1 h-0.5 bg-cyan-300 rounded-xs" />
+      <div className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center shadow-xs">
+        <div className="w-1 h-0.5 bg-slate-500 rounded-xs" />
       </div>
-      <div className="absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-800 border border-cyan-600 flex items-center justify-center shadow-xs">
-        <div className="w-1 h-0.5 bg-cyan-300 rounded-xs" />
+      <div className="absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center shadow-xs">
+        <div className="w-1 h-0.5 bg-slate-500 rounded-xs" />
       </div>
 
       {/* 4 Dedicated Dual TX/RX Output Connectors Positioned at Dead-Level Station Height */}
@@ -681,7 +682,7 @@ function MainServerDepot({
 
       {/* Industrial Header with Active Dynamic Cooling Turbines */}
       <div className={`w-full rounded-lg px-2 py-1 border-b-2 shadow-sm flex items-center justify-between text-white shrink-0 transition-colors duration-500 ${
-        isCoolAndNominal ? "bg-emerald-600 border-emerald-700" : "bg-sky-600 border-sky-700"
+        isCoolAndNominal ? "bg-emerald-600 border-emerald-700" : "bg-slate-700 border-slate-800"
       }`}>
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-4 rounded-full bg-black/20 border border-white/40 flex items-center justify-center overflow-hidden shadow-inner">
@@ -706,29 +707,29 @@ function MainServerDepot({
 
         <div className="flex items-center gap-1">
           <div className={`w-2 h-2 rounded-full ${worldCelebration ? "bg-emerald-300 shadow-[0_0_6px_#10b981]" : isOverloaded ? "bg-red-400 animate-ping" : "bg-emerald-300"}`} />
-          <span className="text-[7.5px] sm:text-[8px] font-mono font-bold text-sky-100 tracking-wider">
+          <span className="text-[7.5px] sm:text-[8px] font-mono font-bold text-slate-100 tracking-wider">
             {isCoolAndNominal ? "COOL_NOMINAL" : "ORIGIN_DEPOT"}
           </span>
         </div>
       </div>
 
       <div className="w-full text-center shrink-0">
-        <h2 className="text-xs sm:text-sm font-black text-cyan-100 tracking-wider leading-none drop-shadow-sm">
+        <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-wider leading-none">
           MAIN SERVER
         </h2>
-        <span className="text-[6.5px] font-mono font-bold text-cyan-400 uppercase tracking-widest block mt-0.5">
+        <span className="text-[6.5px] font-mono font-bold text-slate-500 uppercase tracking-widest block mt-0.5">
           CENTRAL ORIGIN // US-WEST 100TB
         </span>
       </div>
 
       {/* Recessed Dial Gauge with Live Latency Number Readout */}
-      <div className="w-full bg-cyan-950/80 p-1 rounded-xl border-2 border-cyan-700 shadow-inner flex flex-col items-center relative shrink-0">
-        <div className="text-[8px] sm:text-[9px] font-black text-cyan-300 uppercase tracking-widest mb-0.5">
+      <div className="w-full bg-slate-50 p-1 rounded-xl border-2 border-slate-300 shadow-inner flex flex-col items-center relative shrink-0">
+        <div className="text-[8px] sm:text-[9px] font-black text-slate-600 uppercase tracking-widest mb-0.5">
           WAITING TIME
         </div>
 
         <svg viewBox="0 0 120 65" className="w-22 sm:w-28 md:w-32 overflow-visible">
-          <path d="M 15,60 A 45,45 0 0 1 105,60" fill="none" stroke="#164e63" strokeWidth="14" strokeLinecap="round" />
+          <path d="M 15,60 A 45,45 0 0 1 105,60" fill="none" stroke="#cbd5e1" strokeWidth="14" strokeLinecap="round" />
           <path d="M 15,60 A 45,45 0 0 1 38,24" fill="none" stroke="#10b981" strokeWidth="10" strokeLinecap="round" />
           <path d="M 38,24 A 45,45 0 0 1 82,24" fill="none" stroke="#f59e0b" strokeWidth="10" />
           <path d="M 82,24 A 45,45 0 0 1 105,60" fill="none" stroke="#ef4444" strokeWidth="10" strokeLinecap="round" />
@@ -739,12 +740,12 @@ function MainServerDepot({
             style={{ originX: "60px", originY: "60px", transformBox: "view-box", transformOrigin: "60px 60px" }}
             transition={{ type: "spring", stiffness: 50, damping: 14 }}
           >
-            <polygon points="57,60 63,60 60.8,16 59.2,16" fill="#e2e8f0" />
-            <line x1="60" y1="60" x2="60" y2="15" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+            <polygon points="57,60 63,60 60.8,16 59.2,16" fill="#1e293b" />
+            <line x1="60" y1="60" x2="60" y2="15" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
           </motion.g>
 
           {/* Static Center Pivot Cap */}
-          <circle cx="60" cy="60" r="7" fill="#0c4a6e" stroke="#38bdf8" strokeWidth="2.5" />
+          <circle cx="60" cy="60" r="7" fill="#0f172a" stroke="#cbd5e1" strokeWidth="2.5" />
         </svg>
 
         {/* Live Digital Latency Number Readout */}
@@ -768,9 +769,9 @@ function MainServerDepot({
       </div>
 
       {/* Request Queue Belt */}
-      <div className="w-full bg-cyan-950/80 rounded-lg p-1.5 border border-cyan-700 shadow-inner flex flex-col justify-center shrink-0">
+      <div className="w-full bg-slate-200/90 rounded-lg p-1.5 border border-slate-300 shadow-inner flex flex-col justify-center shrink-0">
         <div className="flex justify-between items-center px-1 mb-1">
-          <span className="text-[7.5px] sm:text-[8px] font-bold text-cyan-300 uppercase tracking-wider">REQUEST QUEUE</span>
+          <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-700 uppercase tracking-wider">REQUEST QUEUE</span>
           <span
             className={`text-[7px] sm:text-[7.5px] font-mono font-black px-1.5 py-0.2 rounded ${
               cachedCount === 0
@@ -820,9 +821,9 @@ function MainServerDepot({
               <motion.span
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="text-[7.5px] font-mono text-emerald-400 font-black mx-auto z-10 tracking-wide"
+                className="text-[7.5px] font-mono text-emerald-400 font-black mx-auto z-10 tracking-wide flex items-center gap-1"
               >
-                ⚡ QUEUE CLEARED (100% EDGE)
+                <Zap size={10} className="text-emerald-400" /> QUEUE CLEARED (100% EDGE)
               </motion.span>
             )}
           </div>
@@ -833,8 +834,8 @@ function MainServerDepot({
       </div>
 
       {/* 3 Canister Bays */}
-      <div className="w-full bg-cyan-950/80 p-1.5 rounded-xl border border-cyan-700 flex flex-col items-center shrink-0">
-        <div className="text-[8px] sm:text-[8.5px] font-bold text-cyan-300 uppercase tracking-wider mb-1">
+      <div className="w-full bg-slate-200/80 p-1.5 rounded-xl border border-slate-300 flex flex-col items-center shrink-0">
+        <div className="text-[8px] sm:text-[8.5px] font-bold text-slate-700 uppercase tracking-wider mb-1">
           STORAGE CANISTERS ({availableCopies}/3 READY)
         </div>
 
@@ -938,7 +939,7 @@ function VerticalStationModule({
       <div className="absolute top-1 left-2.5 flex items-center gap-1.5 text-[7px] sm:text-[7.5px] font-mono font-black tracking-wider">
         <span className={isFullyActive ? "text-emerald-700" : "text-slate-500"}>{station.sectorTag}</span>
         <span className={`px-1 py-0.2 rounded font-bold ${isFullyActive ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-600 border border-slate-200"}`}>
-          {isFullyActive ? "⚡ 0ms EDGE HIT" : "TX/RX FETCH"}
+          {isFullyActive ? "0ms EDGE HIT" : "TX/RX FETCH"}
         </span>
       </div>
 

@@ -28,7 +28,7 @@ interface ArchConfig {
   dbCount: number;
 }
 
-// ─── Build configuration to nodes Array ────────────────────────────────────────
+// ─── Build configuration to nodes collection ────────────────────────────────────────
 
 function buildNodes(cfg: ArchConfig): ServerNode[] {
   const nodes: ServerNode[] = [];
@@ -151,7 +151,7 @@ function ArchSVG({
               filter={!isDead && !isBombing ? "url(#glow-chaos2)" : undefined}
             />
             <text x={node.x} y={node.y - 4} fill={isDead ? "#fb7185" : "#fff"} fontSize={11} fontWeight="bold" textAnchor="middle">{node.label}</text>
-            {isDead && <text x={node.x} y={node.y + 12} fill="#f43f5e" fontSize={9} fontWeight="bold" textAnchor="middle">DEAD 💀</text>}
+            {isDead && <text x={node.x} y={node.y + 12} fill="#f43f5e" fontSize={9} fontWeight="bold" textAnchor="middle">DEAD </text>}
             {!isDead && isBombing && <text x={node.x} y={node.y + 12} fill="#f59e0b" fontSize={9} fontWeight="black" textAnchor="middle" className="animate-pulse">TARGET</text>}
             {!isDead && !isBombing && <text x={node.x} y={node.y + 12} fill="#34d399" fontSize={8} textAnchor="middle">HEALTHY</text>}
           </motion.g>
@@ -162,7 +162,7 @@ function ArchSVG({
       {!isUp && nodes.length > 0 && (
         <g>
           <rect x={0} y={0} width={760} height={440} fill="rgba(0,0,0,0.7)"/>
-          <text x={380} y={210} fill="#f43f5e" fontSize={28} fontWeight="black" textAnchor="middle" filter="url(#glow-chaos2)">⚠ SYSTEM DOWN</text>
+          <text x={380} y={210} fill="#f43f5e" fontSize={28} fontWeight="black" textAnchor="middle" filter="url(#glow-chaos2)"> SYSTEM DOWN</text>
           <text x={380} y={240} fill="#fb7185" fontSize={14} textAnchor="middle">Single point of failure eliminated all traffic</text>
         </g>
       )}
@@ -264,7 +264,7 @@ export default function ChaosEngineering9() {
             <>
               {/* Architecture Builder */}
               <div className="panel-glass rounded-2xl border-violet-900/40 p-4 flex flex-col gap-4">
-                <div className="text-xs font-bold text-violet-300">⚙ Design Your Architecture</div>
+                <div className="text-xs font-bold text-violet-300"> Design Your Architecture</div>
 
                 {(["lbCount", "appCount", "dbCount"] as const).map(key => {
                   const labels = { lbCount: "Load Balancers", appCount: "App Servers", dbCount: "Databases" };
@@ -336,7 +336,7 @@ export default function ChaosEngineering9() {
 
                 {!isUp && (
                   <div className="p-2.5 rounded-xl bg-rose-950/50 border border-rose-700/50 text-xs text-rose-300 text-center font-bold">
-                    ⚠ System down! {!hasRedundancy && "You had no redundancy."}
+                     System down! {!hasRedundancy && "You had no redundancy."}
                   </div>
                 )}
               </div>

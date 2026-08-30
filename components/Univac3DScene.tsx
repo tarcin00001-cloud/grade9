@@ -3,6 +3,7 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Html, ContactShadows, Environment, useGLTF } from '@react-three/drei';
+import './configureThreeConsole';
 
 type ComponentId = "tubes" | "drives" | "memory" | "printer";
 

@@ -39,7 +39,7 @@ export default function AdvancedAlgorithms24() {
     if (bsPhase === 'select_mid') {
       if (idx !== correctMid) {
         if (playError) playError();
-        setErrorMsg("Binary Search always picks the exact middle element of the remaining Array!");
+        setErrorMsg("Binary Search always picks the exact middle element of the remaining items!");
         return;
       }
       // Correct mid
@@ -125,7 +125,7 @@ export default function AdvancedAlgorithms24() {
 
     if (val !== minVal) {
       if (playError) playError();
-      setErrorMsg("Merge Sort always picks the lowest available number from either pile to build the Ordered Array!");
+      setErrorMsg("Merge Sort always picks the lowest available number from either pile to build the Ordered list!");
       return;
     }
 
@@ -208,7 +208,7 @@ export default function AdvancedAlgorithms24() {
   const getChallengeQuestion = () => {
     if (currentLevel === 0) {
       if (bsPhase === 'select_mid') return "Question: We need to find the number 42. What is the first step in Binary Search? (Click the exact middle element)";
-      if (bsPhase === 'discard') return `Question: The middle is ${bsArr[bsMid]}. 42 is ${42 > bsArr[bsMid] ? 'larger' : 'smaller'} than ${bsArr[bsMid]}. Which half of the Array should we discard? (Click the half to discard)`;
+      if (bsPhase === 'discard') return `Question: The middle is ${bsArr[bsMid]}. 42 is ${42 > bsArr[bsMid] ? 'larger' : 'smaller'} than ${bsArr[bsMid]}. Which half of the numbers should we discard? (Click the half to discard)`;
       return "Success! You found 42 in O(log n) time.";
     }
     if (currentLevel === 1) return "Question: Find Node 6 using Depth-First Search. Can you click the nodes in the exact order DFS would visit them? (Remember: Go deep first!)";
@@ -370,11 +370,11 @@ export default function AdvancedAlgorithms24() {
                     </div>
                   </div>
                   
-                  {/* Merged Array */}
+                  {/* Merged List */}
                   <div className="flex gap-2 bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-500/50 shadow-xl min-h-[100px] w-[300px] justify-center items-center">
                     <AnimatePresence>
                       {mergeMerged.length === 0 && (
-                        <div className="text-slate-600 font-bold uppercase tracking-widest text-sm">Merged Array</div>
+                        <div className="text-slate-600 font-bold uppercase tracking-widest text-sm">Merged List</div>
                       )}
                       {mergeMerged.map((num) => (
                         <motion.div 

@@ -118,7 +118,7 @@ export default function JwtTokens9() {
     ? "bg-emerald-950/60 border-emerald-700/50 text-emerald-300"
     : step === "VERIFYING"
     ? "bg-violet-950/60 border-violet-700/50 text-violet-300"
-    : "bg-slate-900/60 border-slate-800 text-slate-400";
+    : "bg-slate-50/90 border-slate-800 text-slate-400";
 
   return (
     <LabShell labId="jwttokens9" theme="cosmos" title="JSON Web Tokens (JWT)" subtitle="L45 · Cryptography"
@@ -187,7 +187,7 @@ export default function JwtTokens9() {
               <div className="text-violet-300">{"}"}</div>
               {isTampered && (
                 <div className="mt-2 px-2 py-1 bg-rose-950/50 border border-rose-700/40 rounded text-rose-400 text-[10px] font-bold">
-                  ⚠ Payload modified! Signature now INVALID.
+                   Payload modified! Signature now INVALID.
                 </div>
               )}
             </SegmentCard>
@@ -265,7 +265,7 @@ export default function JwtTokens9() {
                       <div>Expected: <span className="text-cyan-400">{REAL_SIG}</span></div>
                       <div>Received: <span className={isTampered ? "text-rose-400" : "text-cyan-400"}>{signatureDisplay}</span></div>
                       <div className={`font-bold mt-1 text-sm ${step === "REJECTED" ? "text-rose-400" : "text-emerald-400"}`}>
-                        {step === "REJECTED" ? "✕ MISMATCH — Token tampered! Access denied." : "✓ MATCH — Token authentic! Welcome, Alice."}
+                        {step === "REJECTED" ? " MISMATCH — Token tampered! Access denied." : " MATCH — Token authentic! Welcome, Alice."}
                       </div>
                     </div>
                   )}
@@ -298,8 +298,8 @@ export default function JwtTokens9() {
           <div className={`shrink-0 rounded-xl p-2.5 text-xs font-mono text-center transition-all border ${statusBg}`}>
             {step === "EXPLORE" && "← Explore the JWT structure. Try editing the Payload fields, then send to the server."}
             {step === "VERIFYING" && "→ Server is re-hashing the token to verify its authenticity..."}
-            {step === "REJECTED" && "✕ REJECTED — Signature mismatch. You edited the payload but cannot re-sign without the server secret!"}
-            {step === "ACCEPTED" && "✓ ACCEPTED — Valid token. Welcome, Alice! (Try editing the payload now and re-sending.)"}
+            {step === "REJECTED" && " REJECTED — Signature mismatch. You edited the payload but cannot re-sign without the server secret!"}
+            {step === "ACCEPTED" && " ACCEPTED — Valid token. Welcome, Alice! (Try editing the payload now and re-sending.)"}
           </div>
 
           <button onClick={reset} className="shrink-0 w-full py-2 rounded-xl text-xs font-bold bg-slate-800/60 border border-slate-700 text-slate-400 hover:bg-slate-700 transition-all flex items-center justify-center gap-1.5">

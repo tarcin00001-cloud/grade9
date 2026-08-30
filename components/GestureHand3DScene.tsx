@@ -5,6 +5,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, useGLTF, Html, Float, Center, Bounds, Sphere, Cylinder, Grid } from '@react-three/drei';
 import * as THREE from 'three';
 import { Target } from 'lucide-react';
+import './configureThreeConsole';
 
 export type GestureType = 'idle' | 'fist' | 'point' | 'open';
 

@@ -149,7 +149,7 @@ const CyberConsole = ({
 }) => {
   return (
     <div className="relative border-2 border-slate-800 bg-sky-100 rounded-[32px] p-5 shadow-none flex flex-col min-h-0 overflow-visible transition-all">
-      <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b-4 border-black font-sans text-base md:text-lg text-sky-950 uppercase tracking-wider font-extrabold">
+      <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b-4 border-black font-sans text-base md:text-lg text-sky-950 uppercase tracking-wider font-black">
         <span>{title}</span>
         <div className="flex items-center gap-2">
           <span className="text-xs md:text-sm font-black text-sky-800">MEM_MANAGER</span>
@@ -231,20 +231,20 @@ export default function VirtualMem9() {
   const fetchFromDisk = (program: string) => {
     if (gameDesk.length >= 3) {
       playError();
-      setGameMessage("❌ Workbench Full! Page out an active program first.");
+      setGameMessage(" Workbench Full! Page out an active program first.");
       return;
     }
     playPop();
     setGameDesk(prev => [...prev, program]);
     setGameFaults(prev => prev + 1);
     setHasSwapped(true);
-    setGameMessage(`✓ Loaded '${program}' from Disk (Page Fault generated).`);
+    setGameMessage(` Loaded '${program}' from Disk (Page Fault generated).`);
   };
 
   const pageIn = (program: string) => {
     if (gameDesk.length >= 3) {
       playError();
-      setGameMessage("❌ Workbench Full! Page out an active program first.");
+      setGameMessage(" Workbench Full! Page out an active program first.");
       return;
     }
     playPop();
@@ -252,19 +252,19 @@ export default function VirtualMem9() {
     setGameStorage(prev => prev.filter(p => p !== program));
     setGameFaults(prev => prev + 1);
     setHasSwapped(true);
-    setGameMessage(`✓ Paged in '${program}' from storage (Page Fault generated).`);
+    setGameMessage(` Paged in '${program}' from storage (Page Fault generated).`);
   };
 
   const pageOut = (program: string) => {
     if (gameStorage.length >= 5) {
       playError();
-      setGameMessage("❌ Storage Box Full! Clear space or execute active programs.");
+      setGameMessage(" Storage Box Full! Clear space or execute active programs.");
       return;
     }
     playDrop();
     setGameStorage(prev => [...prev, program]);
     setGameDesk(prev => prev.filter(p => p !== program));
-    setGameMessage(`✓ Paged out '${program}' to storage.`);
+    setGameMessage(` Paged out '${program}' to storage.`);
   };
 
   const runActiveProcess = () => {
@@ -277,9 +277,9 @@ export default function VirtualMem9() {
     let message = "";
     if (!hasSwapped) {
       setGameHits(prev => prev + 1);
-      message = `⚡ RAM Hit! Processed '${currentReq}' instantly from physical RAM.`;
+      message = ` RAM Hit! Processed '${currentReq}' instantly from physical RAM.`;
     } else {
-      message = `✓ Completed '${currentReq}' after swapping from disk/storage.`;
+      message = ` Completed '${currentReq}' after swapping from disk/storage.`;
     }
 
     playSuccess();
@@ -287,7 +287,7 @@ export default function VirtualMem9() {
     if (gameIndex + 1 >= GAME_QUEUE.length) {
       setGameFinished(true);
       setGameIndex(prev => prev + 1);
-      setGameMessage("🎉 Success! All processes successfully mapped and executed. Tab 2 unlocked!");
+      setGameMessage(" Success! All processes successfully mapped and executed. Tab 2 unlocked!");
     } else {
       const nextIndex = gameIndex + 1;
       setGameIndex(nextIndex);
@@ -761,7 +761,7 @@ export default function VirtualMem9() {
                               : "bg-slate-50 text-slate-700 border-slate-200"
                           }`}
                         >
-                          {isCompleted ? "✓ " : isActive ? "▶ " : ""}
+                          {isCompleted ? " " : isActive ? "▶ " : ""}
                           {program}
                         </div>
                       );
@@ -774,12 +774,12 @@ export default function VirtualMem9() {
                   <div className="toy-panel bg-emerald-950/30 border-2 border-emerald-500/50 text-green-700 p-3 rounded-3xl shadow-none flex flex-col items-center justify-center">
                     <span className="text-[10px] font-black uppercase text-emerald-400 mb-1">RAM Hits</span>
                     <span className="text-2xl font-black">{gameHits}</span>
-                    <span className="text-[9px] font-bold text-emerald-400/80 mt-0.5">⚡ 0.1ns Speed</span>
+                    <span className="text-[9px] font-bold text-emerald-400/80 mt-0.5"> 0.1ns Speed</span>
                   </div>
                   <div className="toy-panel bg-amber-50 border-2 border-amber-500 text-amber-700 p-3 rounded-3xl shadow-none flex flex-col items-center justify-center">
                     <span className="text-[10px] font-black uppercase text-amber-600 mb-1">Page Faults</span>
                     <span className="text-2xl font-black">{gameFaults}</span>
-                    <span className="text-[9px] font-bold text-amber-600/80 mt-0.5">🐢 12,000ns Speed</span>
+                    <span className="text-[9px] font-bold text-amber-600/80 mt-0.5"> 12,000ns Speed</span>
                   </div>
                 </div>
               </div>
@@ -825,7 +825,7 @@ export default function VirtualMem9() {
                             onClick={runActiveProcess}
                             className="w-full toy-btn-action bg-emerald-600 hover:bg-green-400 text-white py-3.5 uppercase font-black text-base flex items-center justify-center gap-2 border-2 border-slate-800 rounded-2xl shadow-none active:translate-y-1 active:shadow-none transition-all"
                           >
-                            ⚡ Run Process
+                             Run Process
                           </button>
                         ) : gameStorage.includes(GAME_QUEUE[gameIndex]) ? (
                           <div className="flex flex-col gap-1.5">
@@ -835,7 +835,7 @@ export default function VirtualMem9() {
                             >
                               Run Process Locked
                             </button>
-                            <span className="text-[10px] text-amber-600 font-extrabold text-center uppercase">
+                            <span className="text-[10px] text-amber-600 font-black text-center uppercase">
                               Click '{GAME_QUEUE[gameIndex]}' in Storage to Page In!
                             </span>
                           </div>
@@ -844,7 +844,7 @@ export default function VirtualMem9() {
                             onClick={() => fetchFromDisk(GAME_QUEUE[gameIndex])}
                             className="w-full toy-btn-action bg-violet-600 hover:bg-purple-400 text-white py-3.5 uppercase font-black text-base flex items-center justify-center gap-2 border-2 border-slate-800 rounded-2xl shadow-none active:translate-y-1 active:shadow-none transition-all"
                           >
-                            📥 Fetch from Disk Source
+                             Fetch from Disk Source
                           </button>
                         )}
                       </div>
@@ -900,7 +900,7 @@ export default function VirtualMem9() {
                           >
                             {program ? (
                               <div className="flex flex-col items-center justify-between h-full w-full gap-2">
-                                <span className="text-xs font-extrabold text-slate-700 uppercase tracking-widest">
+                                <span className="text-xs font-black text-slate-700 uppercase tracking-widest">
                                   Frame {slotIdx}
                                 </span>
                                 <span className="text-sm font-black text-slate-800 uppercase leading-snug truncate max-w-full">
@@ -910,7 +910,7 @@ export default function VirtualMem9() {
                                   onClick={() => pageOut(program)}
                                   className="w-full py-1.5 bg-rose-100 hover:bg-rose-200 border-2 border-black rounded-lg text-[10px] font-black uppercase tracking-wider text-rose-700 flex items-center justify-center gap-1"
                                 >
-                                  Page Out ➔
+                                  Page Out 
                                 </button>
                               </div>
                             ) : (
@@ -949,7 +949,7 @@ export default function VirtualMem9() {
                           >
                             {program ? (
                               <div className="flex flex-col items-center justify-between h-full w-full gap-1.5">
-                                <span className="text-[9px] font-extrabold text-slate-700 uppercase tracking-widest">
+                                <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">
                                   Swap {slotIdx}
                                 </span>
                                 <span className="text-[11px] font-black text-slate-800 uppercase leading-snug break-words max-w-full">
@@ -959,7 +959,7 @@ export default function VirtualMem9() {
                                   onClick={() => pageIn(program)}
                                   className="w-full py-1 bg-emerald-900/40 hover:bg-green-200 border-2 border-black rounded-lg text-[9px] font-black uppercase tracking-wider text-green-700 flex items-center justify-center gap-1"
                                 >
-                                  Page In ➔
+                                  Page In 
                                 </button>
                               </div>
                             ) : (
@@ -995,7 +995,7 @@ export default function VirtualMem9() {
 
                     <div className="flex flex-col gap-1.5 bg-violet-950/30 p-4 border-2 border-slate-800 rounded-2xl shadow-none">
                       <div className="flex justify-between items-center text-sm font-bold text-slate-700">
-                        <span className="font-extrabold text-sm uppercase">Memory Pressure:</span>
+                        <span className="font-black text-sm uppercase">Memory Pressure:</span>
                         <span className="text-violet-400 uppercase font-black text-base bg-white border-2 border-black px-2.5 py-0.5 rounded-xl">
                           {memoryAllocation} GB / 8 GB RAM
                         </span>
@@ -1136,7 +1136,7 @@ export default function VirtualMem9() {
                       <div>
                         <span className="text-slate-500 block text-xs font-bold mb-0.5">System Performance</span>
                         <span className={`text-base font-black ${thrashingActive ? "text-rose-400 animate-pulse" : "text-emerald-400"}`}>
-                          {thrashingActive ? "💥 THRASHING DETECTED" : "✅ NORMAL"}
+                          {thrashingActive ? " THRASHING DETECTED" : " NORMAL"}
                         </span>
                       </div>
                     </div>
@@ -1189,7 +1189,7 @@ export default function VirtualMem9() {
                                     isMapped ? "border-green-600 bg-emerald-950/30" : "border-black"
                                   }`}
                                 >
-                                  <span className="font-extrabold text-sm">Virtual Page {vpn}</span>
+                                  <span className="font-black text-sm">Virtual Page {vpn}</span>
                                   {isMapped ? (
                                     <span className="text-xs font-black text-green-700 bg-green-200 border-2 border-green-700 px-2 py-0.5 rounded-lg">
                                       Frame {translationMappings[vpn]}
@@ -1301,7 +1301,7 @@ export default function VirtualMem9() {
                             <div className="font-mono text-xs font-bold text-slate-700 flex flex-col gap-1">
                               <div>• Page 2: accessed 1s ago</div>
                               <div>• Page 3: accessed 5s ago</div>
-                              <div className="text-sky-900 font-extrabold">• Page 1: accessed 20s ago</div>
+                              <div className="text-sky-900 font-black">• Page 1: accessed 20s ago</div>
                             </div>
                           </div>
 

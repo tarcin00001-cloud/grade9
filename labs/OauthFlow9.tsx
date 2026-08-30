@@ -198,7 +198,7 @@ export default function OauthFlow9() {
                        <h2 className="text-xl font-black text-blue-400">Google OAuth</h2>
                        <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl text-sm text-slate-300">
                           <strong>super-sketchy-game.com</strong> wants to access your:
-                          <ul className="Array-disc text-left pl-6 mt-2 text-emerald-400 font-bold">
+                          <ul className="list-disc text-left pl-6 mt-2 text-emerald-400 font-bold">
                              <li>Name</li>
                              <li>Email Address</li>
                           </ul>

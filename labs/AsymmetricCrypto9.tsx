@@ -1,240 +1,248 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { ShieldAlert, KeyRound, ArrowRight, Lock, Unlock } from "lucide-react";
+import { Lock, Unlock, Key, KeyRound, ShieldAlert, AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 
-// ─── SVG Asymmetric Crypto Architecture ───────────────────────────────────────
-
-function CryptoSVG({
-  phase
-}: {
-  phase: "IDLE" | "ALICE_LOCK" | "TRANSIT" | "ATTACKER" | "BOB_UNLOCK" | "DONE"
-}) {
-  return (
-    <svg viewBox="0 0 900 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <filter id="glow-key">
-          <feGaussianBlur stdDeviation="4" result="b" />
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="glow-danger">
-          <feGaussianBlur stdDeviation="6" result="b" />
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <pattern id="gridCrypto" width="40" height="40" patternUnits="userSpaceOnUse">
-          <rect width="40" height="40" fill="none" stroke="#1e293b" strokeWidth="0.5"/>
-        </pattern>
-        <linearGradient id="laser" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity="0" />
-          <stop offset="50%" stopColor="#ef4444" stopOpacity="1" />
-          <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
-
-
-      {/* ── 1. Alice (Sender) ── */}
-      <g transform="translate(50, 100)">
-        <rect x="0" y="0" width="200" height="300" fill="#0f172a" rx="16" stroke="#ec4899" strokeWidth="3" />
-        <text x="100" y="35" fill="#fbcfe8" fontSize="18" fontWeight="black" textAnchor="middle">Alice's Computer</text>
-        
-        {/* Bob's Public Key (Floating component to be "used") */}
-        <g transform={phase === "IDLE" ? "translate(20, 60)" : "translate(20, -500)"} style={{ transition: "all 0.5s ease" }}>
-           <rect width="160" height="50" fill="#1e1b4b" rx="25" stroke="#d946ef" strokeWidth="2" filter="url(#glow-key)" />
-           <circle cx="25" cy="25" r="15" fill="#d946ef" />
-           <path d="M 25,18 C 25,12 35,12 35,18 L 35,22 L 20,22 L 20,18 Z M 20,22 L 40,22 L 40,32 L 20,32 Z" fill="#fff" transform="translate(-10, -5)" />
-           <text x="100" y="30" fill="#a5b4fc" fontSize="12" fontWeight="bold" textAnchor="middle">Bob's Public Key</text>
-        </g>
-
-        {/* Message Box */}
-        <rect x="40" y="150" width="120" height="100" fill="#1e293b" rx="8" stroke="#cbd5e1" strokeWidth="2" />
-        <text x="100" y="205" fill="#fff" fontSize="16" fontWeight="bold" textAnchor="middle">"Hello Bob!"</text>
-        
-        {/* Lock Animation */}
-        <AnimatePresence>
-          {(phase === "ALICE_LOCK" || phase === "TRANSIT" || phase === "ATTACKER" || phase === "BOB_UNLOCK" || phase === "DONE") && (
-             <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }}>
-               <rect x="80" y="190" width="40" height="30" fill="#d946ef" rx="4" filter="url(#glow-key)" />
-               <path d="M 90,190 C 90,170 110,170 110,190" fill="none" stroke="#d946ef" strokeWidth="6" />
-               <text x="100" y="210" fill="#fff" fontSize="10" fontWeight="bold" textAnchor="middle">LOCKED</text>
-             </motion.g>
-          )}
-        </AnimatePresence>
-      </g>
-
-      {/* ── 2. The Internet (Transit) ── */}
-      <g transform="translate(250, 250)">
-        <path d="M 0,0 L 400,0" fill="none" stroke="#334155" strokeWidth="12" strokeDasharray="20 10" className="animate-[dash_1s_linear_infinite]" />
-      </g>
-
-      {/* Animated Message in Transit */}
-      <AnimatePresence>
-        {(phase === "TRANSIT" || phase === "ATTACKER") && (
-          <motion.g 
-            initial={{ x: 250, y: 200 }} 
-            animate={{ x: phase === "ATTACKER" ? 400 : 650, y: phase === "ATTACKER" ? 120 : 200 }} 
-            transition={{ duration: 1.5, ease: "easeInOut" }}
-          >
-            <rect x="0" y="0" width="80" height="60" fill="#1e293b" rx="6" stroke="#d946ef" strokeWidth="3" filter="url(#glow-key)" />
-            <rect x="20" y="15" width="40" height="30" fill="#d946ef" rx="4" />
-            <path d="M 30,15 C 30,-5 50,-5 50,15" fill="none" stroke="#d946ef" strokeWidth="6" />
-            <text x="40" y="60" fill="#d946ef" fontSize="12" fontWeight="black" textAnchor="middle">ENCRYPTED</text>
-          </motion.g>
-        )}
-      </AnimatePresence>
-
-      {/* ── 3. Eve (Attacker) ── */}
-      <g transform="translate(350, 20)">
-        <rect x="0" y="0" width="180" height="120" fill="#2a111a" rx="12" stroke="#e11d48" strokeWidth="3" />
-        <text x="90" y="30" fill="#fda4af" fontSize="14" fontWeight="black" textAnchor="middle">Eve (Attacker)</text>
-        
-        {/* Attacker Intercept & Laser Attack */}
-        {phase === "ATTACKER" && (
-          <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            {/* Tractor beam pulling data */}
-            <path d="M 90,120 L 50,220 L 130,220 Z" fill="url(#laser)" opacity="0.3" className="animate-pulse" />
-            
-            <rect x="10" y="50" width="160" height="60" fill="#4c0519" rx="6" stroke="#f43f5e" strokeWidth="2" />
-            <text x="90" y="75" fill="#fb7185" fontSize="10" fontWeight="bold" textAnchor="middle">BRUTE FORCE DECRYPT</text>
-            <text x="90" y="95" fill="#fca5a5" fontSize="14" fontFamily="monospace" fontWeight="black" textAnchor="middle" filter="url(#glow-danger)">ERROR: NO PRIV_KEY</text>
-          </motion.g>
-        )}
-      </g>
-
-      {/* ── 4. Bob (Receiver) ── */}
-      <g transform="translate(650, 100)">
-        <rect x="0" y="0" width="200" height="300" fill="#0f172a" rx="16" stroke="#d946ef" strokeWidth="3" />
-        <text x="100" y="35" fill="#93c5fd" fontSize="18" fontWeight="black" textAnchor="middle">Bob's Computer</text>
-        
-        {/* Bob's Private Key */}
-        <g transform={phase === "BOB_UNLOCK" ? "translate(20, 60)" : phase === "DONE" ? "translate(20, -500)" : "translate(20, 60)"} style={{ transition: "all 0.5s ease" }}>
-           <rect width="160" height="50" fill="#1e3a8a" rx="25" stroke="#10b981" strokeWidth="2" filter="url(#glow-key)" />
-           <circle cx="25" cy="25" r="15" fill="#34d399" />
-           <path d="M 25,18 C 25,12 35,12 35,18 L 35,22 L 20,22 L 20,18 Z" fill="none" stroke="#fff" strokeWidth="3" transform="translate(-10, -5)" />
-           <path d="M 20,22 L 40,22 L 40,32 L 20,32 Z" fill="#fff" transform="translate(-10, -5)" />
-           <text x="100" y="30" fill="#6ee7b7" fontSize="12" fontWeight="bold" textAnchor="middle">Bob's Private Key</text>
-        </g>
-
-        {/* Message Box Arrived */}
-        <AnimatePresence>
-          {(phase === "BOB_UNLOCK" || phase === "DONE") && (
-            <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <rect x="40" y="150" width="120" height="100" fill="#1e293b" rx="8" stroke={phase === "DONE" ? "#10b981" : "#cbd5e1"} strokeWidth="2" />
-              
-              {phase === "BOB_UNLOCK" ? (
-                <g>
-                  <rect x="80" y="190" width="40" height="30" fill="#d946ef" rx="4" filter="url(#glow-key)" />
-                  <path d="M 90,190 C 90,170 110,170 110,190" fill="none" stroke="#d946ef" strokeWidth="6" />
-                </g>
-              ) : (
-                <g>
-                  <text x="100" y="205" fill="#fff" fontSize="16" fontWeight="bold" textAnchor="middle">"Hello Bob!"</text>
-                  <rect x="80" y="210" width="40" height="30" fill="#34d399" rx="4" filter="url(#glow-key)" />
-                  <path d="M 90,210 C 90,190 110,190 110,210" fill="none" stroke="#10b981" strokeWidth="6" strokeDasharray="4 4" />
-                </g>
-              )}
-            </motion.g>
-          )}
-        </AnimatePresence>
-
-      </g>
-    </svg>
-  );
-}
-
-// ─── Main Component ─────────────────────────────────────────────────────────────
+type Step = 
+  | "LEARN" 
+  | "TRY" 
+  | "FAIL" 
+  | "UNDERSTAND" 
+  | "IMPROVE" 
+  | "COMPLETE" 
+  | "OUTCOME";
 
 export default function AsymmetricCrypto9() {
   const { reportComplete } = useLMSBridge("asymmetriccrypto9");
   const { playPop, playSuccess, playZap, playError, playChime } = useLabAudio();
 
-  const [phase, setPhase] = useState<"IDLE" | "ALICE_LOCK" | "TRANSIT" | "ATTACKER" | "BOB_UNLOCK" | "DONE">("IDLE");
-  const [hasWon, setHasWon] = useState(false);
-
-  const step1_encrypt = () => {
-    if (phase !== "IDLE") return;
-    playZap();
-    setPhase("ALICE_LOCK");
-  };
-
-  const step2_transmit = () => {
-    if (phase !== "ALICE_LOCK") return;
-    playPop();
-    setPhase("TRANSIT");
-    
-    setTimeout(() => {
-      playError();
-      setPhase("ATTACKER");
-      
-      setTimeout(() => {
-        playPop();
-        setPhase("BOB_UNLOCK");
-      }, 2000);
-    }, 1500);
-  };
-
-  const step3_decrypt = () => {
-    if (phase !== "BOB_UNLOCK") return;
-    playChime();
-    setPhase("DONE");
-    setHasWon(true);
-    setTimeout(reportComplete, 1500);
-  };
+  const [step, setStep] = useState<Step>("LEARN");
+  const [decryptedText, setDecryptedText] = useState("****************");
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const resetLab = () => {
-    setPhase("IDLE");
-    setHasWon(false);
+    setStep("LEARN");
+    setDecryptedText("****************");
+    if (intervalRef.current) clearInterval(intervalRef.current);
     if (playPop) playPop();
   };
 
+  const scrambleText = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      let str = "";
+      for(let i=0; i<16; i++) {
+        str += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      setDecryptedText(str);
+    }, 50);
+  };
+
+  const stopScramble = (finalText: string) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setDecryptedText(finalText);
+  };
+
+  const handleNext = () => {
+    playPop();
+    if (step === "LEARN") setStep("TRY");
+    else if (step === "FAIL") setStep("UNDERSTAND");
+    else if (step === "UNDERSTAND") setStep("IMPROVE");
+  };
+
+  const handleTryDecrypt = () => {
+    playZap();
+    scrambleText();
+    setTimeout(() => {
+      playError();
+      stopScramble("8F#2A!9K@1L$P30Z");
+      setStep("FAIL");
+    }, 2000);
+  };
+
+  const handleImproveDecrypt = () => {
+    playChime();
+    scrambleText();
+    setStep("COMPLETE");
+    setTimeout(() => {
+      playSuccess();
+      stopScramble("TOP_SECRET_PLANS");
+      setStep("OUTCOME");
+      setTimeout(() => {
+        reportComplete();
+      }, 4500);
+    }, 2500);
+  };
+
+  // cleanup
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
   return (
-    <LabShell labId="asymmetriccrypto9" theme="studio" title="Asymmetric Cryptography"
-      instruction="1. Learn the concepts of public and private keys in asymmetric cryptography. 2. Generate a key pair and share the public key in the simulation. 3. Encrypt a secret message using the recipient's public key. 4. Decrypt the received message using your private key to reveal the text." compact
-      onReset={resetLab}>
-      
-      <Celebration isActive={hasWon} message="Secure Transmission! You physically stepped through the cryptography that protects the entire internet." onReplay={resetLab} />
+    <LabShell 
+      labId="asymmetriccrypto9" 
+      theme="cosmos" 
+      title="Asymmetric Cryptography"
+      instruction="Understand Public Key Infrastructure (PKI). Public keys lock, Private keys unlock." 
+      compact
+      onReset={resetLab}
+    >
+      <Celebration 
+        isActive={step === "OUTCOME"} 
+        message="Decryption successful! You revealed the hidden message using the Private Key." 
+        onReplay={resetLab} 
+      />
 
-      <div className="w-full flex flex-col flex-1 min-h-0 pt-1 gap-3">
+      <div className="flex-1 flex flex-col h-full bg-slate-950/40 text-slate-200 rounded-3xl p-4 overflow-hidden border border-indigo-900/30 shadow-inner">
         
-        {/* Interactive Step Controls */}
-        <div className="shrink-0 bg-white rounded-2xl border-2 border-slate-800/20 shadow-none p-4 flex flex-col md:flex-row items-center justify-between gap-3">
-          
-          <button 
-            onClick={step1_encrypt} 
-            disabled={phase !== "IDLE"}
-            className={`flex-1 rounded-xl p-3 font-black text-sm flex items-center justify-center gap-2 transition-all w-full border-2 ${phase === "IDLE" ? "bg-fuchsia-500/20 border-fuchsia-500/50 text-fuchsia-700 hover:scale-[1.02]" : "bg-white border-slate-400 text-slate-700 hover:bg-slate-200"}`}
-          >
-            <Lock size={16}/> 1. Apply Public Key
-          </button>
-          
-          <button 
-            onClick={step2_transmit} 
-            disabled={phase !== "ALICE_LOCK"}
-            className={`flex-1 rounded-xl p-3 font-black text-sm flex items-center justify-center gap-2 transition-all w-full border-2 ${phase === "ALICE_LOCK" ? "bg-pink-500/20 border-pink-500/50 text-pink-700 hover:scale-[1.02]" : "bg-white border-slate-400 text-slate-700 hover:bg-slate-200"}`}
-          >
-            <ArrowRight size={16}/> 2. Transmit Packet
-          </button>
-          
-          <button 
-            onClick={step3_decrypt} 
-            disabled={phase !== "BOB_UNLOCK"}
-            className={`flex-1 rounded-xl p-3 font-black text-sm flex items-center justify-center gap-2 transition-all w-full border-2 ${phase === "BOB_UNLOCK" ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-700 hover:scale-[1.02]" : "bg-white border-slate-400 text-slate-700 hover:bg-slate-200"}`}
-          >
-            <Unlock size={16}/> 3. Apply Private Key
-          </button>
-
+        {/* Header Section */}
+        <div className="flex items-center justify-between mb-4 px-2">
+           <h2 className="text-xl font-bold text-indigo-300">Decryption Terminal</h2>
+           <div className="text-sm font-mono text-slate-500">
+              TARGET: ALICE_SYSTEM
+           </div>
         </div>
 
-        {/* Main SVG Area */}
-        <div className="flex-1 bg-white rounded-3xl overflow-x-auto overflow-y-hidden relative border-2 border-slate-800/20 shadow-none flex items-center justify-center">
-          <div className="w-full max-w-5xl aspect-[2.2] min-w-[800px]">
-            <CryptoSVG phase={phase} />
-          </div>
+        {/* Central Viz */}
+        <div className="flex-1 relative flex flex-col items-center justify-center p-4">
+           {/* Message Box */}
+           <motion.div 
+             className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-xl p-6 mb-8 relative shadow-xl"
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+           >
+              <div className="absolute -top-3 left-4 bg-slate-900 px-2 text-xs font-bold text-indigo-400 tracking-wider rounded">ENCRYPTED PAYLOAD</div>
+              <div className="font-mono text-center text-2xl tracking-[0.2em] break-all h-16 flex items-center justify-center bg-black/50 rounded-lg text-emerald-400 border border-emerald-900/30">
+                 {decryptedText}
+              </div>
+           </motion.div>
+
+           {/* Keys Area */}
+           <div className="flex gap-8 justify-center w-full">
+              {/* Public Key */}
+              <motion.div 
+                className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-500 ${
+                  (step === "TRY" || step === "FAIL") 
+                    ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.2)]" 
+                    : "border-slate-800 bg-slate-900/50 opacity-50"
+                }`}
+              >
+                <div className="w-16 h-16 rounded-full bg-emerald-950 flex items-center justify-center mb-2 border border-emerald-500/50">
+                  <KeyRound className="w-8 h-8 text-emerald-400" />
+                </div>
+                <div className="text-emerald-400 font-bold text-sm">PUBLIC KEY</div>
+                <div className="text-xs text-slate-400 mt-1">Encrypts Only</div>
+              </motion.div>
+
+              {/* Private Key */}
+              <motion.div 
+                className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-500 ${
+                  (step === "IMPROVE" || step === "COMPLETE" || step === "OUTCOME") 
+                    ? "border-amber-500 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.2)]" 
+                    : "border-slate-800 bg-slate-900/50 opacity-30"
+                }`}
+              >
+                <div className="w-16 h-16 rounded-full bg-amber-950 flex items-center justify-center mb-2 border border-amber-500/50">
+                  <Key className="w-8 h-8 text-amber-400" />
+                </div>
+                <div className="text-amber-400 font-bold text-sm">PRIVATE KEY</div>
+                <div className="text-xs text-slate-400 mt-1">Decrypts Only</div>
+              </motion.div>
+           </div>
+        </div>
+
+        {/* Pedagogical Panel - Fixed Height to prevent shifting */}
+        <div className="h-44 shrink-0 bg-slate-900/80 border border-slate-700/50 rounded-2xl p-5 flex flex-col justify-between backdrop-blur-sm">
+          <AnimatePresence mode="wait">
+            
+            {step === "LEARN" && (
+              <motion.div key="learn" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full flex flex-col">
+                <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2"><Lock className="w-5 h-5"/> Learning Goal</h3>
+                <p className="text-sm text-slate-300 flex-1 leading-relaxed">
+                  In Asymmetric Cryptography, everyone has a pair of keys. The <b className="text-emerald-400">Public Key</b> acts like an open padlock anyone can snap shut. But only the owner holds the <b className="text-amber-400">Private Key</b> to open it.
+                </p>
+                <button onClick={handleNext} className="self-end px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                  Try it <ArrowRight className="w-4 h-4" />
+                </button>
+              </motion.div>
+            )}
+
+            {step === "TRY" && (
+              <motion.div key="try" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full flex flex-col">
+                <h3 className="text-emerald-400 font-bold mb-2 flex items-center gap-2"><ShieldAlert className="w-5 h-5"/> Interactive Task</h3>
+                <p className="text-sm text-slate-300 flex-1 leading-relaxed">
+                  You've intercepted a secret message sent to Alice. You managed to find Alice's <b className="text-emerald-400">Public Key</b> online. Try using it to decrypt the message!
+                </p>
+                <button onClick={handleTryDecrypt} className="self-end px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                  <KeyRound className="w-4 h-4" /> Decrypt with Public Key
+                </button>
+              </motion.div>
+            )}
+
+            {step === "FAIL" && (
+              <motion.div key="fail" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full flex flex-col">
+                <h3 className="text-rose-400 font-bold mb-2 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Decryption Failed</h3>
+                <p className="text-sm text-slate-300 flex-1 leading-relaxed">
+                  The output is total mathematical garbage! The text remains scrambled because the Public Key cannot reverse the encryption.
+                </p>
+                <button onClick={handleNext} className="self-end px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                  Why did this fail? <ArrowRight className="w-4 h-4" />
+                </button>
+              </motion.div>
+            )}
+
+            {step === "UNDERSTAND" && (
+              <motion.div key="understand" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full flex flex-col">
+                <h3 className="text-amber-400 font-bold mb-2 flex items-center gap-2"><Lock className="w-5 h-5"/> Understand Why</h3>
+                <p className="text-sm text-slate-300 flex-1 leading-relaxed">
+                  A Public Key only turns the mathematical gear <i>one way</i> (encrypt). It mathematically cannot turn it backward. You need Alice's heavily guarded <b className="text-amber-400">Private Key</b>.
+                </p>
+                <button onClick={handleNext} className="self-end px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                  Switch to Alice <ArrowRight className="w-4 h-4" />
+                </button>
+              </motion.div>
+            )}
+
+            {step === "IMPROVE" && (
+              <motion.div key="improve" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full flex flex-col">
+                <h3 className="text-amber-400 font-bold mb-2 flex items-center gap-2"><Unlock className="w-5 h-5"/> Improve</h3>
+                <p className="text-sm text-slate-300 flex-1 leading-relaxed">
+                  You are now Alice. You have access to your secure <b className="text-amber-400">Private Key</b>. Apply it to the ciphertext to reveal the message.
+                </p>
+                <button onClick={handleImproveDecrypt} className="self-end px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                  <Key className="w-4 h-4" /> Apply Private Key
+                </button>
+              </motion.div>
+            )}
+
+            {step === "COMPLETE" && (
+              <motion.div key="complete" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full flex flex-col">
+                <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2"><CheckCircle2 className="w-5 h-5"/> Processing...</h3>
+                <p className="text-sm text-slate-300 flex-1 leading-relaxed">
+                  The Private Key is turning the mathematical gears backward. Decrypting data...
+                </p>
+              </motion.div>
+            )}
+
+            {step === "OUTCOME" && (
+              <motion.div key="outcome" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full flex flex-col">
+                <h3 className="text-emerald-400 font-bold mb-2 flex items-center gap-2"><Unlock className="w-5 h-5"/> Secret Revealed!</h3>
+                <p className="text-sm text-slate-300 flex-1 leading-relaxed">
+                  The message is perfectly decrypted. This is how the modern web securely transmits credit cards and passwords over public networks!
+                </p>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
         </div>
 
       </div>

@@ -398,7 +398,7 @@ export default function SmartRing32() {
                     >
                       {paymentStatus === "idle" && "Simulate Tap to Pay"}
                       {paymentStatus === "processing" && "Processing..."}
-                      {paymentStatus === "success" && "Payment Approved ✓"}
+                      {paymentStatus === "success" && "Payment Approved "}
                     </button>
                   </motion.div>
                 )}

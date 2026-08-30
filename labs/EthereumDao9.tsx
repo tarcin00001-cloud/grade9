@@ -138,10 +138,10 @@ export default function EthereumDao9() {
     if (isCorrect) {
       playSuccess();
       setAuditedCompleted(true);
-      setAuditMessage("✓ Audit Pass! The contract updates the user balance BEFORE sending Ether. Reentrancy blocked!");
+      setAuditMessage(" Audit Pass! The contract updates the user balance BEFORE sending Ether. Reentrancy blocked!");
     } else {
       playError();
-      setAuditMessage("✗ Audit Fail! Balances are updated AFTER the external call, leaving the contract open to reentrancy attacks.");
+      setAuditMessage(" Audit Fail! Balances are updated AFTER the external call, leaving the contract open to reentrancy attacks.");
     }
   };
 
@@ -156,7 +156,7 @@ export default function EthereumDao9() {
     timerRef.current = setTimeout(() => {
       setExploitState("awaiting_reentry");
       playChime();
-      setExploitMessage("⚡ INTERCEPTED! DAO sent 1 ETH. Hacker Fallback triggered! Re-enter withdraw() now!");
+      setExploitMessage(" INTERCEPTED! DAO sent 1 ETH. Hacker Fallback triggered! Re-enter withdraw() now!");
       
       // Auto-fail after 1.5 seconds if they don't click Re-enter
       timerRef.current = setTimeout(() => {
@@ -165,7 +165,7 @@ export default function EthereumDao9() {
         setExploitLoopCount(0);
         setDaoBalance(5);
         setHackerBalance(0);
-        setExploitMessage("✗ Ledger updated! Loop closed before re-entry. Exploit failed. Click Start Exploit to try again.");
+        setExploitMessage(" Ledger updated! Loop closed before re-entry. Exploit failed. Click Start Exploit to try again.");
       }, 1500);
 
     }, 1000);
@@ -186,17 +186,17 @@ export default function EthereumDao9() {
     if (nextDao <= 0) {
       playSuccess();
       setExploitState("done");
-      setExploitMessage("🎉 Success! The DAO contract is drained completely. Reentrancy exploit successful!");
+      setExploitMessage(" Success! The DAO contract is drained completely. Reentrancy exploit successful!");
     } else {
       playPop();
       setExploitState("withdrawing");
-      setExploitMessage(`✓ Re-entered! Stack depth = ${nextCount}. Sending another withdrawal request...`);
+      setExploitMessage(` Re-entered! Stack depth = ${nextCount}. Sending another withdrawal request...`);
 
       // Trigger next re-entry window
       timerRef.current = setTimeout(() => {
         setExploitState("awaiting_reentry");
         playChime();
-        setExploitMessage("⚡ INTERCEPTED! DAO sent 1 ETH. Fallback triggered! Re-enter now!");
+        setExploitMessage(" INTERCEPTED! DAO sent 1 ETH. Fallback triggered! Re-enter now!");
 
         timerRef.current = setTimeout(() => {
           playError();
@@ -204,7 +204,7 @@ export default function EthereumDao9() {
           setExploitLoopCount(0);
           setDaoBalance(5);
           setHackerBalance(0);
-          setExploitMessage("✗ Ledger updated! Loop closed. Exploit failed. Try again!");
+          setExploitMessage(" Ledger updated! Loop closed. Exploit failed. Try again!");
         }, 1500);
 
       }, 1000);
@@ -525,7 +525,7 @@ export default function EthereumDao9() {
                   </div>
                 </div>
 
-                {/* Drag-reorder Code Array */}
+                {/* Drag-reorder Code Blocks */}
                 <div className="lg:col-span-8 toy-panel flex flex-col gap-3 min-h-0">
                   <span className="text-xs font-black uppercase text-stone-500 tracking-wider mb-1">Solidity withdrawal function blocks:</span>
                   
@@ -542,7 +542,7 @@ export default function EthereumDao9() {
                             <span className="text-sm font-mono font-bold text-amber-700 select-all">
                               {block.code}
                             </span>
-                            <span className="text-[10px] text-stone-500 font-extrabold uppercase">
+                            <span className="text-[10px] text-stone-500 font-black uppercase">
                               {block.desc}
                             </span>
                           </div>
@@ -609,7 +609,7 @@ export default function EthereumDao9() {
                           onClick={clickReentry}
                           className="w-full toy-btn-action bg-yellow-500 hover:bg-yellow-400 text-white py-4 font-black text-sm uppercase flex items-center justify-center gap-2 rounded-xl active:translate-y-0.5 active:shadow-none animate-bounce"
                         >
-                          ⚡ Re-enter withdraw()
+                           Re-enter withdraw()
                         </button>
                       )}
 

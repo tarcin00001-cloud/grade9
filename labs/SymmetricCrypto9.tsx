@@ -28,44 +28,44 @@ import {
 type L1Step = "idle" | "public_added" | "private_mixed" | "flung" | "shared_potion";
 
 const PRESET_MESSAGES = [
-  "DONT TOUCH THE COOKIES! 🍪",
-  "SECRET CLUB MEETING AT 5 🦖",
-  "DINO ISLAND IS REAL! 🦕",
-  "BOB LOVES CANDY FLOSS 🍭"
+  "DONT TOUCH THE COOKIES! ",
+  "SECRET CLUB MEETING AT 5 ",
+  "DINO ISLAND IS REAL! ",
+  "BOB LOVES CANDY FLOSS "
 ];
 
 const QUIZ_QUESTIONS = [
   {
     question: "In Symmetric Cryptography, how many secret keys do Alice and Bob share to lock AND unlock their messages?",
     options: [
-      { text: "🔑 Just ONE shared key!", isCorrect: true },
-      { text: "🖐 Ten different keys!", isCorrect: false },
-      { text: "📢 Zero keys, they just shout!", isCorrect: false }
+      { text: " Just ONE shared key!", isCorrect: true },
+      { text: " Ten different keys!", isCorrect: false },
+      { text: " Zero keys, they just shout!", isCorrect: false }
     ],
     hint: "Think about the word 'Symmetric' — it means same on both sides! They use the same key for locking and unlocking."
   },
   {
     question: "Why can't Eve the Sneaky Badger steal the secret key from the flying paint mixtures?",
     options: [
-      { text: "🎨 Once paint is mixed, you cannot unmix it!", isCorrect: true },
-      { text: "🦡 She forgot her paint brushes at home!", isCorrect: false },
-      { text: "🌳 She was too busy eating acorns!", isCorrect: false }
+      { text: " Once paint is mixed, you cannot unmix it!", isCorrect: true },
+      { text: " She forgot her paint brushes at home!", isCorrect: false },
+      { text: " She was too busy eating acorns!", isCorrect: false }
     ],
     hint: "In math, some things are easy to do but super hard to undo. Mixing paint is a one-way street!"
   },
   {
     question: "What makes a secret key super-duper strong and hard for a hacking robot to guess?",
     options: [
-      { text: "🦖 Making it very long (like a 256-bit T-Rex key!)", isCorrect: true },
-      { text: "🤏 Making it just 1 letter long.", isCorrect: false },
-      { text: "📝 Writing it on a post-it note on the monitor.", isCorrect: false }
+      { text: " Making it very long (like a 256-bit T-Rex key!)", isCorrect: true },
+      { text: " Making it just 1 letter long.", isCorrect: false },
+      { text: " Writing it on a post-it note on the monitor.", isCorrect: false }
     ],
     hint: "A longer key means there are more combinations than there are stars in the sky!"
   }
 ];
 
 // Helper components for cartoon rendering
-const HelperBot = ({ text, face = "●‿●" }: { text: string; face?: string }) => (
+const HelperBot = ({ text, face = "NEUTRAL" }: { text: string; face?: string }) => (
   <div className="flex items-center gap-3 bg-amber-100 border-2 border-black p-3.5 rounded-2xl shadow-none">
     <div className="w-12 h-12 bg-amber-400 border-2 border-black rounded-full flex flex-col items-center justify-center font-bold text-lg select-none shrink-0 animate-bounce">
       <span className="text-[10px] uppercase text-zinc-200 leading-none font-black">Agent</span>
@@ -90,7 +90,7 @@ export default function SymmetricCrypto9() {
   const [l1Step, setL1Step] = useState<L1Step>("idle");
   const [aliceBowl, setAliceBowl] = useState("#f1f5f9"); // Slate-100 empty
   const [bobBowl, setBobBowl] = useState("#f1f5f9");
-  const [eveMessage, setEveMessage] = useState("Haha, I will steal their colors! 🦡");
+  const [eveMessage, setEveMessage] = useState("Haha, I will steal their colors! ");
   const [eveInterceptions, setEveInterceptions] = useState<{ left: string | null; right: string | null }>({ left: null, right: null });
 
   // ── LEVEL 2 STATES (Cookie Safe) ──
@@ -130,13 +130,13 @@ export default function SymmetricCrypto9() {
     if (l1Step !== "private_mixed") return;
     playPop();
     setL1Step("flung");
-    setEveMessage("Ooh! Flying colors! Let me grab some... 🧪");
+    setEveMessage("Ooh! Flying colors! Let me grab some... ");
 
     // After animation finishes
     setTimeout(() => {
       playError();
       setEveInterceptions({ left: "#f97316", right: "#22c55e" });
-      setEveMessage("Booo! It's already mixed! I can't unmix paint to get the Red or Blue bases! 🦡");
+      setEveMessage("Booo! It's already mixed! I can't unmix paint to get the Red or Blue bases! ");
     }, 1800);
   };
 
@@ -153,7 +153,7 @@ export default function SymmetricCrypto9() {
     setL1Step("idle");
     setAliceBowl("#f1f5f9");
     setBobBowl("#f1f5f9");
-    setEveMessage("Haha, I will steal their colors! 🦡");
+    setEveMessage("Haha, I will steal their colors! ");
     setEveInterceptions({ left: null, right: null });
     playClick();
   };
@@ -175,7 +175,7 @@ export default function SymmetricCrypto9() {
       const text = customMsg.trim() || selectedPresetMsg;
       
       // Let's scramble text into gibberish emojis
-      const emojis = ["🍪", "🔒", "🔮", "⚡", "🦖", "🍩", "🧁", "💥", "👻", "👾"];
+      const emojis = ["", "", "", "", "", "", "", "", "", ""];
       let scramble = "";
       for (let i = 0; i < Math.min(12, text.length); i++) {
         scramble += emojis[Math.floor(Math.random() * emojis.length)];
@@ -240,7 +240,7 @@ export default function SymmetricCrypto9() {
     setL1Step("idle");
     setAliceBowl("#f1f5f9");
     setBobBowl("#f1f5f9");
-    setEveMessage("Haha, I will steal their colors! 🦡");
+    setEveMessage("Haha, I will steal their colors! ");
     setEveInterceptions({ left: null, right: null });
     setLevel1Done(false);
 
@@ -351,7 +351,7 @@ export default function SymmetricCrypto9() {
 
       <Celebration
         isActive={hasWon}
-        message="Fantastic! You successfully mixed colors to generate a shared secret key, encrypted the secret cookie recipe, and proved your knowledge at the Academy! You are now a certified Secret Cryptography Agent! 🏆🍪✨"
+        message="Fantastic! You successfully mixed colors to generate a shared secret key, encrypted the secret cookie recipe, and proved your knowledge at the Academy! You are now a certified Secret Cryptography Agent! "
         onReplay={handleReplayAll}
       />
 
@@ -365,7 +365,7 @@ export default function SymmetricCrypto9() {
               phase === "explore" ? "active-tab text-white" : "bg-[#09090b] text-zinc-800"
             }`}
           >
-            🎨 L1: Explore paint
+             L1: Explore paint
           </button>
           
           <button
@@ -376,7 +376,7 @@ export default function SymmetricCrypto9() {
               phase === "simulate" ? "active-tab text-white" : "bg-[#09090b] text-zinc-800"
             }`}
           >
-            🔒 L2: Cookie Safe Sim
+             L2: Cookie Safe Sim
           </button>
 
           <button
@@ -387,7 +387,7 @@ export default function SymmetricCrypto9() {
               phase === "quiz" ? "active-tab text-white" : "bg-[#09090b] text-zinc-800"
             }`}
           >
-            🧠 L3: Agent Quiz
+             L3: Agent Quiz
           </button>
         </div>
 
@@ -485,7 +485,7 @@ export default function SymmetricCrypto9() {
                   {/* Cartoon Helper bot instructions */}
                   <div className="mt-4 shrink-0">
                     <HelperBot 
-                      face={l1Step === "shared_potion" ? "★‿★" : l1Step === "flung" ? "●_●" : "●‿●"}
+                      face={l1Step === "shared_potion" ? "‿" : l1Step === "flung" ? "SURPRISED" : "NEUTRAL"}
                       text={
                         l1Step === "idle" ? "Alice and Bob need a shared secret key. Let's start by dispensing the Lemon Base (Public) paint!" :
                         l1Step === "public_added" ? "Now, Alice adds Red Cherry Sauce, and Bob adds Blueberry Jam! Click 'Mix in Private Jams'!" :
@@ -508,7 +508,7 @@ export default function SymmetricCrypto9() {
                     {/* Public Lemon spot at top */}
                     <div className="flex flex-col items-center justify-center shrink-0">
                       <div className="w-16 h-16 bg-yellow-300 border-2 border-black rounded-full flex items-center justify-center shadow-none relative">
-                        <span className="text-xl font-bold">🍋</span>
+                        <span className="text-xl font-bold"></span>
                         <div className="absolute -bottom-6 bg-amber-900/40 border-2 border-black px-2 py-0.5 rounded-lg text-[9px] font-black uppercase">
                           Public Yellow
                         </div>
@@ -537,7 +537,7 @@ export default function SymmetricCrypto9() {
                             </div>
                           </div>
 
-                          <span className="text-[10px] font-black text-zinc-600 mt-1 uppercase">Cherry Red 🍒</span>
+                          <span className="text-[10px] font-black text-zinc-600 mt-1 uppercase">Cherry Red </span>
                         </div>
                       </div>
 
@@ -556,7 +556,7 @@ export default function SymmetricCrypto9() {
                               <span className="w-2.5 h-2.5 rounded-full bg-[#09090b] flex items-center justify-center"><span className="w-1 h-1 rounded-full bg-black"></span></span>
                               <span className="w-2.5 h-2.5 rounded-full bg-[#09090b] flex items-center justify-center"><span className="w-1 h-1 rounded-full bg-black"></span></span>
                             </div>
-                            <span className="text-[9px] font-bold text-zinc-100 z-10 mt-1 leading-none">🦡</span>
+                            <span className="text-[9px] font-bold text-zinc-100 z-10 mt-1 leading-none"></span>
                           </div>
 
                           {/* Eve's Intercepted Jar */}
@@ -617,7 +617,7 @@ export default function SymmetricCrypto9() {
                             transition={{ duration: 1.5, ease: "easeInOut" }}
                             className="w-8 h-8 rounded-full border-4 border-black absolute z-30 flex items-center justify-center bg-orange-400 font-bold text-xs"
                           >
-                            🧪
+                            
                           </motion.div>
                           {/* Bob's Green mix flying to Alice */}
                           <motion.div
@@ -626,7 +626,7 @@ export default function SymmetricCrypto9() {
                             transition={{ duration: 1.5, ease: "easeInOut" }}
                             className="w-8 h-8 rounded-full border-4 border-black absolute z-30 flex items-center justify-center bg-emerald-600 font-bold text-xs"
                           >
-                            🧪
+                            
                           </motion.div>
                         </>
                       )}
@@ -704,7 +704,7 @@ export default function SymmetricCrypto9() {
                           }`}
                         >
                           <span>128-bit</span>
-                          <span className="text-[8px] text-zinc-500 uppercase">Baby Dino 🦖</span>
+                          <span className="text-[8px] text-zinc-500 uppercase">Baby Dino </span>
                         </button>
                         <button
                           onClick={() => { setKeyStrength("192"); playPop(); }}
@@ -713,7 +713,7 @@ export default function SymmetricCrypto9() {
                           }`}
                         >
                           <span>192-bit</span>
-                          <span className="text-[8px] text-zinc-500 uppercase">Papa Bear 🐻</span>
+                          <span className="text-[8px] text-zinc-500 uppercase">Papa Bear </span>
                         </button>
                         <button
                           onClick={() => { setKeyStrength("256"); playPop(); }}
@@ -722,7 +722,7 @@ export default function SymmetricCrypto9() {
                           }`}
                         >
                           <span>256-bit</span>
-                          <span className="text-[8px] text-zinc-500 uppercase">T-Rex ⚡</span>
+                          <span className="text-[8px] text-zinc-500 uppercase">T-Rex </span>
                         </button>
                       </div>
                     </div>
@@ -751,7 +751,7 @@ export default function SymmetricCrypto9() {
                   {/* Cartoon Helper bot instructions */}
                   <div className="mt-4 shrink-0">
                     <HelperBot 
-                      face={safeState === "opened" ? "★‿★" : safeState === "wrong" ? "✖_✖" : "●‿●"}
+                      face={safeState === "opened" ? "‿" : safeState === "wrong" ? "_" : "NEUTRAL"}
                       text={
                         isEncrypting ? "Nom nom nom! The encryption monster is scrambling your message into hard-to-crack gibberish!" :
                         safeState === "opened" ? "Hurrah! The purple potion key matched, and the cookie safe popped open!" :
@@ -822,7 +822,7 @@ export default function SymmetricCrypto9() {
                               : "border-black hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#000] active:translate-y-0.5 bg-amber-950/30 active:shadow-[1px_1px_0px_#000]"
                           }`}
                         >
-                          <span className="text-3xl">🍌</span>
+                          <span className="text-3xl"></span>
                           <span className="text-xs font-black uppercase text-amber-700">Banana Key</span>
                           <span className="text-[8px] font-bold text-zinc-400">Incorrect Symmetric Key</span>
                         </button>
@@ -836,7 +836,7 @@ export default function SymmetricCrypto9() {
                               : "border-black hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#000] active:translate-y-0.5 bg-violet-950/30 active:shadow-[1px_1px_0px_#000]"
                           }`}
                         >
-                          <span className="text-3xl">🔮</span>
+                          <span className="text-3xl"></span>
                           <span className="text-xs font-black uppercase text-purple-700">Purple Potion Key</span>
                           <span className="text-[8px] font-bold text-zinc-400">Shared Symmetric Key</span>
                         </button>
@@ -852,7 +852,7 @@ export default function SymmetricCrypto9() {
                             exit={{ y: 20, opacity: 0 }}
                             className="bg-rose-900/40 border-2 border-rose-500/50 p-2.5 rounded-xl text-center text-xs font-black text-rose-400 flex items-center justify-center gap-2"
                           >
-                            <span>🐒</span>
+                            <span></span>
                             <span>Bzzzt! Wrong Key! A cheeky monkey stole your banana instead! Safe remains locked.</span>
                           </motion.div>
                         )}
@@ -862,7 +862,7 @@ export default function SymmetricCrypto9() {
                             animate={{ scale: 1, opacity: 1 }}
                             className="bg-emerald-900/40 border-2 border-emerald-500/50 p-2.5 rounded-xl text-center text-xs font-black text-green-700 flex items-center justify-center gap-2"
                           >
-                            <span>🍪✨</span>
+                            <span></span>
                             <span>Bingo! The Purple Potion matches! Safe popped open! Cookies are saved!</span>
                           </motion.div>
                         )}
@@ -944,7 +944,7 @@ export default function SymmetricCrypto9() {
                   {/* Bot feedback */}
                   <div className="mt-4 shrink-0">
                     <HelperBot 
-                      face={quizFeedback === "correct" ? "★‿★" : quizFeedback === "wrong" ? "✖_✖" : "●‿●"}
+                      face={quizFeedback === "correct" ? "‿" : quizFeedback === "wrong" ? "_" : "NEUTRAL"}
                       text={
                         quizFeedback === "correct" ? "Spot on! That's correct! Click next to proceed." :
                         quizFeedback === "wrong" ? "Ouch! That answer bounced off. Check the hint and try again!" :
@@ -1011,7 +1011,7 @@ export default function SymmetricCrypto9() {
                         </button>
                       ) : quizFeedback === "wrong" ? (
                         <p className="text-rose-400 text-xs font-black uppercase animate-pulse">
-                          ❌ Try another choice! Click the hint button if you need help.
+                           Try another choice! Click the hint button if you need help.
                         </p>
                       ) : (
                         <p className="text-zinc-400 text-xs font-bold italic">

@@ -58,9 +58,9 @@ const TOTAL_TIME_MS = 120000;
 const TICK_MS = 100;
 const MAX_STRIKES = 3;
 
-// Helper to shuffle Array
-const shuffleArray = <T,>(Array: T[]): T[] => {
-  const newArr = [...Array];
+// Helper to shuffle list
+const shuffleItems = <T,>(items: T[]): T[] => {
+  const newArr = [...items];
   for (let i = newArr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
@@ -161,7 +161,7 @@ export default function AGIInterview19() {
            setPromptMaxTime(maxTime);
            setPromptTimeLeft(maxTime);
            setSelectedModules([]);
-           setModules(shuffleArray(INITIAL_MODULES)); // Shuffle modules!
+           setModules(shuffleItems(INITIAL_MODULES)); // Shuffle modules!
            if (playPop) playPop();
         } else if (state.currentPrompt) {
            // Decrease prompt timer
@@ -253,7 +253,7 @@ export default function AGIInterview19() {
     if (playClick) playClick();
     availablePromptsRef.current = [...PROMPTS];
     rogueCooldownRef.current = 15000; // 15 seconds before first rogue attack
-    setModules(shuffleArray(INITIAL_MODULES));
+    setModules(shuffleItems(INITIAL_MODULES));
     setIsPlaying(true);
   };
 
@@ -367,7 +367,7 @@ export default function AGIInterview19() {
                 <div className="flex items-center gap-3">
                   <ShieldAlert size={20} className="text-red-500 animate-pulse shrink-0" />
                   <div>
-                    <div className="text-[9px] font-black text-red-400 uppercase tracking-widest">⚠️ ALIGNMENT WARNING: Rogue Optimization!</div>
+                    <div className="text-[9px] font-black text-red-400 uppercase tracking-widest">ALIGNMENT WARNING: Rogue Optimization!</div>
                     <div className="text-xs font-bold text-red-100">{rogueTask}</div>
                   </div>
                 </div>

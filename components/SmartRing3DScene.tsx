@@ -5,6 +5,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, Html, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { Activity, CreditCard, Hand, Thermometer } from 'lucide-react';
+import './configureThreeConsole';
 
 interface SmartRing3DSceneProps {
   level: 1 | 2 | 3;

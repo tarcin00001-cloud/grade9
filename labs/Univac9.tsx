@@ -96,23 +96,23 @@ const Sparks = () => (
 );
 
 const HelperBot = ({ state }: { state: "idle" | "dragging" | "success" | "fail" }) => {
-  let face = "●‿●";
+  let face = "NEUTRAL";
   let bodyColor = "#f59e0b"; // warm yellow (friendly toy robot)
   let armPathRight = "M 22,25 C 26,25 28,25 32,25";
   let armPathLeft = "M 8,25 C 4,25 2,25 -2,25";
 
   if (state === "dragging") {
-    face = "●_●";
+    face = "SURPRISED";
     bodyColor = "#3b82f6"; // bright blue wiggling
     armPathLeft = "M 8,22 C 3,18 0,16 -5,18";
     armPathRight = "M 22,22 C 18,18 15,16 10,18";
   } else if (state === "success") {
-    face = "★‿★";
+    face = "‿";
     bodyColor = "#10b981"; // green cheer
     armPathLeft = "M 8,20 C 4,12 2,8 -2,4";
     armPathRight = "M 22,20 C 26,12 28,8 32,4";
   } else if (state === "fail") {
-    face = "✖_✖";
+    face = "_";
     bodyColor = "#ef4444"; // red dizzy
     armPathLeft = "M 8,25 C 5,32 4,36 2,42";
     armPathRight = "M 22,25 C 25,32 26,36 28,42";
@@ -475,10 +475,10 @@ export default function Univac9() {
                             <h4 className="text-amber-700 font-black uppercase text-sm md:text-base tracking-normal">{comp?.name}</h4>
                           </div>
 
-                          {/* Keyword Array */}
+                          {/* Keyword Collection */}
                           <div className="flex flex-wrap gap-1.5 py-1 shrink-0">
                             {comp?.keywords.map((kw, i) => (
-                              <span key={i} className="px-2.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-extrabold text-xs md:text-sm uppercase tracking-normal">
+                              <span key={i} className="px-2.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-black text-xs md:text-sm uppercase tracking-normal">
                                 {kw}
                               </span>
                             ))}
@@ -598,8 +598,8 @@ export default function Univac9() {
 
                     <div className="w-full bg-black/40 border border-amber-500/20 p-3 rounded-xl text-center font-sans">
                       <div className="flex justify-between items-center text-xs text-slate-400 border-b border-amber-500/20 pb-1.5 mb-1.5">
-                        <span className="font-extrabold">SPEED: 12.8 KB/s</span>
-                        <span className="font-extrabold">TIME: {univacTime}s</span>
+                        <span className="font-black">SPEED: 12.8 KB/s</span>
+                        <span className="font-black">TIME: {univacTime}s</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs md:text-sm text-slate-300 font-black uppercase">BALLOTS PROCESSED</span>
@@ -633,8 +633,8 @@ export default function Univac9() {
 
                     <div className="w-full bg-black/40 border border-emerald-500/20 p-3 rounded-xl text-center font-sans">
                       <div className="flex justify-between items-center text-xs text-slate-400 border-b border-emerald-500/20 pb-1.5 mb-1.5">
-                        <span className="font-extrabold">SPEED: 10 GB/s</span>
-                        <span className="font-extrabold">TIME: {modernTime}s</span>
+                        <span className="font-black">SPEED: 10 GB/s</span>
+                        <span className="font-black">TIME: {modernTime}s</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-xs md:text-sm text-slate-300 font-black uppercase">BALLOTS PROCESSED</span>
@@ -652,7 +652,7 @@ export default function Univac9() {
                 {/* Sliders for Voter inputs */}
                 <div className="flex flex-col gap-3 justify-center font-sans text-xs md:text-sm">
                   <div>
-                    <div className="flex justify-between font-extrabold text-slate-300 mb-1 uppercase tracking-wide">
+                    <div className="flex justify-between font-black text-slate-300 mb-1 uppercase tracking-wide">
                       <span>NUMBER OF VOTERS:</span>
                       <span className="text-[#fbbf24] font-black">{totalBallots.toLocaleString()} votes</span>
                     </div>
@@ -672,7 +672,7 @@ export default function Univac9() {
                   </div>
 
                   <div>
-                    <div className="flex justify-between font-extrabold text-slate-300 mb-1 uppercase tracking-wide">
+                    <div className="flex justify-between font-black text-slate-300 mb-1 uppercase tracking-wide">
                       <span>VOTE SHARE FOR CANDIDATE A:</span>
                       <span className="text-[#fbbf24] font-black">{voteRatio}%</span>
                     </div>
@@ -704,12 +704,12 @@ export default function Univac9() {
                         <span className="font-bold">Winner (2026):</span>
                         <span className="font-black text-emerald-400">{voteRatio >= 50 ? "Candidate A Wins" : "Candidate B Wins"}</span>
                       </div>
-                      <div className="border-t border-slate-800/80 pt-1.5 text-center text-slate-400 text-[10px] md:text-xs uppercase font-extrabold tracking-wide">
+                      <div className="border-t border-slate-800/80 pt-1.5 text-center text-slate-400 text-[10px] md:text-xs uppercase font-black tracking-wide">
                         Modern computers counted votes {(univacTime / Math.max(0.01, modernTime)).toFixed(0)}x faster than the old UNIVAC!
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-2 text-slate-400 font-extrabold animate-pulse">
+                    <div className="text-center py-2 text-slate-400 font-black animate-pulse">
                       Change the slider numbers and click Start Vote Count to compare!
                     </div>
                   )}

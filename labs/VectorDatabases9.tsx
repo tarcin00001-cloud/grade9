@@ -140,7 +140,7 @@ export default function VectorDatabases9() {
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === "Enter" && runSearch()}
               placeholder={mode === "SQL" ? 'Type a word, e.g. "puppy"' : 'Try: puppy, automobile, lake, software...'}
-              className="flex-1 bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:border-violet-600 transition-all min-w-0"
+              className="flex-1 bg-slate-50/90 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:border-violet-600 transition-all min-w-0"
             />
             <button
               onClick={runSearch}

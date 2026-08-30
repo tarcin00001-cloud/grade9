@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
-import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
+import Confetti from "react-confetti";
+import { useWindowSize } from "react-use";
 import { 
-  Network, Share2, BookOpen, User, Calendar, 
+  Network, BookOpen, User, Calendar, 
   Apple, Laptop, TreeDeciduous, Factory, Cookie,
-  Code, Globe, Database, Lightbulb, 
-  Users, Presentation, GraduationCap, Link,
-  Stethoscope, Thermometer, Microchip, Activity, 
-  CheckCircle2, AlertCircle, Play, ArrowRight
+  Users, Presentation, GraduationCap,
+  Microchip, Activity, 
+  CheckCircle2, AlertCircle, ArrowRight, Sparkles, DatabaseZap, Cpu, Trophy, Power, Database,
+  Search, Pin, FileText, Check, Paperclip, Map
 } from "lucide-react";
 
 interface Triple {
@@ -32,12 +33,12 @@ interface LevelData {
 const LEVELS: LevelData[] = [
   {
     id: 1,
-    title: "Level 1: The Basics of RDF",
-    desc: "Build basic Subject ➔ Predicate ➔ Object relationships (Triples).",
+    title: "Level 1: The Basics",
+    desc: "Build basic Subject → Predicate → Object relationships (Triples).",
     nodes: [
-      { id: "shakespeare", label: "William Shakespeare", icon: <User /> },
-      { id: "hamlet", label: "Hamlet", icon: <BookOpen /> },
-      { id: "1564", label: "Year 1564", icon: <Calendar /> }
+      { id: "shakespeare", label: "William Shakespeare", icon: <User size={24} /> },
+      { id: "hamlet", label: "Hamlet", icon: <BookOpen size={24} /> },
+      { id: "1564", label: "Year 1564", icon: <Calendar size={24} /> }
     ],
     predicates: ["authored", "born_in", "hates"],
     targetTriples: [
@@ -47,15 +48,15 @@ const LEVELS: LevelData[] = [
   },
   {
     id: 2,
-    title: "Level 2: The Context Problem",
+    title: "Level 2: Context Matters",
     desc: "Teach the AI the difference between ambiguous words using context.",
     nodes: [
-      { id: "apple_inc", label: "Apple Inc.", icon: <Laptop /> },
-      { id: "apple_fruit", label: "Apple (Fruit)", icon: <Apple /> },
-      { id: "iphone", label: "iPhone", icon: <Microchip /> },
-      { id: "tree", label: "Tree", icon: <TreeDeciduous /> },
-      { id: "tech_co", label: "Tech Company", icon: <Factory /> },
-      { id: "food", label: "Food", icon: <Cookie /> }
+      { id: "apple_inc", label: "Apple Inc.", icon: <Laptop size={24} /> },
+      { id: "apple_fruit", label: "Apple (Fruit)", icon: <Apple size={24} /> },
+      { id: "iphone", label: "iPhone", icon: <Microchip size={24} /> },
+      { id: "tree", label: "Tree", icon: <TreeDeciduous size={24} /> },
+      { id: "tech_co", label: "Tech Company", icon: <Factory size={24} /> },
+      { id: "food", label: "Food", icon: <Cookie size={24} /> }
     ],
     predicates: ["is_a", "produces", "grows_on"],
     targetTriples: [
@@ -67,30 +68,13 @@ const LEVELS: LevelData[] = [
   },
   {
     id: 3,
-    title: "Level 3: Ramanathan's Vision",
-    desc: "Map out the creation of the Semantic Web.",
-    nodes: [
-      { id: "ramanathan", label: "Ramanathan Guha", icon: <Lightbulb /> },
-      { id: "rdf", label: "RDF", icon: <Code /> },
-      { id: "semantic_web", label: "Semantic Web", icon: <Globe /> },
-      { id: "data", label: "Internet Data", icon: <Database /> }
-    ],
-    predicates: ["invented", "enables", "describes_itself_using"],
-    targetTriples: [
-      { sub: "ramanathan", pred: "invented", obj: "rdf" },
-      { sub: "rdf", pred: "enables", obj: "semantic_web" },
-      { sub: "data", pred: "describes_itself_using", obj: "rdf" }
-    ]
-  },
-  {
-    id: 4,
-    title: "Level 4: Semantic Data Modelling",
+    title: "Level 3: Data Modelling",
     desc: "Map out classroom dependencies so an AI could query relationships.",
     nodes: [
-      { id: "alice", label: "Student Alice", icon: <User /> },
-      { id: "bob", label: "Student Bob", icon: <Users /> },
-      { id: "mr_smith", label: "Mr. Smith", icon: <GraduationCap /> },
-      { id: "project_x", label: "Project Alpha", icon: <Presentation /> }
+      { id: "alice", label: "Student Alice", icon: <User size={24} /> },
+      { id: "bob", label: "Student Bob", icon: <Users size={24} /> },
+      { id: "mr_smith", label: "Mr. Smith", icon: <GraduationCap size={24} /> },
+      { id: "project_x", label: "Project Alpha", icon: <Presentation size={24} /> }
     ],
     predicates: ["teaches", "works_on", "partners_with"],
     targetTriples: [
@@ -99,29 +83,13 @@ const LEVELS: LevelData[] = [
       { sub: "mr_smith", pred: "teaches", obj: "alice" },
       { sub: "alice", pred: "partners_with", obj: "bob" }
     ]
-  },
-  {
-    id: 5,
-    title: "Boss Level: AI Inference Engine",
-    desc: "Build a complex medical knowledge graph.",
-    nodes: [
-      { id: "patient", label: "Patient X", icon: <User /> },
-      { id: "fever", label: "Fever", icon: <Thermometer /> },
-      { id: "covid", label: "COVID-19", icon: <Activity /> },
-      { id: "virus", label: "Virus", icon: <Network /> }
-    ],
-    predicates: ["has_symptom", "is_symptom_of", "is_a", "infected_by"],
-    targetTriples: [
-      { sub: "patient", pred: "has_symptom", obj: "fever" },
-      { sub: "fever", pred: "is_symptom_of", obj: "covid" },
-      { sub: "covid", pred: "is_a", obj: "virus" },
-      { sub: "patient", pred: "infected_by", obj: "covid" }
-    ]
   }
 ];
 
 export default function SemanticWeb45() {
   const { playClick, playPop, playSuccess, playError } = useLabAudio();
+  const { width, height } = useWindowSize();
+  const isMounted = useRef(false);
   
   const [currentLevel, setCurrentLevel] = useState(0);
   const [win, setWin] = useState(false);
@@ -136,85 +104,157 @@ export default function SemanticWeb45() {
   // Progress State
   const [learnedTriples, setLearnedTriples] = useState<Triple[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  // AI Query Simulation State
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simStep, setSimStep] = useState(0);
+  
+  // Physical Switch state (for animation)
+  const [isLeverPulled, setIsLeverPulled] = useState(false);
 
   const levelPassed = learnedTriples.length === levelData.targetTriples.length;
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
+  // Sequence for the AI Query Tracer
+  useEffect(() => {
+    if (!isSimulating) return;
+    
+    let timer1: any, timer2: any, timer3: any, timer4: any;
+
+    if (simStep === 1) {
+       timer1 = setTimeout(() => setSimStep(2), 2000);
+    } else if (simStep === 2) {
+       timer2 = setTimeout(() => setSimStep(3), 1500);
+    } else if (simStep === 3) {
+       timer3 = setTimeout(() => setSimStep(4), 1500);
+    } else if (simStep === 4) {
+       timer4 = setTimeout(() => {
+           setIsSimulating(false);
+           setWin(true);
+           if (playSuccess) playSuccess();
+           if ((window as any).reportComplete) {
+              (window as any).reportComplete();
+           }
+       }, 3000);
+    }
+
+    return () => {
+        clearTimeout(timer1); clearTimeout(timer2); clearTimeout(timer3); clearTimeout(timer4);
+    };
+  }, [isSimulating, simStep, playSuccess]);
 
   const handleNodeClick = (nodeId: string) => {
     if (playClick) playClick();
     setErrorMsg(null);
+    
+    // Toggle off if clicking the currently selected subject
+    if (selectedSub === nodeId) {
+        setSelectedSub(null);
+        setSelectedPred(null);
+        setSelectedObj(null);
+        return;
+    }
+    
+    // Toggle off if clicking the currently selected object
+    if (selectedObj === nodeId) {
+        setSelectedObj(null);
+        return;
+    }
+
     if (!selectedSub) {
       setSelectedSub(nodeId);
-    } else if (selectedSub && selectedPred && !selectedObj) {
-      if (nodeId === selectedSub) {
-        if (playError) playError();
-        setErrorMsg("Subject and Object cannot be the same!");
-        return;
-      }
-      setSelectedObj(nodeId);
     } else if (selectedSub && !selectedPred) {
-      if (playError) playError();
-      setErrorMsg("Select a Predicate (relationship) first!");
-    } else {
-      // Reset if clicking around when full
+      // Swapping the subject gracefully
       setSelectedSub(nodeId);
-      setSelectedPred(null);
-      setSelectedObj(null);
+    } else if (selectedSub && selectedPred) {
+      setSelectedObj(nodeId);
     }
   };
 
   const handlePredClick = (pred: string) => {
     if (playClick) playClick();
     setErrorMsg(null);
+    
+    // Toggle off if already selected
+    if (selectedPred === pred) {
+        setSelectedPred(null);
+        setSelectedObj(null);
+        return;
+    }
+
     if (!selectedSub) {
       if (playError) playError();
-      setErrorMsg("Select a Subject node first!");
+      setErrorMsg("Place a Subject clue first!");
       return;
     }
     setSelectedPred(pred);
-    setSelectedObj(null); // Reset object if changing pred
+    setSelectedObj(null); 
   };
 
-  const handleConnect = () => {
+  const handleTransmit = () => {
     if (!selectedSub || !selectedPred || !selectedObj) return;
 
-    // Check if valid target
+    // Trigger physical animation
+    setIsLeverPulled(true);
+    setTimeout(() => setIsLeverPulled(false), 300);
+
     const isValid = levelData.targetTriples.some(
       t => t.sub === selectedSub && t.pred === selectedPred && t.obj === selectedObj
+    );
+
+    const isReversed = levelData.targetTriples.some(
+      t => t.sub === selectedObj && t.pred === selectedPred && t.obj === selectedSub
     );
 
     const alreadyLearned = learnedTriples.some(
       t => t.sub === selectedSub && t.pred === selectedPred && t.obj === selectedObj
     );
 
-    if (alreadyLearned) {
-      if (playError) playError();
-      setErrorMsg("AI already knows this fact!");
-      setSelectedSub(null);
-      setSelectedPred(null);
-      setSelectedObj(null);
-      return;
-    }
+    setTimeout(() => {
+        if (alreadyLearned) {
+          if (playError) playError();
+          setErrorMsg("Evidence already pinned to board!");
+          setSelectedSub(null);
+          setSelectedPred(null);
+          setSelectedObj(null);
+          return;
+        }
 
-    if (isValid) {
-      if (playSuccess) playSuccess();
-      setLearnedTriples([...learnedTriples, { sub: selectedSub, pred: selectedPred, obj: selectedObj }]);
-      setSelectedSub(null);
-      setSelectedPred(null);
-      setSelectedObj(null);
-      setErrorMsg(null);
-    } else {
-      if (playError) playError();
-      setErrorMsg("Invalid relationship. That doesn't make sense!");
-      setSelectedSub(null);
-      setSelectedPred(null);
-      setSelectedObj(null);
-    }
+        if (isReversed) {
+            if (playError) playError();
+            setErrorMsg("Check your direction. Does that make sense?");
+            setSelectedSub(null);
+            setSelectedPred(null);
+            setSelectedObj(null);
+            return;
+        }
+
+        if (isValid) {
+          if (playSuccess) playSuccess();
+          setLearnedTriples([...learnedTriples, { sub: selectedSub, pred: selectedPred, obj: selectedObj }]);
+          setSelectedSub(null);
+          setSelectedPred(null);
+          setSelectedObj(null);
+          setErrorMsg(null);
+        } else {
+          if (playError) playError();
+          setErrorMsg("Doesn't fit. Invalid relationship!");
+          setSelectedSub(null);
+          setSelectedPred(null);
+          setSelectedObj(null);
+        }
+    }, 400);
   };
 
   const nextLevel = () => {
     if (currentLevel === LEVELS.length - 1) {
-      setWin(true);
-      if (playSuccess) playSuccess();
+      setIsSimulating(true);
+      setSimStep(1);
+      if (playPop) playPop();
     } else {
       if (playPop) playPop();
       setCurrentLevel(currentLevel + 1);
@@ -237,261 +277,395 @@ export default function SemanticWeb45() {
     setSelectedPred(null);
     setSelectedObj(null);
     setErrorMsg(null);
+    setIsSimulating(false);
+    setSimStep(0);
     setWin(false);
   };
 
-  if (win) {
-    return (
-      <LabShell labId="semanticweb45" title="The Semantic Web" onReset={handleReset}>
-        <Celebration isActive={win} />
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-          <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(99,102,241,0.5)]">
-            <Share2 className="text-white w-12 h-12" />
-          </div>
-          <h2 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
-            Semantic Data Architect!
-          </h2>
-          <p className="text-slate-300 text-lg max-w-lg">
-            You've successfully taught the AI to understand relationships, context, and meaning. You are building the foundation of intelligent, self-describing data!
-          </p>
-          <button
-            onClick={() => {
-              setCurrentLevel(0);
-              setLearnedTriples([]);
-              setWin(false);
-            }}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-colors mt-8"
+  // Helper for rendering the physical polaroids
+  const renderPolaroid = (node: any, isSelected: boolean, context: "box" | "clipboard") => {
+      // Add slight randomized rotation in the unsorted box
+      const randomRotation = context === "box" && !isSelected ? (node.id.length % 5) - 2 : 0;
+      
+      return (
+          <motion.button
+              layoutId={`node-${node.id}`}
+              onClick={() => handleNodeClick(node.id)}
+              disabled={isSimulating}
+              className={`relative flex flex-col items-center justify-center text-center transition-all bg-white border border-slate-200 shadow-md ${
+                  context === "box" 
+                  ? "w-full p-2 pb-5 min-h-[70px] md:min-h-[90px] hover:shadow-lg hover:-translate-y-1" 
+                  : "w-full h-full p-2 pb-4 shadow-sm"
+              }`}
+              style={{ rotate: randomRotation, borderRadius: '2px' }}
           >
-            Play Again
-          </button>
-        </motion.div>
-      </LabShell>
-    );
-  }
+              <div className="mb-1 md:mb-2 text-slate-700 bg-slate-50 p-1.5 md:p-2 border border-slate-100 rounded-sm">
+                  {node.icon}
+              </div>
+              <span className="text-[10px] md:text-xs font-semibold text-slate-800 leading-tight line-clamp-2 px-1 font-sans">
+                  {node.label}
+              </span>
+              
+              {/* Fake tape piece when in the box */}
+              {context === "box" && (
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-3 bg-white/50 backdrop-blur-sm border border-white/50 rotate-[-4deg] shadow-sm" 
+                       style={{ clipPath: 'polygon(0 10%, 100% 0, 95% 90%, 5% 100%)'}} />
+              )}
+          </motion.button>
+      );
+  };
 
   return (
     <LabShell 
       labId="semanticweb45" 
-      title="The Semantic Web"
+      title="The Semantic Web" 
+      bgOverride="bg-[#E5D3B3]" // Base cork color
+      instruction="Pin evidence together to build a complete case graph."
       onReset={handleReset}
-      instruction="1. Understand the concepts of the Semantic Web and Resource Description Framework (RDF). 2. Use the interactive builder to construct a knowledge graph from provided data. 3. Link related entities and define their properties to create semantic meaning. 4. Run queries against the knowledge graph to extract complex relationships."
     >
-      <div className="max-w-6xl mx-auto space-y-2">
+        {win && (
+            <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+                <Confetti width={width} height={height} recycle={false} numberOfPieces={500} gravity={0.15} />
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.5, y: 50 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="bg-[#FDFBF7]/95 backdrop-blur-md border-4 border-green-600 p-6 md:p-8 rounded-lg shadow-2xl flex flex-col items-center text-center max-w-sm pointer-events-auto relative"
+                    style={{ clipPath: 'polygon(1% 0, 100% 2%, 99% 100%, 0 98%)' }}
+                >
+                    <div className="absolute -top-3 left-6 text-red-500"><Pin size={32} fill="currentColor"/></div>
+                    
+                    <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4 mt-2">
+                        <Trophy size={40} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2 font-sans">Case Closed!</h2>
+                    <p className="text-slate-600 font-medium text-sm">
+                        You have successfully mapped out the evidence and constructed a complete Knowledge Graph!
+                    </p>
+                </motion.div>
+            </div>
+        )}
+
+      {/* CORK TEXTURE OVERLAY */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.35] mix-blend-multiply"
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/5 to-black/20" />
+
+      <div className="flex-1 min-h-0 w-full flex flex-col relative font-sans max-w-7xl mx-auto z-10 px-2 sm:px-0">
         
-        {/* Header */}
-        <div className="bg-white border border-slate-300 rounded-xl p-2 flex flex-col md:flex-row gap-2 items-center justify-between shadow-sm">
-          <div>
-            <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
-              <Share2 size={24} />
-              {levelData.title}
-            </h2>
-            <p className="text-slate-600 text-sm mt-1">{levelData.desc}</p>
-          </div>
-          <div className="flex gap-2">
-            {LEVELS.map((lvl, idx) => (
-              <div
-                key={lvl.id}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                  idx < currentLevel
-                    ? 'bg-red-600 border-red-500 text-white'
-                    : idx === currentLevel
-                    ? 'border-red-500 text-red-600 bg-red-50 shadow-sm'
-                    : 'border-slate-300 text-slate-500 bg-white'
-                }`}
-              >
-                {idx + 1}
-              </div>
-            ))}
-          </div>
+        {/* HEADER (Manila Folder Tab) */}
+        <div className="bg-[#FDF9EE] border border-[#E2D8B9] shadow-md rounded-lg py-3 px-5 flex flex-col md:flex-row items-center justify-between shrink-0 mb-4 gap-3 z-20 relative">
+            <div className="flex flex-col">
+                <div className="text-[#92400E] font-bold text-xs uppercase tracking-wide flex items-center gap-2">
+                    <FileText size={14} /> Case File {levelData.id}
+                </div>
+                <div className="text-slate-700 font-semibold text-sm md:text-base mt-1">{levelData.title}: {levelData.desc}</div>
+            </div>
+            <div className="flex gap-2 items-center bg-[#FEFCE8] border border-[#FEF08A] shadow-inner p-2 px-4 rounded-md">
+                {Array.from({length: levelData.targetTriples.length}).map((_, i) => (
+                    <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all ${i < learnedTriples.length ? 'bg-red-500 shadow-sm' : 'bg-[#E5E7EB] shadow-inner border border-slate-300'}`} />
+                ))}
+                <div className={`ml-2 text-xs font-bold ${levelPassed ? "text-green-600" : "text-slate-500"}`}>
+                    {levelPassed ? <span className="flex items-center gap-1"><CheckCircle2 size={16} /> Complete</span> : "Pending"}
+                </div>
+            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 h-[65vh] min-h-[420px] max-h-[550px]">
-          
-          {/* Left Panel: Available Nodes */}
-          <div className="bg-white border border-slate-300 rounded-xl p-3 shadow-sm flex flex-col col-span-1">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-2">
-              <Database size={18} className="text-red-600" />
-              Raw Data Nodes
-            </h3>
+        {/* 3-COLUMN LAYOUT */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 pb-4">
             
-            <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 content-start pr-1">
-              {levelData.nodes.map(node => {
-                const isSelectedSub = selectedSub === node.id;
-                const isSelectedObj = selectedObj === node.id;
-                return (
-                  <button
-                    key={node.id}
-                    onClick={() => handleNodeClick(node.id)}
-                    className={`p-1 rounded-xl border flex flex-col items-center justify-center gap-1 text-center transition-all ${
-                      isSelectedSub ? 'bg-indigo-50 border-indigo-500 shadow-sm transform scale-105' :
-                      isSelectedObj ? 'bg-emerald-50 border-emerald-500 shadow-sm transform scale-105' :
-                      'bg-white border-slate-300 hover:border-slate-400 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={isSelectedSub ? 'text-indigo-600 scale-75' : isSelectedObj ? 'text-emerald-600 scale-75' : 'text-slate-500 scale-75'}>
-                      {node.icon}
+            {/* COLUMN 1: EVIDENCE BOX */}
+            <div className="col-span-1 lg:col-span-3 bg-[#D4C4A8] border border-[#BBA580] rounded-xl flex flex-col overflow-hidden relative shadow-[inset_0_10px_20px_rgba(0,0,0,0.1),0_5px_15px_rgba(0,0,0,0.2)] lg:min-h-0 min-h-[220px]">
+                <div className="bg-[#BBA580] pt-2 pb-2 px-4 border-b border-[#A38D64] flex justify-center items-center shrink-0">
+                    <div className="font-bold text-[#5C4D32] flex items-center gap-2 text-xs">
+                        <Paperclip size={14} /> Unsorted Clues
                     </div>
-                    <span className={`text-[10px] leading-tight font-semibold ${isSelectedSub || isSelectedObj ? 'text-slate-800' : 'text-slate-600'}`}>
-                      {node.label}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-            
-            <div className="mt-auto pt-4 border-t border-slate-200 text-xs text-slate-500">
-              Click a node to set it as a Subject or Object.
-            </div>
-          </div>
-
-          {/* Middle Panel: The Triple Builder */}
-          <div className="bg-white border border-slate-300 rounded-xl p-3 shadow-sm flex flex-col col-span-1 lg:col-span-1 items-center justify-center relative">
-            <h3 className="absolute top-3 left-3 text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Code size={18} className="text-purple-600" />
-              Triple Builder
-            </h3>
-
-            {errorMsg && (
-              <div className="absolute top-14 text-rose-400 text-sm font-bold bg-rose-950/40 px-4 py-1 rounded-full border border-rose-900/50 text-center">
-                {errorMsg}
-              </div>
-            )}
-
-            <div className="w-full flex flex-col items-center gap-2 mt-8">
-              
-              {/* Subject Slot */}
-              <div className={`w-full max-w-[160px] h-12 rounded-xl border-2 flex items-center justify-center p-1 text-center transition-all ${
-                selectedSub ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 border-dashed bg-slate-50'
-              }`}>
-                {selectedSub ? (
-                  <div className="flex flex-col items-center text-indigo-600">
-                    {getNodeIcon(selectedSub)}
-                    <span className="text-sm font-bold mt-1 text-slate-800">{getNodeLabel(selectedSub)}</span>
-                  </div>
-                ) : (
-                  <span className="text-slate-500 font-semibold text-sm">1. Select Subject Node</span>
-                )}
-              </div>
-
-              <div className="w-1 h-3 bg-slate-300" />
-
-              {/* Predicate Selection */}
-              <div className="w-full">
-                <div className="flex flex-wrap justify-center gap-2">
-                  {levelData.predicates.map(pred => (
-                    <button
-                      key={pred}
-                      onClick={() => handlePredClick(pred)}
-                      className={`px-2 py-1 rounded-full text-[10px] font-bold border transition-all ${
-                        selectedPred === pred 
-                          ? 'bg-purple-600 border-purple-400 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]' 
-                          : 'bg-slate-100 border-slate-300 text-slate-600 hover:border-slate-400'
-                      }`}
-                    >
-                      {pred.replace(/_/g, " ").toUpperCase()}
-                    </button>
-                  ))}
                 </div>
-                {!selectedPred && <div className="text-center text-slate-500 text-xs mt-2 font-semibold">2. Select Predicate</div>}
-              </div>
-
-              <div className="w-1 h-3 bg-slate-300 relative">
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[6px] border-l-transparent border-r-transparent border-t-slate-300 translate-y-full" />
-              </div>
-
-              {/* Object Slot */}
-              <div className={`w-full max-w-[160px] h-12 rounded-xl border-2 flex items-center justify-center p-1 text-center transition-all mt-1 ${
-                selectedObj ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 border-dashed bg-slate-50'
-              }`}>
-                {selectedObj ? (
-                  <div className="flex flex-col items-center text-emerald-600">
-                    {getNodeIcon(selectedObj)}
-                    <span className="text-sm font-bold mt-1 text-slate-800">{getNodeLabel(selectedObj)}</span>
-                  </div>
-                ) : (
-                  <span className="text-slate-500 font-semibold text-sm">3. Select Object Node</span>
-                )}
-              </div>
-
+                
+                <div className="flex-1 p-4 overflow-hidden flex flex-col">
+                    <div className="grid grid-cols-2 gap-3 flex-1 min-h-0 h-full" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
+                        {levelData.nodes.map(node => {
+                            const isSelected = selectedSub === node.id || selectedObj === node.id;
+                            return (
+                                <div key={node.id} className="relative w-full h-full flex items-center justify-center">
+                                    {isSelected ? (
+                                        <div className="w-full h-full bg-[#C7B596] rounded-sm border-2 border-dashed border-[#A38D64] flex items-center justify-center opacity-50" />
+                                    ) : (
+                                        renderPolaroid(node, false, "box")
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
-            <button
-              onClick={handleConnect}
-              disabled={!selectedSub || !selectedPred || !selectedObj}
-              className={`mt-3 px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
-                selectedSub && selectedPred && selectedObj
-                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_4px_20px_rgba(79,70,229,0.4)] hover:-translate-y-1'
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-300'
-              }`}
-            >
-              <Link size={20} /> Create Connection
-            </button>
-          </div>
+            {/* COLUMN 2: CLIPBOARD (Builder) */}
+            <div className="col-span-1 lg:col-span-4 flex flex-col relative lg:min-h-0 min-h-[450px] items-center">
+                
+                <div className="w-full max-w-sm flex-1 min-h-0 bg-[#FDFBF7] border border-[#E2D8B9] rounded-sm shadow-[2px_10px_25px_rgba(0,0,0,0.15)] flex flex-col relative mt-3">
+                    {/* Clipboard Clip */}
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-6 bg-slate-300 rounded-t-lg border-2 border-slate-400 shadow-md flex justify-center items-end pb-1 z-10">
+                        <div className="w-16 h-1.5 bg-slate-400 rounded-full" />
+                    </div>
 
-          {/* Right Panel: Knowledge Graph */}
-          <div className="bg-white border border-slate-300 rounded-xl p-3 shadow-sm flex flex-col col-span-1">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-3">
-              <Network size={18} className="text-emerald-600" />
-              AI Knowledge Graph
-            </h3>
-            
-            <div className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-sm mb-4">
-              <span className="text-slate-600 font-semibold">Connections Learned:</span>
-              <span className="text-emerald-600 font-mono font-bold text-lg">
-                {learnedTriples.length} / {levelData.targetTriples.length}
-              </span>
+                    <div className="pt-5 pb-2 px-4 border-b border-slate-200 flex justify-center items-center shrink-0">
+                        <div className="font-bold text-slate-500 text-xs">Analysis Desk</div>
+                    </div>
+
+                    {/* AI Tracer (The Detective's Deduction) */}
+                    <AnimatePresence>
+                        {isSimulating && (
+                            <motion.div 
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-40 bg-white/95 backdrop-blur-sm rounded-sm flex flex-col items-center justify-center p-6 text-center border-2 border-red-500"
+                            >
+                                <motion.div 
+                                    animate={{ rotate: [-5, 5, -5], x: [-10, 10, -10] }}
+                                    transition={{ repeat: Infinity, duration: 2 }}
+                                    className="text-red-500 mb-4"
+                                >
+                                    <Search size={48} />
+                                </motion.div>
+                                <h3 className="font-bold text-red-600 text-lg mb-4">Drawing Conclusions...</h3>
+                                
+                                <div className="w-full text-left flex flex-col p-4 bg-red-50 rounded-lg border border-red-200">
+                                    <div className="text-xs font-semibold text-slate-700 mb-2">Question:</div>
+                                    <div className="text-sm font-bold text-slate-900 border-b border-red-200 pb-3 mb-3">
+                                        "Who teaches the student working on Project Alpha?"
+                                    </div>
+                                    <div className="flex flex-col gap-2 min-h-[80px]">
+                                        <AnimatePresence>
+                                            {simStep >= 2 && (
+                                                <motion.div key="trace-1" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-sm">
+                                                    <span className="text-red-500 font-bold">1. </span> 
+                                                    [Project Alpha] is worked on by <span className="font-bold">[Alice]</span>
+                                                </motion.div>
+                                            )}
+                                            {simStep >= 3 && (
+                                                <motion.div key="trace-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-sm mt-1">
+                                                    <span className="text-red-500 font-bold">2. </span> 
+                                                    [Alice] is taught by <span className="font-bold">[Mr. Smith]</span>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                    <AnimatePresence>
+                                        {simStep >= 4 && (
+                                            <motion.div key="result" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                                              className="mt-4 p-3 rounded-md text-center border-2 border-red-500 bg-white shadow-md relative"
+                                            >
+                                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">CONCLUSION</div>
+                                                <div className="text-xl font-bold text-slate-900 mt-1">Mr. Smith</div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="flex-1 p-4 flex flex-col items-center justify-center relative z-10 min-h-0 w-full">
+                        
+                        {/* Error Sticky Note */}
+                        <AnimatePresence>
+                            {errorMsg && (
+                                <motion.div 
+                                    key="errorMsg"
+                                    initial={{ opacity: 0, scale: 0.8, rotate: -5 }} animate={{ opacity: 1, scale: 1, rotate: -2 }} exit={{ opacity: 0, scale: 0.8 }}
+                                    className="absolute top-2 z-20 font-bold text-red-700 bg-red-100 px-4 py-3 shadow-md flex items-center gap-2 text-sm border border-red-200"
+                                    style={{ clipPath: 'polygon(0 0, 100% 2%, 98% 100%, 2% 98%)' }}
+                                >
+                                    <Pin size={16} className="text-red-500 -ml-2 -mt-2 shrink-0" /> {errorMsg}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Pipeline */}
+                        <div className="w-full max-w-[220px] flex flex-col items-center flex-1 justify-center relative min-h-0">
+                            
+                            {/* Subject Slot */}
+                            <div className="w-full h-[75px] md:h-[90px] rounded-sm flex items-center justify-center relative shrink-0">
+                                {selectedSub ? (
+                                    <div className="w-full h-full relative">
+                                        {renderPolaroid(levelData.nodes.find(n=>n.id===selectedSub), true, "clipboard")}
+                                        {/* Red string starting point */}
+                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-red-600 shadow-sm z-10 border border-red-800" />
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-full border-2 border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-center rounded-sm text-slate-400 font-semibold text-xs">
+                                        Place Subject
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Connection (Red String + Sticky Note) */}
+                            <div className="w-full my-4 flex flex-col items-center relative z-10 shrink-0">
+                                {/* The String Line */}
+                                <div className="absolute inset-y-0 left-1/2 w-1 bg-red-600 -translate-x-1/2 -z-10 shadow-sm" />
+                                
+                                <div className="bg-[#FEF08A] shadow-sm p-3 w-[110%] border border-[#FDE047] rotate-1 relative" style={{ clipPath: 'polygon(0 0, 100% 2%, 99% 100%, 1% 98%)' }}>
+                                    <div className="text-center font-bold text-slate-700 text-[10px] mb-2 border-b border-yellow-300 pb-1 uppercase tracking-wider">Relationship</div>
+                                    <div className="flex flex-col gap-1.5">
+                                        {levelData.predicates.map(pred => (
+                                            <button
+                                                key={pred}
+                                                onClick={() => handlePredClick(pred)}
+                                                disabled={isSimulating}
+                                                className={`relative w-full h-7 md:h-8 rounded-sm transition-all flex items-center justify-center font-bold text-[10px] md:text-xs ${
+                                                    selectedPred === pred 
+                                                    ? 'bg-slate-800 text-white shadow-md scale-105' 
+                                                    : 'bg-yellow-50 text-slate-700 border border-yellow-200 hover:bg-white'
+                                                }`}
+                                            >
+                                                {pred.replace(/_/g, " ")}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Object Slot */}
+                            <div className="w-full h-[75px] md:h-[90px] rounded-sm flex items-center justify-center relative shrink-0">
+                                {selectedObj ? (
+                                    <div className="w-full h-full relative">
+                                        {/* Red string ending point */}
+                                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-red-600 shadow-sm z-10 border border-red-800" />
+                                        {renderPolaroid(levelData.nodes.find(n=>n.id===selectedObj), true, "clipboard")}
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-full border-2 border-dashed border-slate-300 bg-slate-50/50 flex items-center justify-center rounded-sm text-slate-400 font-semibold text-xs">
+                                        Place Object
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* MASTER TRANSMIT BUTTON */}
+                        <div className="w-full max-w-[220px] mt-6 shrink-0">
+                            <button
+                                onClick={handleTransmit}
+                                disabled={!selectedSub || !selectedPred || !selectedObj || isSimulating || isLeverPulled}
+                                className={`relative w-full h-12 md:h-14 rounded-md font-bold text-sm md:text-base transition-all flex items-center justify-center gap-2 ${
+                                    selectedSub && selectedPred && selectedObj
+                                    ? isLeverPulled
+                                        ? 'bg-red-700 text-white translate-y-[4px] shadow-none'
+                                        : 'bg-red-600 text-white shadow-[0_4px_0_#991B1B] hover:bg-red-500 hover:shadow-[0_4px_0_#991B1B]'
+                                    : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                                }`}
+                            >
+                                <Pin size={18} className={selectedSub && selectedPred && selectedObj ? "-rotate-45" : ""} /> 
+                                Pin to Board
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-2">
-              <AnimatePresence>
-                {learnedTriples.map((t, idx) => (
-                  <motion.div
-                    key={`${t.sub}-${t.pred}-${t.obj}`}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="p-2 bg-white border border-slate-200 shadow-sm rounded-xl flex items-center justify-between gap-1"
-                  >
-                    <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-indigo-600">
-                      <div className="scale-75">{getNodeIcon(t.sub)}</div>
-                      <span className="text-[10px] font-bold text-center leading-tight truncate w-full text-slate-700">{getNodeLabel(t.sub)}</span>
+            {/* COLUMN 3: THE BOARD (Knowledge Graph) */}
+            <div className="col-span-1 lg:col-span-5 flex flex-col relative lg:min-h-0 min-h-[400px]">
+                
+                {/* Board Frame inner shadow */}
+                <div className="absolute inset-0 border-[12px] border-[#5C4D32] rounded-lg shadow-xl pointer-events-none z-20" />
+                <div className="absolute inset-0 border-[14px] border-[#3E3320] rounded-lg pointer-events-none z-20 opacity-50" />
+                
+                <div className="bg-[#5C4D32]/90 backdrop-blur-sm pt-3 pb-2 px-6 flex justify-between items-center shrink-0 z-10 ml-[12px] mr-[12px] mt-[12px] rounded-t-sm shadow-sm border-b border-[#3E3320]">
+                    <div className="font-bold text-white flex items-center gap-2 text-sm">
+                        <Map size={16} /> Evidence Map
                     </div>
-                    
-                    <div className="flex flex-col items-center shrink-0">
-                      <span className="text-[8px] uppercase font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-full border border-purple-200 whitespace-nowrap">
-                        {t.pred.replace(/_/g, " ")}
-                      </span>
-                      <ArrowRight size={10} className="text-slate-400 mt-0.5" />
+                    <div className="text-xs font-bold text-white/90 bg-black/30 px-3 py-1 rounded-full">
+                        {learnedTriples.length} / {levelData.targetTriples.length} Found
+                    </div>
+                </div>
+
+                <div className="flex-1 p-4 md:p-6 flex flex-col min-h-0 overflow-hidden relative z-10 mx-[12px] mb-[12px]">
+                    <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-4 justify-center">
+                        <AnimatePresence>
+                            {learnedTriples.length === 0 && (
+                                <motion.div key="empty" className="h-full flex flex-col items-center justify-center space-y-3 opacity-70">
+                                    <Pin size={32} className="text-[#8B7355] rotate-12" />
+                                    <span className="text-xs font-bold text-[#8B7355] text-center">Board is empty.<br/>Pin connections to build the case.</span>
+                                </motion.div>
+                            )}
+
+                            {learnedTriples.map((t, index) => {
+                                const isGlowing = isSimulating && (
+                                    (simStep >= 2 && t.obj === "project_x") ||
+                                    (simStep >= 3 && t.sub === "mr_smith" && t.obj === "alice")
+                                );
+                                
+                                // Randomize slight rotations for the board items to look natural
+                                const rot = (index % 3) * 2 - 2;
+
+                                return (
+                                    <motion.div
+                                        key={`${t.sub}-${t.pred}-${t.obj}`}
+                                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        className="relative flex items-center justify-between gap-2 flex-1 min-h-0 max-h-[110px] w-full"
+                                        style={{ rotate: rot }}
+                                    >
+                                        {/* Red String Connecting them */}
+                                        <div className={`absolute top-1/2 left-[15%] right-[15%] h-[3px] -translate-y-1/2 z-0 transition-colors duration-300 ${isGlowing ? 'bg-red-400 shadow-[0_0_12px_#EF4444]' : 'bg-red-700/80'}`} />
+
+                                        {/* Subject Polaroid */}
+                                        <div className={`relative bg-white p-2 pb-4 shadow-md border border-slate-200 rounded-sm flex flex-col items-center justify-center w-[30%] max-w-[100px] z-10 transition-all ${isGlowing ? 'ring-4 ring-red-500 scale-105' : ''}`}>
+                                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-red-600"><Pin size={16} fill="currentColor" className="-rotate-12"/></div>
+                                            <div className="bg-slate-50 p-1.5 sm:p-2 border border-slate-100 rounded-sm mb-1 sm:mb-2 text-slate-700">
+                                                {getNodeIcon(t.sub)}
+                                            </div>
+                                            <span className="text-[8px] sm:text-[10px] font-bold text-slate-800 text-center leading-tight truncate w-full">{getNodeLabel(t.sub)}</span>
+                                        </div>
+                                        
+                                        {/* Predicate Label (Sticky note or tape) */}
+                                        <div className={`z-10 bg-[#FEF08A] px-2 py-1 shadow-md border border-[#FDE047] rotate-[-3deg] transition-all ${isGlowing ? 'ring-4 ring-red-500 scale-125' : ''}`}>
+                                            <span className="text-[9px] sm:text-[11px] font-bold text-slate-800 whitespace-nowrap">
+                                                {t.pred.replace(/_/g, " ")}
+                                            </span>
+                                        </div>
+
+                                        {/* Object Polaroid */}
+                                        <div className={`relative bg-white p-2 pb-4 shadow-md border border-slate-200 rounded-sm flex flex-col items-center justify-center w-[30%] max-w-[100px] z-10 transition-all ${isGlowing ? 'ring-4 ring-red-500 scale-105' : ''}`}>
+                                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-red-600"><Pin size={16} fill="currentColor" className="rotate-12"/></div>
+                                            <div className="bg-slate-50 p-1.5 sm:p-2 border border-slate-100 rounded-sm mb-1 sm:mb-2 text-slate-700">
+                                                {getNodeIcon(t.obj)}
+                                            </div>
+                                            <span className="text-[8px] sm:text-[10px] font-bold text-slate-800 text-center leading-tight truncate w-full">{getNodeLabel(t.obj)}</span>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-emerald-600">
-                      <div className="scale-75">{getNodeIcon(t.obj)}</div>
-                      <span className="text-[10px] font-bold text-center leading-tight truncate w-full text-slate-700">{getNodeLabel(t.obj)}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                    <AnimatePresence>
+                        {levelPassed && !win && !isSimulating && (
+                            <motion.div 
+                                key="graph-complete"
+                                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}
+                                className="mt-4 p-4 bg-white border-2 border-green-500 rounded-md flex flex-col items-center justify-center gap-3 shrink-0 shadow-lg relative overflow-hidden"
+                                style={{ clipPath: 'polygon(1% 0, 100% 2%, 99% 100%, 0 98%)' }}
+                            >
+                                <div className="absolute -top-1.5 left-4 text-red-600"><Pin size={24} fill="currentColor"/></div>
+                                <div className="absolute -bottom-1.5 right-4 text-red-600 rotate-180"><Pin size={24} fill="currentColor"/></div>
+                                
+                                <div className="flex items-center gap-2 text-green-700 font-bold text-sm md:text-base">
+                                    <CheckCircle2 size={18} /> Evidence Complete
+                                </div>
+                                <button 
+                                    onClick={nextLevel}
+                                    className="w-full relative z-10 py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold text-xs md:text-sm rounded-sm shadow-[0_3px_0_#166534] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2"
+                                >
+                                    {currentLevel === LEVELS.length - 1 ? (
+                                        <>Draw Conclusion <Search size={14} /></>
+                                    ) : (
+                                        <>Next Case File <ArrowRight size={14} /></>
+                                    )}
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
-
-            <AnimatePresence>
-              {levelPassed && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-xl flex flex-col items-center justify-center gap-2 shrink-0"
-                >
-                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-lg">
-                    <CheckCircle2 size={24} />
-                    Graph Complete!
-                  </div>
-                  <button 
-                    onClick={nextLevel}
-                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors"
-                  >
-                    Next Level <ArrowRight size={18} />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
 
         </div>
       </div>
