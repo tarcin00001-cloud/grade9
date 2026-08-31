@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useWindowSize } from "react-use";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles, Play, RotateCcw } from "lucide-react";
-const Confetti = dynamic(() => import("react-confetti"), { ssr: false });
+import Confetti from "react-confetti";
 
 interface CelebrationProps { 
   isActive: boolean; 
@@ -41,7 +41,7 @@ export default function Celebration({
       {show && (
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto">
           {/* Confetti full screen */}
-          <Confetti width={width} height={height} recycle={false} numberOfPieces={400} />
+          {typeof window !== 'undefined' && <Confetti width={width} height={height} recycle={false} numberOfPieces={400} />}
           
           {/* Bright focus veil */}
           <motion.div 
