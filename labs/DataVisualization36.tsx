@@ -190,7 +190,7 @@ export default function DataVisualization36() {
             </div>
 
             {/* Physical Checklist (Pipeline Progress) */}
-            <div className="flex-1 max-w-[600px] bg-white p-3 md:p-4 rounded-xl shadow-[0_8px_20px_rgba(0,0,0,0.08)] border border-slate-200 shrink-0">
+            <div className="flex-1 max-w-[600px] bg-white p-3 pb-8 md:p-4 md:pb-10 rounded-xl shadow-[0_8px_20px_rgba(0,0,0,0.08)] border border-slate-200 shrink-0">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-3">Drafting Progress</h3>
               <div className="flex items-center justify-between w-full relative">
                 {/* Connecting Bar */}
