@@ -183,9 +183,9 @@ export default function NetworkInterface31() {
                 const isPast = STEPS.findIndex(x => x.id === step) > idx;
                 return (
                   <React.Fragment key={s.id}>
-                    <div className={`px-1.5 py-1 lg:px-2 lg:py-1 rounded-md text-[8px] lg:text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
+                    <div className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-[10px] sm:text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
                       isActive ? 'bg-indigo-900 text-white shadow-md' :
-                      isPast ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400 border border-slate-200/60'
+                      isPast ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-400 border border-slate-200/60'
                     }`}>
                       {s.label}
                     </div>
@@ -204,7 +204,7 @@ export default function NetworkInterface31() {
               <Info size={16} strokeWidth={3} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] lg:text-[11px] font-bold text-sky-950 leading-tight">
+              <p className="text-xs md:text-sm font-bold text-slate-700 leading-snug">
                 {briefings[step]}
               </p>
             </div>
