@@ -431,17 +431,17 @@ export default function NetworkInterface31() {
                 <hr className="border-slate-100" />
 
                 {/* Hardware Toggles */}
-                <div className="flex flex-col gap-2.5 min-h-0 shrink-0">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">HARDWARE SETTINGS</h3>
-              
-              <button 
-                onClick={() => {
-                  if (step === 'IMPROVE' || step === 'OUTCOME') {
-                    if (playPop) playPop();
-                    setTcpOffloadEnabled(!tcpOffloadEnabled);
-                  }
-                }}
-                disabled={step !== 'IMPROVE' && step !== 'OUTCOME'}
+                <div className="flex flex-col gap-1 min-h-0 shrink-0">
+                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0">HARDWARE SETTINGS</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => {
+                        if (step === 'IMPROVE' || step === 'OUTCOME') {
+                          if (playPop) playPop();
+                          setTcpOffloadEnabled(!tcpOffloadEnabled);
+                        }
+                      }}
+                      disabled={step !== 'IMPROVE' && step !== 'OUTCOME'}
                 className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left ${
                   tcpOffloadEnabled 
                     ? 'border-indigo-400 bg-indigo-50/50 shadow-sm' 
@@ -488,8 +488,9 @@ export default function NetworkInterface31() {
                 </div>
               </button>
             </div>
-              </>
-            )}
+          </div>
+        </>
+      )}
 
           </div>
         </div>
