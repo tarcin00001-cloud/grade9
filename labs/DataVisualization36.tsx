@@ -284,11 +284,11 @@ export default function DataVisualization36() {
                             {labels.title && <div className="absolute top-0 left-0 w-full text-center font-black text-slate-800 text-sm z-10 uppercase tracking-widest bg-white/80 p-1">
                               {activeData === 'CITY' ? 'City Populations (Millions)' : activeData === 'TEMP' ? 'Monthly Temperature (°C)' : 'Favorite Sports (Votes)'}
                             </div>}
-                            {labels.ylabel && activeEngine !== 'PIE' && <div className="absolute top-1/2 -left-6 -translate-y-1/2 -rotate-90 font-black text-slate-600 text-[10px] z-10 uppercase tracking-widest bg-white/80 px-2 py-1">
-                              {activeData === 'CITY' ? 'Population' : 'Temperature'}
+                            {labels.ylabel && <div className="absolute top-1/2 -left-6 -translate-y-1/2 -rotate-90 font-black text-slate-600 text-[10px] z-10 uppercase tracking-widest bg-white/80 px-2 py-1">
+                              {activeData === 'CITY' ? 'Population' : activeData === 'TEMP' ? 'Temperature (°C)' : 'Votes'}
                             </div>}
-                            {labels.xlabel && activeEngine !== 'PIE' && <div className="absolute bottom-0 left-0 w-full text-center font-black text-slate-600 text-[10px] z-10 uppercase tracking-widest bg-white/80 p-1">
-                              {activeData === 'CITY' ? 'Indian Cities' : 'Months'}
+                            {labels.xlabel && <div className="absolute bottom-0 left-0 w-full text-center font-black text-slate-600 text-[10px] z-10 uppercase tracking-widest bg-white/80 p-1">
+                              {activeData === 'CITY' ? 'Indian Cities' : activeData === 'TEMP' ? 'Months' : 'Sports'}
                             </div>}
                           </>
                         ) : null}
