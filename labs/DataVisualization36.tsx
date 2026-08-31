@@ -158,13 +158,14 @@ export default function DataVisualization36() {
   return (
     <LabShell 
       labId="datavisualization36"
-      bgOverride="bg-slate-50 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:1.5rem_1.5rem]"
+      bgOverride="bg-transparent"
       title="Data Visualization" 
       instruction="Route raw data to the correct visualization engines."
       compact={true}
       onReset={resetLab}
     >
-      <div className="flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4">
+      <div className="flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4 bg-slate-50 bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)] bg-[size:1.5rem_1.5rem] absolute inset-0 -z-10" />
+      <div className="flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4 z-10">
         
         {/* HUD - Top Bar */}
         <div className="flex flex-col md:flex-row gap-3 shrink-0">
@@ -297,29 +298,29 @@ export default function DataVisualization36() {
             <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4 p-5">
               
               {/* Code Preview */}
-              <div className="font-mono text-xs md:text-sm text-sky-100 bg-transparent py-2 px-1">
-                <span className="text-purple-400">import</span> <span className="text-sky-100">matplotlib.pyplot</span> <span className="text-purple-400">as</span> <span className="text-sky-100">plt</span><br/><br/>
+              <div className="font-mono text-xs md:text-sm text-slate-200 bg-transparent py-2 px-1">
+                <span className="text-purple-400">import</span> <span className="text-slate-200">matplotlib.pyplot</span> <span className="text-purple-400">as</span> <span className="text-slate-200">plt</span><br/><br/>
                 <span className="text-slate-500"># 1. Load Data</span><br/>
-                <span className="text-sky-100">data = {activeData === 'TEMP' ? 'temperature_log' : activeData === 'CITY' ? 'populations' : activeData === 'SPORT' ? 'favorites' : 'raw_json'}</span><br/><br/>
+                <span className="text-slate-200">data = {activeData === 'TEMP' ? 'temperature_log' : activeData === 'CITY' ? 'populations' : activeData === 'SPORT' ? 'favorites' : 'raw_json'}</span><br/><br/>
                 
                 <span className="text-slate-500"># 2. Select Engine</span><br/>
-                {activeEngine === 'BAR' && <span><span className="text-sky-100">plt.</span><span className="text-blue-300">bar</span><span className="text-sky-100">(data)</span></span>}
-                {activeEngine === 'LINE' && <span><span className="text-sky-100">plt.</span><span className="text-pink-300">plot</span><span className="text-sky-100">(data)</span></span>}
-                {activeEngine === 'PIE' && <span><span className="text-sky-100">plt.</span><span className="text-amber-300">pie</span><span className="text-sky-100">(data)</span></span>}
+                {activeEngine === 'BAR' && <span><span className="text-slate-200">plt.</span><span className="text-blue-300">bar</span><span className="text-slate-200">(data)</span></span>}
+                {activeEngine === 'LINE' && <span><span className="text-slate-200">plt.</span><span className="text-pink-300">plot</span><span className="text-slate-200">(data)</span></span>}
+                {activeEngine === 'PIE' && <span><span className="text-slate-200">plt.</span><span className="text-amber-300">pie</span><span className="text-slate-200">(data)</span></span>}
                 {!activeEngine && <span className="text-slate-600">plt.???(data)</span>}<br/><br/>
 
                 {(step === 'COMPLETE' || step === 'OUTCOME') && (
                   <>
                     <span className="text-slate-500"># 3. Apply Labels</span><br/>
-                    {labels.title ? <span><span className="text-sky-100">plt.</span><span className="text-yellow-200">title</span><span className="text-sky-100">(</span><span className="text-green-300">'City Populations'</span><span className="text-sky-100">)</span><br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
-                    {labels.xlabel ? <span><span className="text-sky-100">plt.</span><span className="text-yellow-200">xlabel</span><span className="text-sky-100">(</span><span className="text-green-300">'Indian Cities'</span><span className="text-sky-100">)</span><br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
-                    {labels.ylabel ? <span><span className="text-sky-100">plt.</span><span className="text-yellow-200">ylabel</span><span className="text-sky-100">(</span><span className="text-green-300">'Population'</span><span className="text-sky-100">)</span><br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
+                    {labels.title ? <span><span className="text-slate-200">plt.</span><span className="text-yellow-200">title</span><span className="text-slate-200">(</span><span className="text-green-300">'City Populations'</span><span className="text-slate-200">)</span><br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
+                    {labels.xlabel ? <span><span className="text-slate-200">plt.</span><span className="text-yellow-200">xlabel</span><span className="text-slate-200">(</span><span className="text-green-300">'Indian Cities'</span><span className="text-slate-200">)</span><br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
+                    {labels.ylabel ? <span><span className="text-slate-200">plt.</span><span className="text-yellow-200">ylabel</span><span className="text-slate-200">(</span><span className="text-green-300">'Population'</span><span className="text-slate-200">)</span><br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
                     <br/>
                   </>
                 )}
                 
                 <span className="text-slate-500"># Render Chart</span><br/>
-                <span className="text-sky-100">plt.</span><span className="text-yellow-200">show</span><span className="text-sky-100">()</span>
+                <span className="text-slate-200">plt.</span><span className="text-yellow-200">show</span><span className="text-slate-200">()</span>
               </div>
 
               {/* Controls */}
