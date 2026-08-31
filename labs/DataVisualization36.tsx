@@ -158,246 +158,273 @@ export default function DataVisualization36() {
   return (
     <LabShell 
       labId="datavisualization36"
-      bgOverride="bg-transparent"
       title="Data Visualization" 
-      instruction="Route raw data to the correct visualization engines."
-      compact={true}
+      subtitle="Grade 9 | Data Representation"
+      instruction="Route raw data into the Visualization Projector."
+      bgOverride="bg-slate-900"
       onReset={resetLab}
     >
-      <div className="flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4 bg-slate-50 bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)] bg-[size:1.5rem_1.5rem] absolute inset-0 -z-10" />
-      <div className="flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4 z-10">
+      {/* Full Bleed Environment */}
+      <div className="absolute inset-0 top-[60px] md:top-[80px] z-10 flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black overflow-hidden">
         
-        {/* HUD - Top Bar */}
-        <div className="flex flex-col md:flex-row gap-3 shrink-0">
+        {/* Background Atmosphere */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
+        
+        <div className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 flex flex-col gap-6 relative z-10 min-h-0">
           
-          {/* Step Tracker (Data Pipeline Style) */}
-          <div className="flex-[2] lg:flex-[2.5] bg-white/80 backdrop-blur-md rounded-2xl p-2 md:p-3 border border-slate-200/60 flex items-center shadow-sm overflow-hidden min-h-0">
-            <div className="flex items-center gap-1.5 px-2 overflow-x-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {STEPS.map((s, idx) => {
-                const isActive = step === s.id;
-                const isPast = STEPS.findIndex(x => x.id === step) > idx;
-                return (
-                  <React.Fragment key={s.id}>
-                    <div className={`px-2.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${
-                      isActive ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 scale-105 ring-2 ring-indigo-200' :
-                      isPast ? 'bg-indigo-50 text-indigo-600' : 'bg-transparent text-slate-400'
-                    }`}>
-                      {s.label}
-                    </div>
-                    {idx < STEPS.length - 1 && (
-                      <div className={`h-1 w-3 shrink-0 rounded-full transition-colors ${isPast ? 'bg-indigo-200' : 'bg-slate-200'}`} />
-                    )}
-                  </React.Fragment>
-                );
-              })}
+          {/* Top Console - Status & Briefing */}
+          <div className="flex flex-col md:flex-row gap-4 shrink-0">
+            {/* Mission Briefing Screen */}
+            <div className="flex-1 bg-slate-950/80 backdrop-blur-md border-2 border-sky-900/50 rounded-2xl p-4 shadow-[0_0_15px_rgba(14,165,233,0.15)] flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-sky-900/50 flex items-center justify-center shrink-0 border border-sky-500/30">
+                <Database className="text-sky-400" size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sky-500 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Incoming Transmission</h3>
+                <p className="text-sky-100 text-sm font-medium leading-relaxed">
+                  {briefings[step]}
+                </p>
+              </div>
             </div>
-          </div>
-          
-          {/* Briefing Panel */}
-          <div className="flex-[1] lg:flex-1 bg-white/80 backdrop-blur-md rounded-2xl p-3 md:p-4 border border-slate-200/60 flex items-center gap-3 shadow-sm min-w-0">
-            <div className="bg-indigo-100 p-2 rounded-xl shrink-0">
-              <Info className="text-indigo-600" size={18} strokeWidth={2.5} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-sm font-bold text-slate-800 leading-snug">
-                {briefings[step]}
-              </p>
-            </div>
-          </div>
-        </div>
 
-        {/* Workspace Split */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden px-1 pb-1">
-          
-          {/* Left Hemisphere: The Canvas */}
-          <div className="flex-[1.5] lg:flex-[2] bg-white shadow-xl shadow-slate-200/50 rounded-3xl p-5 min-h-0 overflow-hidden relative flex flex-col border border-white">
-            <div className="flex items-center gap-2 mb-4 shrink-0">
-              <BarChart2 className="text-indigo-400" size={20} strokeWidth={2.5} />
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">The Canvas</h2>
+            {/* Pipeline Status Indicator */}
+            <div className="flex-[1.5] bg-slate-950/80 backdrop-blur-md border-2 border-slate-800 rounded-2xl p-4 flex flex-col justify-center shadow-inner">
+              <h3 className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-3 text-center">Pipeline Progress</h3>
+              <div className="flex items-center justify-between gap-2 w-full px-2">
+                {STEPS.map((s, idx) => {
+                  const isActive = step === s.id;
+                  const isPast = STEPS.findIndex(x => x.id === step) > idx;
+                  return (
+                    <React.Fragment key={s.id}>
+                      <div className="flex flex-col items-center gap-2 relative">
+                        {/* Status Node */}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-500 ${
+                          isActive ? 'bg-sky-500 border-sky-300 text-white shadow-[0_0_15px_rgba(14,165,233,0.6)]' :
+                          isPast ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 
+                          'bg-slate-900 border-slate-700 text-slate-600'
+                        }`}>
+                          {idx + 1}
+                        </div>
+                        {/* Label */}
+                        <span className={`absolute -bottom-5 w-24 text-center text-[9px] font-black uppercase tracking-wider ${
+                          isActive ? 'text-sky-400' : isPast ? 'text-emerald-500' : 'text-slate-600'
+                        }`}>
+                          {s.label.split('. ')[1]}
+                        </span>
+                      </div>
+                      {/* Connection Line */}
+                      {idx < STEPS.length - 1 && (
+                        <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden relative">
+                          <div className={`absolute left-0 top-0 bottom-0 transition-all duration-1000 ${isPast ? 'w-full bg-emerald-500' : 'w-0 bg-sky-500'}`} />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
             </div>
+          </div>
+
+          {/* Main Control Deck */}
+          <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 mt-4">
             
-            <div className="flex-1 relative overflow-hidden flex flex-col items-center justify-center">
-              
-              {/* State: LEARN (Standby Placeholder) */}
-              {step === 'LEARN' && (
-                <div className="w-full h-full relative opacity-30 pointer-events-none">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={[{ val: 10 }, { val: 20 }, { val: 15 }, { val: 25 }]}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" />
-                      <XAxis hide />
-                      <YAxis hide />
-                    </LineChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center flex-col gap-2">
-                    <Database size={32} className="text-slate-400 animate-pulse" />
-                    <span className="font-black text-slate-400 uppercase tracking-widest text-sm">Awaiting Data Stream...</span>
+            {/* The Holographic Projector (Canvas) */}
+            <div className="flex-[1.5] relative flex flex-col min-h-0">
+              {/* Hardware Bezel */}
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-700 to-slate-900 rounded-3xl p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                {/* Inner Bezel */}
+                <div className="w-full h-full bg-slate-950 rounded-2xl border-4 border-slate-800 relative overflow-hidden flex flex-col">
+                  {/* Glass Reflection */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none z-20" />
+                  
+                  {/* Screen Header */}
+                  <div className="h-8 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-10">
+                    <span className="text-slate-500 text-[10px] font-mono tracking-widest">DISPLAY_OUT // 0x3F</span>
+                    <div className="flex gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-slate-700 animate-pulse" />
+                      <div className="w-2 h-2 rounded-full bg-slate-700" />
+                    </div>
+                  </div>
+
+                  {/* Screen Content */}
+                  <div className="flex-1 relative p-4 flex items-center justify-center">
+                    
+                    {step === 'LEARN' && (
+                      <div className="w-full h-full relative opacity-20 pointer-events-none">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={[{ val: 10 }, { val: 20 }, { val: 15 }, { val: 25 }]}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                            <XAxis hide />
+                            <YAxis hide />
+                          </LineChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex items-center justify-center flex-col gap-3">
+                          <div className="w-16 h-16 rounded-full border-2 border-sky-500/30 border-t-sky-500 animate-spin" />
+                          <span className="font-mono text-sky-500 uppercase tracking-[0.3em] text-xs">Awaiting Stream</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {step === 'TRY_RAW' && (
+                      <div className="w-full h-full font-mono text-xs text-sky-300/50 overflow-y-auto break-all p-4">
+                        {JSON.stringify(TEMP_DATA, null, 2).repeat(10)}
+                      </div>
+                    )}
+
+                    {step !== 'LEARN' && step !== 'TRY_RAW' && (
+                      <div className="w-full h-full relative z-10">
+                        {/* Applied Labels for COMPLETE stage */}
+                        {step === 'COMPLETE' || step === 'OUTCOME' ? (
+                          <>
+                            {labels.title && <div className="absolute top-0 left-0 w-full text-center font-bold text-slate-300 text-sm z-10 tracking-widest uppercase">City Populations (Millions)</div>}
+                            {labels.ylabel && <div className="absolute top-1/2 -left-8 -translate-y-1/2 -rotate-90 font-bold text-slate-400 text-[10px] z-10 uppercase tracking-widest">Population</div>}
+                            {labels.xlabel && <div className="absolute bottom-0 left-0 w-full text-center font-bold text-slate-400 text-[10px] z-10 uppercase tracking-widest">Indian Cities</div>}
+                          </>
+                        ) : null}
+                        
+                        {activeEngine ? renderChart(getActiveDataset(), activeEngine, step === 'FAIL_PIE') : (
+                          <div className="w-full h-full flex items-center justify-center font-mono text-slate-600 uppercase tracking-widest animate-pulse">
+                            ENGINE OFFLINE
+                          </div>
+                        )}
+
+                        {/* Error Overlay */}
+                        <AnimatePresence>
+                          {step === 'FAIL_PIE' && activeEngine === 'PIE' && (
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="absolute inset-0 flex items-center justify-center bg-rose-950/80 backdrop-blur-sm z-20"
+                            >
+                              <div className="bg-rose-900 border-2 border-rose-500 p-6 rounded-xl flex flex-col items-center text-center shadow-[0_0_30px_rgba(244,63,94,0.4)] max-w-[80%]">
+                                <AlertTriangle className="text-rose-400 mb-3 animate-bounce" size={40} />
+                                <h3 className="font-black text-white uppercase tracking-wider mb-2 text-lg">Trend Invisible</h3>
+                                <p className="text-sm text-rose-200 font-medium">This pie chart shows no temporal trend! It just looks like a pizza. We need a Line Graph.</p>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
 
-              {/* State: TRY_RAW */}
-              {step === 'TRY_RAW' && (
-                <div className="w-full h-full font-mono text-[10px] md:text-xs text-slate-400 overflow-y-auto break-all p-4">
-                  {JSON.stringify(TEMP_DATA, null, 2).repeat(10)}
+            {/* The Control Terminal (Python Script) */}
+            <div className="flex-1 flex flex-col min-h-0 bg-[#0A0A0A] rounded-2xl border-2 border-[#333] shadow-2xl relative overflow-hidden">
+              {/* Terminal Header */}
+              <div className="h-10 bg-[#1A1A1A] border-b border-[#333] flex items-center justify-between px-4 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Code2 className="text-emerald-500" size={16} />
+                  <span className="text-[#888] font-mono text-[10px] uppercase tracking-widest">terminal // matplotlib</span>
                 </div>
-              )}
+              </div>
 
-              {/* State: Chart Rendering */}
-              {step !== 'LEARN' && step !== 'TRY_RAW' && (
-                <div className="w-full h-full relative">
-                  {/* Applied Labels for COMPLETE stage */}
-                  {step === 'COMPLETE' || step === 'OUTCOME' ? (
-                    <>
-                      {labels.title && <div className="absolute top-0 left-0 w-full text-center font-bold text-slate-700 text-sm z-10">City Populations (Millions)</div>}
-                      {labels.ylabel && <div className="absolute top-1/2 -left-6 -translate-y-1/2 -rotate-90 font-bold text-slate-500 text-[10px] z-10">Population</div>}
-                      {labels.xlabel && <div className="absolute bottom-0 left-0 w-full text-center font-bold text-slate-500 text-[10px] z-10">Indian Cities</div>}
-                    </>
-                  ) : null}
+              {/* Terminal Body */}
+              <div className="flex-1 flex flex-col p-5 font-mono text-xs md:text-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <div className="text-emerald-400 mb-6 leading-relaxed">
+                  <span className="text-purple-400">import</span> matplotlib.pyplot <span className="text-purple-400">as</span> plt<br/><br/>
+                  <span className="text-slate-600"># 1. Load Data</span><br/>
+                  <span className="text-sky-300">data</span> = {activeData === 'TEMP' ? <span className="text-amber-300">temperature_log</span> : activeData === 'CITY' ? <span className="text-amber-300">populations</span> : activeData === 'SPORT' ? <span className="text-amber-300">favorites</span> : <span className="text-amber-300">raw_json</span>}<br/><br/>
                   
-                  {activeEngine ? renderChart(getActiveDataset(), activeEngine, step === 'FAIL_PIE') : (
-                    <div className="w-full h-full flex items-center justify-center font-bold text-slate-400 uppercase tracking-widest">
-                      Awaiting Data Engine...
+                  <span className="text-slate-600"># 2. Select Engine</span><br/>
+                  {activeEngine === 'BAR' && <span>plt.<span className="text-blue-400">bar</span>(<span className="text-sky-300">data</span>)</span>}
+                  {activeEngine === 'LINE' && <span>plt.<span className="text-pink-400">plot</span>(<span className="text-sky-300">data</span>)</span>}
+                  {activeEngine === 'PIE' && <span>plt.<span className="text-amber-400">pie</span>(<span className="text-sky-300">data</span>)</span>}
+                  {!activeEngine && <span className="text-rose-500">plt.???(<span className="text-sky-300">data</span>)</span>}<br/><br/>
+
+                  {(step === 'COMPLETE' || step === 'OUTCOME') && (
+                    <>
+                      <span className="text-slate-600"># 3. Apply Labels</span><br/>
+                      {labels.title ? <span>plt.<span className="text-yellow-200">title</span>(<span className="text-green-400">'City Populations'</span>)<br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
+                      {labels.xlabel ? <span>plt.<span className="text-yellow-200">xlabel</span>(<span className="text-green-400">'Indian Cities'</span>)<br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
+                      {labels.ylabel ? <span>plt.<span className="text-yellow-200">ylabel</span>(<span className="text-green-400">'Population'</span>)<br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
+                      <br/>
+                    </>
+                  )}
+                  
+                  <span className="text-slate-600"># Render Chart</span><br/>
+                  plt.<span className="text-yellow-200">show</span>()
+                  <span className="animate-pulse ml-1 inline-block w-2 h-4 bg-emerald-500 translate-y-1" />
+                </div>
+
+                {/* Industrial Controls */}
+                <div className="mt-auto flex flex-col gap-3 shrink-0 bg-[#111] p-4 rounded-xl border border-[#222]">
+                  {step === 'LEARN' && (
+                    <button onClick={() => { if(playPop) playPop(); setStep('TRY_RAW'); }} className="w-full bg-sky-600 hover:bg-sky-500 text-white rounded-lg p-3 font-black uppercase tracking-[0.2em] text-xs transition-colors flex items-center justify-center gap-2 border border-sky-400 shadow-[0_0_15px_rgba(2,132,199,0.5)]">
+                      <Database size={16} /> Import Raw Data
+                    </button>
+                  )}
+
+                  {step === 'TRY_RAW' && (
+                    <button onClick={() => { if(playPop) playPop(); setStep('FAIL_PIE'); }} className="w-full bg-amber-600 hover:bg-amber-500 text-white rounded-lg p-3 font-black uppercase tracking-[0.2em] text-xs transition-colors flex items-center justify-center gap-2 border border-amber-400 shadow-[0_0_15px_rgba(217,119,6,0.5)]">
+                      <PieIcon size={16} /> Inject Pie Engine
+                    </button>
+                  )}
+
+                  {step === 'FAIL_PIE' && (
+                    <>
+                      <button onClick={() => { if(playError) playError(); setActiveEngine('PIE'); }} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg p-3 font-black uppercase tracking-[0.2em] text-xs transition-colors border border-slate-600">
+                        Execute Pie Chart
+                      </button>
+                      {activeEngine === 'PIE' && (
+                        <button onClick={() => { if(playPop) playPop(); setStep('UNDERSTAND'); setActiveEngine(null); }} className="w-full bg-sky-600 hover:bg-sky-500 text-white rounded-lg p-3 font-black uppercase tracking-[0.2em] text-xs transition-colors mt-2">
+                          Analyze Fault
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {step === 'UNDERSTAND' && (
+                    <button onClick={() => { if(playPop) playPop(); setStep('IMPROVE'); setActiveData('CITY'); }} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg p-3 font-black uppercase tracking-[0.2em] text-xs transition-colors shadow-[0_0_15px_rgba(5,150,105,0.5)] border border-emerald-400">
+                      Re-route Engines
+                    </button>
+                  )}
+
+                  {step === 'IMPROVE' && (
+                    <div className="flex flex-col gap-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <button onClick={() => { if(playClick) playClick(); setActiveData('TEMP'); setActiveEngine('LINE'); }} className={`p-2 rounded-lg font-bold text-[9px] uppercase transition-colors flex flex-col items-center justify-center gap-1.5 border ${activeData === 'TEMP' && activeEngine === 'LINE' ? 'bg-pink-600 text-white border-pink-400 shadow-[0_0_10px_rgba(219,39,119,0.5)]' : 'bg-[#222] text-[#888] border-[#333] hover:bg-[#333]'}`}>
+                          <TrendingUp size={16} /> Temp
+                        </button>
+                        <button onClick={() => { if(playClick) playClick(); setActiveData('CITY'); setActiveEngine('BAR'); }} className={`p-2 rounded-lg font-bold text-[9px] uppercase transition-colors flex flex-col items-center justify-center gap-1.5 border ${activeData === 'CITY' && activeEngine === 'BAR' ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.5)]' : 'bg-[#222] text-[#888] border-[#333] hover:bg-[#333]'}`}>
+                          <BarChart2 size={16} /> Cities
+                        </button>
+                        <button onClick={() => { if(playClick) playClick(); setActiveData('SPORT'); setActiveEngine('PIE'); }} className={`p-2 rounded-lg font-bold text-[9px] uppercase transition-colors flex flex-col items-center justify-center gap-1.5 border ${activeData === 'SPORT' && activeEngine === 'PIE' ? 'bg-amber-600 text-white border-amber-400 shadow-[0_0_10px_rgba(217,119,6,0.5)]' : 'bg-[#222] text-[#888] border-[#333] hover:bg-[#333]'}`}>
+                          <PieIcon size={16} /> Sports
+                        </button>
+                      </div>
+                      {activeData === 'CITY' && activeEngine === 'BAR' && (
+                        <button onClick={() => { if(playSuccess) playSuccess(); setStep('COMPLETE'); }} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg p-3 font-black uppercase tracking-[0.2em] text-xs transition-colors border border-emerald-400 shadow-[0_0_15px_rgba(5,150,105,0.5)]">
+                          Configure Labels
+                        </button>
+                      )}
                     </div>
                   )}
 
-                  {/* Feedback overlay for FAIL_PIE */}
-                  <AnimatePresence>
-                    {step === 'FAIL_PIE' && activeEngine === 'PIE' && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm z-20"
-                      >
-                        <div className="bg-rose-50 border-2 border-rose-200 p-4 rounded-2xl flex flex-col items-center text-center shadow-lg max-w-[80%]">
-                          <AlertTriangle className="text-rose-500 mb-2" size={32} />
-                          <h3 className="font-black text-rose-700 uppercase tracking-wider mb-1 text-sm">Trend Invisible</h3>
-                          <p className="text-xs text-rose-600 font-bold">This pie chart shows no temporal trend! It just looks like a pizza. We need a Line Graph.</p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {step === 'COMPLETE' && (
+                    <div className="flex flex-col gap-3">
+                      <h3 className="text-[10px] font-black text-[#666] uppercase tracking-[0.2em] text-center">Inject Parameters</h3>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button disabled={labels.title} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, title: true})); }} className={`p-2 rounded-lg font-bold text-[10px] font-mono transition-colors border ${labels.title ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-[#222] text-green-400 hover:bg-[#333] border-green-900 shadow-[0_0_10px_rgba(74,222,128,0.1)]'}`}>plt.title</button>
+                        <button disabled={labels.xlabel} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, xlabel: true})); }} className={`p-2 rounded-lg font-bold text-[10px] font-mono transition-colors border ${labels.xlabel ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-[#222] text-green-400 hover:bg-[#333] border-green-900 shadow-[0_0_10px_rgba(74,222,128,0.1)]'}`}>plt.xlabel</button>
+                        <button disabled={labels.ylabel} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, ylabel: true})); }} className={`p-2 rounded-lg font-bold text-[10px] font-mono transition-colors border ${labels.ylabel ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-[#222] text-green-400 hover:bg-[#333] border-green-900 shadow-[0_0_10px_rgba(74,222,128,0.1)]'}`}>plt.ylabel</button>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Right Hemisphere: The Palette / Code */}
-          <div className="flex-1 flex flex-col bg-slate-900 rounded-3xl shadow-xl shadow-slate-900/20 min-h-0 overflow-hidden relative">
-            
-            {/* macOS Style Window Header */}
-            <div className="bg-slate-800/80 backdrop-blur-sm flex items-center px-4 py-3 shrink-0 border-b border-slate-700/50">
-              <div className="flex gap-1.5 mr-4">
-                <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
               </div>
-              <Code2 className="text-sky-400 mr-2" size={16} />
-              <h2 className="text-xs font-bold text-slate-300 uppercase tracking-widest font-mono">script.py</h2>
             </div>
             
-            <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4 p-5">
-              
-              {/* Code Preview */}
-              <div className="font-mono text-xs md:text-sm text-slate-200 bg-transparent py-2 px-1">
-                <span className="text-purple-400">import</span> <span className="text-slate-200">matplotlib.pyplot</span> <span className="text-purple-400">as</span> <span className="text-slate-200">plt</span><br/><br/>
-                <span className="text-slate-500"># 1. Load Data</span><br/>
-                <span className="text-slate-200">data = {activeData === 'TEMP' ? 'temperature_log' : activeData === 'CITY' ? 'populations' : activeData === 'SPORT' ? 'favorites' : 'raw_json'}</span><br/><br/>
-                
-                <span className="text-slate-500"># 2. Select Engine</span><br/>
-                {activeEngine === 'BAR' && <span><span className="text-slate-200">plt.</span><span className="text-blue-300">bar</span><span className="text-slate-200">(data)</span></span>}
-                {activeEngine === 'LINE' && <span><span className="text-slate-200">plt.</span><span className="text-pink-300">plot</span><span className="text-slate-200">(data)</span></span>}
-                {activeEngine === 'PIE' && <span><span className="text-slate-200">plt.</span><span className="text-amber-300">pie</span><span className="text-slate-200">(data)</span></span>}
-                {!activeEngine && <span className="text-slate-600">plt.???(data)</span>}<br/><br/>
-
-                {(step === 'COMPLETE' || step === 'OUTCOME') && (
-                  <>
-                    <span className="text-slate-500"># 3. Apply Labels</span><br/>
-                    {labels.title ? <span><span className="text-slate-200">plt.</span><span className="text-yellow-200">title</span><span className="text-slate-200">(</span><span className="text-green-300">'City Populations'</span><span className="text-slate-200">)</span><br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
-                    {labels.xlabel ? <span><span className="text-slate-200">plt.</span><span className="text-yellow-200">xlabel</span><span className="text-slate-200">(</span><span className="text-green-300">'Indian Cities'</span><span className="text-slate-200">)</span><br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
-                    {labels.ylabel ? <span><span className="text-slate-200">plt.</span><span className="text-yellow-200">ylabel</span><span className="text-slate-200">(</span><span className="text-green-300">'Population'</span><span className="text-slate-200">)</span><br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
-                    <br/>
-                  </>
-                )}
-                
-                <span className="text-slate-500"># Render Chart</span><br/>
-                <span className="text-slate-200">plt.</span><span className="text-yellow-200">show</span><span className="text-slate-200">()</span>
-              </div>
-
-              {/* Controls */}
-              <div className="mt-auto flex flex-col gap-2 shrink-0">
-                {step === 'LEARN' && (
-                  <button onClick={() => { if(playPop) playPop(); setStep('TRY_RAW'); }} className="w-full bg-sky-500 hover:bg-sky-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors flex items-center justify-center gap-2">
-                    <Database size={16} /> Import Raw Data
-                  </button>
-                )}
-
-                {step === 'TRY_RAW' && (
-                  <button onClick={() => { if(playPop) playPop(); setStep('FAIL_PIE'); }} className="w-full bg-rose-500 hover:bg-rose-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors flex items-center justify-center gap-2">
-                    <PieIcon size={16} /> Try Pie Chart
-                  </button>
-                )}
-
-                {step === 'FAIL_PIE' && (
-                  <>
-                    <button onClick={() => { if(playError) playError(); setActiveEngine('PIE'); }} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors border border-slate-700">
-                      Generate Pie Chart
-                    </button>
-                    {activeEngine === 'PIE' && (
-                      <button onClick={() => { if(playPop) playPop(); setStep('UNDERSTAND'); setActiveEngine(null); }} className="w-full bg-sky-500 hover:bg-sky-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors mt-2">
-                        Analyze Issue
-                      </button>
-                    )}
-                  </>
-                )}
-
-                {step === 'UNDERSTAND' && (
-                  <button onClick={() => { if(playPop) playPop(); setStep('IMPROVE'); setActiveData('CITY'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors">
-                    Re-route Engines
-                  </button>
-                )}
-
-                {step === 'IMPROVE' && (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <button onClick={() => { if(playClick) playClick(); setActiveData('TEMP'); setActiveEngine('LINE'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] sm:text-xs uppercase transition-colors flex flex-col items-center justify-center gap-1 ${activeData === 'TEMP' && activeEngine === 'LINE' ? 'bg-pink-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                        <TrendingUp size={16} /> Temp / Line
-                      </button>
-                      <button onClick={() => { if(playClick) playClick(); setActiveData('CITY'); setActiveEngine('BAR'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] sm:text-xs uppercase transition-colors flex flex-col items-center justify-center gap-1 ${activeData === 'CITY' && activeEngine === 'BAR' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                        <BarChart2 size={16} /> Cities / Bar
-                      </button>
-                      <button onClick={() => { if(playClick) playClick(); setActiveData('SPORT'); setActiveEngine('PIE'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] sm:text-xs uppercase transition-colors flex flex-col items-center justify-center gap-1 ${activeData === 'SPORT' && activeEngine === 'PIE' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
-                        <PieIcon size={16} /> Sports / Pie
-                      </button>
-                    </div>
-                    {activeData === 'CITY' && activeEngine === 'BAR' && (
-                      <button onClick={() => { if(playSuccess) playSuccess(); setStep('COMPLETE'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors mt-2">
-                        Configure Labels
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {step === 'COMPLETE' && (
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Click to apply labels</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button disabled={labels.title} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, title: true})); }} className={`p-2 rounded-lg font-bold text-xs font-mono transition-colors ${labels.title ? 'bg-slate-800 text-slate-600' : 'bg-sky-900/50 text-sky-300 hover:bg-sky-800 border border-sky-700/50'}`}>plt.title()</button>
-                      <button disabled={labels.xlabel} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, xlabel: true})); }} className={`p-2 rounded-lg font-bold text-xs font-mono transition-colors ${labels.xlabel ? 'bg-slate-800 text-slate-600' : 'bg-sky-900/50 text-sky-300 hover:bg-sky-800 border border-sky-700/50'}`}>plt.xlabel()</button>
-                      <button disabled={labels.ylabel} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, ylabel: true})); }} className={`p-2 rounded-lg font-bold text-xs font-mono transition-colors ${labels.ylabel ? 'bg-slate-800 text-slate-600' : 'bg-sky-900/50 text-sky-300 hover:bg-sky-800 border border-sky-700/50'}`}>plt.ylabel()</button>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            </div>
           </div>
         </div>
-
       </div>
 
       <Celebration 
         isActive={step === 'OUTCOME'} 
-        message="Visualization Pipeline Complete!" 
+        message="Data Representation Complete!" 
         onReplay={resetLab} 
       />
     </LabShell>
