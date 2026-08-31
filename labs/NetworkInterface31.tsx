@@ -184,7 +184,7 @@ export default function NetworkInterface31() {
                 return (
                   <React.Fragment key={s.id}>
                     <div className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-[10px] sm:text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
-                      isActive ? 'bg-indigo-900 text-white shadow-md' :
+                      isActive ? 'bg-slate-800 text-white shadow-md' :
                       isPast ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-400 border border-slate-200/60'
                     }`}>
                       {s.label}
