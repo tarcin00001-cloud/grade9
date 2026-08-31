@@ -152,7 +152,7 @@ export default function ComputingProject39() {
   return (
     <LabShell 
       labId="computingproject39"
-      title="Hackathon Tycoon" 
+      title="Computing Project" 
       compact={true}
       instruction={briefings[step]}
       bgOverride="bg-slate-200"
@@ -220,11 +220,11 @@ export default function ComputingProject39() {
                   
                   {/* Deliverables */}
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Required Deliverables</h3>
-                    <ul className="space-y-1">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Required Deliverables</h3>
+                    <ul className="space-y-0.5">
                       {selected.deliverables.map((del, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm font-medium text-slate-700">
-                          <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                          <div className="mt-1.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
                           <span>{del}</span>
                         </li>
                       ))}
@@ -232,37 +232,37 @@ export default function ComputingProject39() {
                   </div>
 
                   {/* Failure Mode Warning */}
-                  <div className="bg-amber-100/80 border border-amber-300 rounded-lg p-4 relative overflow-hidden">
+                  <div className="bg-amber-100/80 border border-amber-300 rounded-lg p-2.5 relative overflow-hidden shadow-sm">
                     <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-                    <div className="flex items-start gap-3">
-                      <AlertOctagon className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                    <div className="flex items-start gap-2">
+                      <AlertOctagon className="text-amber-600 shrink-0 mt-0.5" size={16} />
                       <div>
-                        <h3 className="text-xs font-black uppercase tracking-widest text-amber-800 mb-1">Common Failure Mode</h3>
-                        <p className="text-sm font-medium text-amber-900 leading-snug">{selected.anecdote}</p>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-amber-800 mb-0.5">Common Failure Mode</h3>
+                        <p className="text-xs font-semibold text-amber-900 leading-tight">{selected.anecdote}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Risk Assessment */}
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Risk Assessment Checklist</h3>
-                    <div className="space-y-2">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Risk Assessment Checklist</h3>
+                    <div className="space-y-1.5">
                       {selected.risks.map((risk, i) => {
                         const isChecked = checkedRisks[risk];
                         return (
                           <button
                             key={i}
                             onClick={() => toggleRisk(risk)}
-                            className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
+                            className={`w-full flex items-start gap-2.5 p-2 rounded-lg border-2 text-left transition-all ${
                               isChecked 
-                                ? 'bg-emerald-50 border-emerald-200' 
-                                : 'bg-white border-slate-200 hover:border-slate-300'
+                                ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
+                                : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
                             }`}
                           >
-                            <div className={`mt-0.5 shrink-0 ${isChecked ? 'text-emerald-500' : 'text-slate-300'}`}>
-                              {isChecked ? <CheckSquare size={20} /> : <Square size={20} />}
+                            <div className={`mt-0.5 shrink-0 transition-colors ${isChecked ? 'text-emerald-500' : 'text-slate-300'}`}>
+                              {isChecked ? <CheckSquare size={18} /> : <Square size={18} />}
                             </div>
-                            <span className={`font-mono text-sm leading-tight transition-all ${
+                            <span className={`font-mono text-xs leading-tight transition-all ${
                               isChecked ? 'text-emerald-700 line-through opacity-70' : 'text-slate-700'
                             }`}>
                               {risk}
