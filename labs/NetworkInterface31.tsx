@@ -280,9 +280,10 @@ export default function NetworkInterface31() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
-                          if (isSelected) return;
                           if (playPop) playPop();
-                          setPhysicalMedia(prev => [...prev, med]);
+                          setPhysicalMedia(prev => 
+                            isSelected ? prev.filter(m => m !== med) : [...prev, med]
+                          );
                         }}
                         className={`rounded-xl p-2 flex flex-col items-center justify-center gap-1 text-[10px] font-black tracking-wider transition-all border-2 ${
                           isSelected

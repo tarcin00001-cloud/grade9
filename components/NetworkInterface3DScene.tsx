@@ -140,8 +140,12 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
           <boxGeometry args={[0.1, 0.5, 0.7]} />
           <meshStandardMaterial 
             color="#000000" 
-            emissive={physicalMedia.includes('FIBER') ? "#f43f5e" : physicalMedia.includes('COPPER') ? "#3b82f6" : "#000000"} 
-            emissiveIntensity={physicalMedia.length > 0 ? 2 : 0} 
+            emissive={
+              physicalMedia.includes('FIBER') && physicalMedia.includes('COPPER') ? "#a855f7" :
+              physicalMedia.includes('FIBER') ? "#f43f5e" : 
+              physicalMedia.includes('COPPER') ? "#3b82f6" : "#000000"
+            } 
+            emissiveIntensity={physicalMedia.includes('FIBER') || physicalMedia.includes('COPPER') ? 2 : 0} 
           />
         </mesh>
       </group>
