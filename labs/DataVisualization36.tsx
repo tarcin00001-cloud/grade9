@@ -176,7 +176,7 @@ export default function DataVisualization36() {
                 const isPast = STEPS.findIndex(x => x.id === step) > idx;
                 return (
                   <React.Fragment key={s.id}>
-                    <div className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-[10px] sm:text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
+                    <div className={`px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
                       isActive ? 'bg-slate-800 text-white shadow-md' :
                       isPast ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-400 border border-slate-200/60'
                     }`}>
@@ -216,6 +216,23 @@ export default function DataVisualization36() {
             
             <div className="flex-1 bg-slate-50 rounded-xl border-2 border-slate-100 relative overflow-hidden flex flex-col items-center justify-center p-4">
               
+              {/* State: LEARN (Standby Placeholder) */}
+              {step === 'LEARN' && (
+                <div className="w-full h-full relative opacity-30 pointer-events-none">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={[{ val: 10 }, { val: 20 }, { val: 15 }, { val: 25 }]}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" />
+                      <XAxis hide />
+                      <YAxis hide />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center flex-col gap-2">
+                    <Database size={32} className="text-slate-400 animate-pulse" />
+                    <span className="font-black text-slate-400 uppercase tracking-widest text-sm">Awaiting Data Stream...</span>
+                  </div>
+                </div>
+              )}
+
               {/* State: TRY_RAW */}
               {step === 'TRY_RAW' && (
                 <div className="w-full h-full font-mono text-[10px] md:text-xs text-slate-400 overflow-y-auto break-all p-4">
@@ -273,28 +290,28 @@ export default function DataVisualization36() {
               
               {/* Code Preview */}
               <div className="font-mono text-xs md:text-sm text-sky-100 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <span className="text-purple-400">import</span> matplotlib.pyplot <span className="text-purple-400">as</span> plt<br/><br/>
+                <span className="text-purple-400">import</span> <span className="text-sky-100">matplotlib.pyplot</span> <span className="text-purple-400">as</span> <span className="text-sky-100">plt</span><br/><br/>
                 <span className="text-slate-500"># 1. Load Data</span><br/>
-                data = {activeData === 'TEMP' ? 'temperature_log' : activeData === 'CITY' ? 'populations' : activeData === 'SPORT' ? 'favorites' : 'raw_json'}<br/><br/>
+                <span className="text-sky-100">data = {activeData === 'TEMP' ? 'temperature_log' : activeData === 'CITY' ? 'populations' : activeData === 'SPORT' ? 'favorites' : 'raw_json'}</span><br/><br/>
                 
                 <span className="text-slate-500"># 2. Select Engine</span><br/>
-                {activeEngine === 'BAR' && <span>plt.<span className="text-blue-300">bar</span>(data)</span>}
-                {activeEngine === 'LINE' && <span>plt.<span className="text-pink-300">plot</span>(data)</span>}
-                {activeEngine === 'PIE' && <span>plt.<span className="text-amber-300">pie</span>(data)</span>}
+                {activeEngine === 'BAR' && <span><span className="text-sky-100">plt.</span><span className="text-blue-300">bar</span><span className="text-sky-100">(data)</span></span>}
+                {activeEngine === 'LINE' && <span><span className="text-sky-100">plt.</span><span className="text-pink-300">plot</span><span className="text-sky-100">(data)</span></span>}
+                {activeEngine === 'PIE' && <span><span className="text-sky-100">plt.</span><span className="text-amber-300">pie</span><span className="text-sky-100">(data)</span></span>}
                 {!activeEngine && <span className="text-slate-600">plt.???(data)</span>}<br/><br/>
 
                 {(step === 'COMPLETE' || step === 'OUTCOME') && (
                   <>
                     <span className="text-slate-500"># 3. Apply Labels</span><br/>
-                    {labels.title ? <span>plt.<span className="text-yellow-200">title</span>(<span className="text-green-300">'City Populations'</span>)<br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
-                    {labels.xlabel ? <span>plt.<span className="text-yellow-200">xlabel</span>(<span className="text-green-300">'Indian Cities'</span>)<br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
-                    {labels.ylabel ? <span>plt.<span className="text-yellow-200">ylabel</span>(<span className="text-green-300">'Population'</span>)<br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
+                    {labels.title ? <span><span className="text-sky-100">plt.</span><span className="text-yellow-200">title</span><span className="text-sky-100">(</span><span className="text-green-300">'City Populations'</span><span className="text-sky-100">)</span><br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
+                    {labels.xlabel ? <span><span className="text-sky-100">plt.</span><span className="text-yellow-200">xlabel</span><span className="text-sky-100">(</span><span className="text-green-300">'Indian Cities'</span><span className="text-sky-100">)</span><br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
+                    {labels.ylabel ? <span><span className="text-sky-100">plt.</span><span className="text-yellow-200">ylabel</span><span className="text-sky-100">(</span><span className="text-green-300">'Population'</span><span className="text-sky-100">)</span><br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
                     <br/>
                   </>
                 )}
                 
                 <span className="text-slate-500"># Render Chart</span><br/>
-                plt.<span className="text-yellow-200">show</span>()
+                <span className="text-sky-100">plt.</span><span className="text-yellow-200">show</span><span className="text-sky-100">()</span>
               </div>
 
               {/* Controls */}
