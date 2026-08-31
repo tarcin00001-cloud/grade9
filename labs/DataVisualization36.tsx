@@ -108,7 +108,7 @@ export default function DataVisualization36() {
       return (
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={data} cx="50%" cy="50%" innerRadius={0} outerRadius={80} dataKey="val" animationDuration={800}>
+            <Pie data={data} cx="50%" cy="55%" innerRadius={0} outerRadius="70%" dataKey="val" animationDuration={800}>
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={highlightError ? '#ef4444' : PIE_COLORS[index % PIE_COLORS.length]} />
               ))}
@@ -409,13 +409,25 @@ export default function DataVisualization36() {
                       <div className="flex flex-col gap-2">
                         {/* Physical Routing Keys */}
                         <button onClick={() => { if(playClick) playClick(); setActiveData('TEMP'); setActiveEngine('LINE'); }} className={`w-full p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex items-center justify-start gap-2 ${activeData === 'TEMP' && activeEngine === 'LINE' ? 'bg-pink-500 text-white shadow-[0_4px_0_#be185d]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
-                          <TrendingUp size={16} /> Temp
+                          <TrendingUp size={18} className="shrink-0" /> 
+                          <div className="flex flex-col items-start leading-tight">
+                            <span>Temp</span>
+                            <span className="text-[8px] opacity-80">Line Chart</span>
+                          </div>
                         </button>
                         <button onClick={() => { if(playClick) playClick(); setActiveData('CITY'); setActiveEngine('BAR'); }} className={`w-full p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex items-center justify-start gap-2 ${activeData === 'CITY' && activeEngine === 'BAR' ? 'bg-blue-500 text-white shadow-[0_4px_0_#1d4ed8]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
-                          <BarChart2 size={16} /> Cities
+                          <BarChart2 size={18} className="shrink-0" /> 
+                          <div className="flex flex-col items-start leading-tight">
+                            <span>Cities</span>
+                            <span className="text-[8px] opacity-80">Bar Chart</span>
+                          </div>
                         </button>
                         <button onClick={() => { if(playClick) playClick(); setActiveData('SPORT'); setActiveEngine('PIE'); }} className={`w-full p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex items-center justify-start gap-2 ${activeData === 'SPORT' && activeEngine === 'PIE' ? 'bg-amber-500 text-white shadow-[0_4px_0_#b45309]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
-                          <PieIcon size={16} /> Sports
+                          <PieIcon size={18} className="shrink-0" /> 
+                          <div className="flex flex-col items-start leading-tight">
+                            <span>Sports</span>
+                            <span className="text-[8px] opacity-80">Pie Chart</span>
+                          </div>
                         </button>
                       </div>
                       
