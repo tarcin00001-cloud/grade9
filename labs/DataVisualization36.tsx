@@ -317,7 +317,7 @@ export default function DataVisualization36() {
             </div>
 
             {/* RIGHT: Data Drafting Machine (Terminal & Controls) */}
-            <div className="w-full lg:w-[45%] flex flex-col bg-[#e0e4e8] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.15)] border-t border-l border-white border-b-[6px] border-r-[4px] border-slate-300 p-3 min-h-0 min-w-0">
+            <div className="w-full lg:w-[45%] flex flex-col md:flex-row gap-3 bg-[#e0e4e8] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.15)] border-t border-l border-white border-b-[6px] border-r-[4px] border-slate-300 p-3 min-h-0 min-w-0">
               
               {/* Screen Bezel */}
               <div className="flex-1 bg-slate-900 border-4 border-[#cbd5e1] rounded-xl shadow-inner flex flex-col overflow-hidden min-h-0">
@@ -329,7 +329,7 @@ export default function DataVisualization36() {
                 </div>
                 
                 {/* Code Area */}
-                <div className="flex-1 p-4 md:p-6 font-mono text-xs md:text-sm text-slate-300 overflow-hidden leading-relaxed flex flex-col justify-center">
+                <div className="flex-1 p-4 md:p-5 font-mono text-xs text-slate-300 overflow-hidden leading-relaxed flex flex-col justify-start">
                   <div className="text-emerald-400">
                     <span className="text-purple-400">import</span> matplotlib.pyplot <span className="text-purple-400">as</span> plt<br/><br/>
                     
@@ -361,31 +361,31 @@ export default function DataVisualization36() {
                 </div>
               </div>
 
-              {/* Physical Keyboard / Button Panel */}
-              <div className="shrink-0 mt-3 bg-[#d1d5db] p-3 md:p-4 rounded-xl shadow-inner border-t-2 border-white/60">
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center mb-2">Hardware Controls</h3>
+              {/* Physical Keyboard / Button Panel (Vertical Side-Panel) */}
+              <div className="shrink-0 w-full md:w-36 lg:w-40 bg-[#d1d5db] p-3 rounded-xl shadow-inner border-t-2 border-white/60 flex flex-col overflow-y-auto">
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center mb-4">Controls</h3>
                 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 my-auto">
                   
                   {step === 'LEARN' && (
-                    <button onClick={() => { if(playPop) playPop(); setStep('TRY_RAW'); }} className="w-full bg-blue-500 hover:bg-blue-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-sm transition-all active:translate-y-1 shadow-[0_4px_0_#1d4ed8] active:shadow-[0_0px_0_#1d4ed8] flex items-center justify-center gap-2">
-                      <Database size={18} /> Import Raw Material
+                    <button onClick={() => { if(playPop) playPop(); setStep('TRY_RAW'); }} className="w-full bg-blue-500 hover:bg-blue-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-xs transition-all active:translate-y-1 shadow-[0_4px_0_#1d4ed8] active:shadow-[0_0px_0_#1d4ed8] flex flex-col items-center justify-center gap-1 text-center">
+                      <Database size={18} /> Import Raw Data
                     </button>
                   )}
 
                   {step === 'TRY_RAW' && (
-                    <button onClick={() => { if(playPop) playPop(); setStep('FAIL_PIE'); }} className="w-full bg-amber-500 hover:bg-amber-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-sm transition-all active:translate-y-1 shadow-[0_4px_0_#b45309] active:shadow-[0_0px_0_#b45309] flex items-center justify-center gap-2">
+                    <button onClick={() => { if(playPop) playPop(); setStep('FAIL_PIE'); }} className="w-full bg-amber-500 hover:bg-amber-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-xs transition-all active:translate-y-1 shadow-[0_4px_0_#b45309] active:shadow-[0_0px_0_#b45309] flex flex-col items-center justify-center gap-1 text-center">
                       <PieIcon size={18} /> Inject Pie Engine
                     </button>
                   )}
 
                   {step === 'FAIL_PIE' && (
-                    <div className="flex flex-col gap-2">
-                      <button onClick={() => { if(playError) playError(); setActiveEngine('PIE'); }} className="w-full bg-slate-300 hover:bg-slate-200 text-slate-600 rounded-lg p-3 font-black uppercase tracking-wider text-sm transition-all active:translate-y-1 shadow-[0_4px_0_#94a3b8] active:shadow-[0_0px_0_#94a3b8]">
+                    <div className="flex flex-col gap-3">
+                      <button onClick={() => { if(playError) playError(); setActiveEngine('PIE'); }} className="w-full bg-slate-300 hover:bg-slate-200 text-slate-600 rounded-lg p-3 font-black uppercase tracking-wider text-xs transition-all active:translate-y-1 shadow-[0_4px_0_#94a3b8] active:shadow-[0_0px_0_#94a3b8]">
                         Execute Pie
                       </button>
                       {activeEngine === 'PIE' && (
-                        <button onClick={() => { if(playPop) playPop(); setStep('UNDERSTAND'); setActiveEngine(null); }} className="w-full bg-rose-500 hover:bg-rose-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-sm transition-all active:translate-y-1 shadow-[0_4px_0_#be123c] active:shadow-[0_0px_0_#be123c]">
+                        <button onClick={() => { if(playPop) playPop(); setStep('UNDERSTAND'); setActiveEngine(null); }} className="w-full bg-rose-500 hover:bg-rose-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-xs transition-all active:translate-y-1 shadow-[0_4px_0_#be123c] active:shadow-[0_0px_0_#be123c]">
                           Analyze Fault
                         </button>
                       )}
@@ -393,28 +393,28 @@ export default function DataVisualization36() {
                   )}
 
                   {step === 'UNDERSTAND' && (
-                    <button onClick={() => { if(playPop) playPop(); setStep('IMPROVE'); setActiveData('CITY'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-sm transition-all active:translate-y-1 shadow-[0_4px_0_#047857] active:shadow-[0_0px_0_#047857]">
-                      Reset Board & Re-route
+                    <button onClick={() => { if(playPop) playPop(); setStep('IMPROVE'); setActiveData('CITY'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-xs transition-all active:translate-y-1 shadow-[0_4px_0_#047857] active:shadow-[0_0px_0_#047857]">
+                      Reset & Re-route
                     </button>
                   )}
 
                   {step === 'IMPROVE' && (
                     <div className="flex flex-col gap-3">
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
                         {/* Physical Routing Keys */}
-                        <button onClick={() => { if(playClick) playClick(); setActiveData('TEMP'); setActiveEngine('LINE'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex flex-col items-center justify-center gap-1 ${activeData === 'TEMP' && activeEngine === 'LINE' ? 'bg-pink-500 text-white shadow-[0_4px_0_#be185d]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
-                          <TrendingUp size={18} /> Temp / Line
+                        <button onClick={() => { if(playClick) playClick(); setActiveData('TEMP'); setActiveEngine('LINE'); }} className={`w-full p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex items-center justify-start gap-2 ${activeData === 'TEMP' && activeEngine === 'LINE' ? 'bg-pink-500 text-white shadow-[0_4px_0_#be185d]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
+                          <TrendingUp size={16} /> Temp
                         </button>
-                        <button onClick={() => { if(playClick) playClick(); setActiveData('CITY'); setActiveEngine('BAR'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex flex-col items-center justify-center gap-1 ${activeData === 'CITY' && activeEngine === 'BAR' ? 'bg-blue-500 text-white shadow-[0_4px_0_#1d4ed8]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
-                          <BarChart2 size={18} /> Cities / Bar
+                        <button onClick={() => { if(playClick) playClick(); setActiveData('CITY'); setActiveEngine('BAR'); }} className={`w-full p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex items-center justify-start gap-2 ${activeData === 'CITY' && activeEngine === 'BAR' ? 'bg-blue-500 text-white shadow-[0_4px_0_#1d4ed8]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
+                          <BarChart2 size={16} /> Cities
                         </button>
-                        <button onClick={() => { if(playClick) playClick(); setActiveData('SPORT'); setActiveEngine('PIE'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex flex-col items-center justify-center gap-1 ${activeData === 'SPORT' && activeEngine === 'PIE' ? 'bg-amber-500 text-white shadow-[0_4px_0_#b45309]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
-                          <PieIcon size={18} /> Sports / Pie
+                        <button onClick={() => { if(playClick) playClick(); setActiveData('SPORT'); setActiveEngine('PIE'); }} className={`w-full p-2 rounded-lg font-bold text-[10px] uppercase transition-all active:translate-y-1 flex items-center justify-start gap-2 ${activeData === 'SPORT' && activeEngine === 'PIE' ? 'bg-amber-500 text-white shadow-[0_4px_0_#b45309]' : 'bg-white text-slate-600 shadow-[0_4px_0_#94a3b8] hover:bg-slate-50'}`}>
+                          <PieIcon size={16} /> Sports
                         </button>
                       </div>
                       
                       {activeData === 'CITY' && activeEngine === 'BAR' && (
-                        <button onClick={() => { if(playSuccess) playSuccess(); setStep('COMPLETE'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-sm transition-all active:translate-y-1 shadow-[0_4px_0_#047857] active:shadow-[0_0px_0_#047857]">
+                        <button onClick={() => { if(playSuccess) playSuccess(); setStep('COMPLETE'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-xs transition-all active:translate-y-1 shadow-[0_4px_0_#047857] active:shadow-[0_0px_0_#047857]">
                           Lock Routing
                         </button>
                       )}
@@ -423,8 +423,8 @@ export default function DataVisualization36() {
 
                   {step === 'COMPLETE' && (
                     <div className="flex flex-col gap-2">
-                      <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Stamp Labels</h3>
-                      <div className="flex gap-2">
+                      <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center mb-1">Stamp Labels</h3>
+                      <div className="flex flex-col gap-2">
                         {['title', 'xlabel', 'ylabel'].map(l => {
                           const prop = l as keyof typeof labels;
                           return (
@@ -432,7 +432,7 @@ export default function DataVisualization36() {
                               key={l}
                               disabled={labels[prop]} 
                               onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, [prop]: true})); }} 
-                              className={`flex-1 p-2 rounded-lg font-bold text-[10px] md:text-xs font-mono transition-all uppercase tracking-wider ${
+                              className={`w-full p-2 rounded-lg font-bold text-xs font-mono transition-all uppercase tracking-wider text-center ${
                                 labels[prop] 
                                   ? 'bg-slate-300 text-slate-400 shadow-none translate-y-1' 
                                   : 'bg-white text-sky-700 shadow-[0_4px_0_#94a3b8] active:translate-y-1 active:shadow-none hover:bg-slate-50 border border-slate-200'
