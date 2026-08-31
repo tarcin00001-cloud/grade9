@@ -1,7 +1,5 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
-import { useWindowSize } from "react-use";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles, Play, RotateCcw } from "lucide-react";
 import Confetti from "react-confetti";
@@ -23,8 +21,17 @@ export default function Celebration({
   actionLabel = "Play Again",
   actionIcon
 }: CelebrationProps) {
-  const { width, height } = useWindowSize(); 
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
 
   const handleReplay = useCallback(() => { 
     setShow(false); 
@@ -41,7 +48,7 @@ export default function Celebration({
       {show && (
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-auto">
           {/* Confetti full screen */}
-          {typeof window !== 'undefined' && <Confetti width={width} height={height} recycle={false} numberOfPieces={400} />}
+          {typeof window !== 'undefined' && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={400} />}
           
           {/* Bright focus veil */}
           <motion.div 
