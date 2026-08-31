@@ -230,7 +230,7 @@ export default function DataVisualization36() {
           <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 mt-2">
             
             {/* LEFT: Physical Clipboard (The Canvas) */}
-            <div className="flex-[1.5] relative min-h-0 flex flex-col">
+            <div className="w-full lg:w-[55%] relative min-h-0 flex flex-col">
               {/* Clipboard Base */}
               <div className="absolute inset-0 bg-[#c19a6b] rounded-2xl shadow-[10px_20px_30px_rgba(0,0,0,0.2)] border-b-[8px] border-r-[4px] border-[#a07b53]">
                 {/* Wood Grain Lines (Faint) */}
@@ -238,7 +238,7 @@ export default function DataVisualization36() {
               </div>
               
               {/* Inner Clipboard Content */}
-              <div className="relative h-full flex flex-col p-4 md:p-6 pb-8 min-h-0">
+              <div className="relative flex-1 flex flex-col p-4 md:p-6 pb-8 min-h-0">
                 {/* Silver Clip Mechanism */}
                 <div className="shrink-0 w-32 h-8 bg-gradient-to-b from-slate-200 to-slate-400 mx-auto rounded-t-lg shadow-md border-b-2 border-slate-500 relative z-20 flex items-center justify-center -mt-2">
                    <div className="w-16 h-2 bg-slate-500 rounded-full shadow-inner opacity-50" />
@@ -317,7 +317,7 @@ export default function DataVisualization36() {
             </div>
 
             {/* RIGHT: Data Drafting Machine (Terminal & Controls) */}
-            <div className="flex-1 flex flex-col bg-[#e0e4e8] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.15)] border-t border-l border-white border-b-[6px] border-r-[4px] border-slate-300 p-3 min-h-0 min-w-0">
+            <div className="w-full lg:w-[45%] flex flex-col bg-[#e0e4e8] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.15)] border-t border-l border-white border-b-[6px] border-r-[4px] border-slate-300 p-3 min-h-0 min-w-0">
               
               {/* Screen Bezel */}
               <div className="flex-1 bg-slate-900 border-4 border-[#cbd5e1] rounded-xl shadow-inner flex flex-col overflow-hidden min-h-0">
@@ -329,7 +329,7 @@ export default function DataVisualization36() {
                 </div>
                 
                 {/* Code Area */}
-                <div className="flex-1 p-3 md:p-4 font-mono text-[10px] md:text-[11px] text-slate-300 overflow-hidden leading-snug flex flex-col justify-center">
+                <div className="flex-1 p-4 md:p-6 font-mono text-xs md:text-sm text-slate-300 overflow-hidden leading-relaxed flex flex-col justify-center">
                   <div className="text-emerald-400">
                     <span className="text-purple-400">import</span> matplotlib.pyplot <span className="text-purple-400">as</span> plt<br/><br/>
                     
