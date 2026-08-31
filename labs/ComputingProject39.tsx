@@ -203,12 +203,12 @@ export default function ComputingProject39() {
               <div className="flex-1 flex flex-col min-h-0 relative">
                 
                 {/* Header */}
-                <div className="flex items-center gap-4 mb-4 pb-4 border-b-2 border-slate-300/50">
-                  <div className={`p-3 rounded-xl bg-white shadow-sm ${selected.color}`}>
-                    {React.createElement(selected.icon as React.ElementType, { size: 32 })}
+                <div className="flex items-center gap-4 mb-2 pb-2 border-b-2 border-slate-300/50">
+                  <div className={`p-2 rounded-xl bg-white shadow-sm ${selected.color}`}>
+                    {React.createElement(selected.icon as React.ElementType, { size: 28 })}
                   </div>
                   <div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Project Dossier</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Project Dossier</div>
                     <h2 className="text-xl md:text-2xl font-black uppercase text-slate-800 leading-tight">
                       {selected.title}
                     </h2>
@@ -216,14 +216,14 @@ export default function ComputingProject39() {
                 </div>
 
                 {/* Content Scroll Area */}
-                <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-3">
                   
                   {/* Deliverables */}
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Required Deliverables</h3>
-                    <ul className="space-y-2">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Required Deliverables</h3>
+                    <ul className="space-y-1">
                       {selected.deliverables.map((del, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm font-medium text-slate-700 bg-white/50 p-2 rounded">
+                        <li key={i} className="flex items-start gap-2 text-sm font-medium text-slate-700">
                           <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
                           <span>{del}</span>
                         </li>
@@ -276,7 +276,7 @@ export default function ComputingProject39() {
                 </div>
 
                 {/* Footer Action */}
-                <div className="pt-4 mt-4 border-t-2 border-slate-300/50 relative">
+                <div className="pt-2 mt-2 border-t-2 border-slate-300/50 relative">
                   <button
                     onClick={handleAuthorize}
                     className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all ${
