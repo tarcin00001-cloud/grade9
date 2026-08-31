@@ -329,7 +329,7 @@ export default function DataVisualization36() {
                 </div>
                 
                 {/* Code Area */}
-                <div className="flex-1 p-4 font-mono text-xs md:text-sm text-slate-300 overflow-y-auto leading-relaxed">
+                <div className="flex-1 p-3 md:p-4 font-mono text-[10px] md:text-[11px] text-slate-300 overflow-hidden leading-snug flex flex-col justify-center">
                   <div className="text-emerald-400">
                     <span className="text-purple-400">import</span> matplotlib.pyplot <span className="text-purple-400">as</span> plt<br/><br/>
                     
@@ -342,15 +342,17 @@ export default function DataVisualization36() {
                     {activeEngine === 'PIE' && <span>plt.<span className="text-amber-400">pie</span>(<span className="text-sky-300">data</span>)</span>}
                     {!activeEngine && <span className="text-rose-500">plt.???(<span className="text-sky-300">data</span>)</span>}<br/><br/>
 
-                    {(step === 'COMPLETE' || step === 'OUTCOME') && (
+                    <span className="text-slate-500"># 3. Apply Labels</span><br/>
+                    {(step === 'COMPLETE' || step === 'OUTCOME') ? (
                       <>
-                        <span className="text-slate-500"># 3. Apply Labels</span><br/>
                         {labels.title ? <span>plt.<span className="text-yellow-200">title</span>(<span className="text-green-400">'City Populations'</span>)<br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
                         {labels.xlabel ? <span>plt.<span className="text-yellow-200">xlabel</span>(<span className="text-green-400">'Indian Cities'</span>)<br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
                         {labels.ylabel ? <span>plt.<span className="text-yellow-200">ylabel</span>(<span className="text-green-400">'Population'</span>)<br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
-                        <br/>
                       </>
+                    ) : (
+                      <span className="text-slate-700"># (Awaiting routing lock...)<br/></span>
                     )}
+                    <br/>
                     
                     <span className="text-slate-500"># 4. Render Chart</span><br/>
                     plt.<span className="text-yellow-200">show</span>()
