@@ -124,7 +124,7 @@ export default function DataVisualization36() {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
             <Tooltip />
             <Line type="monotone" dataKey="val" stroke="#ec4899" strokeWidth={4} dot={{ r: 4, fill: '#ec4899', strokeWidth: 0 }} animationDuration={1000} />
@@ -138,7 +138,7 @@ export default function DataVisualization36() {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 30, right: 20, left: 0, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
             <Tooltip cursor={{ fill: '#f8fafc' }} />
             <Bar dataKey="val" fill="#3b82f6" radius={[4, 4, 0, 0]} animationDuration={1000} />
