@@ -34,7 +34,7 @@ export default function NetworkInterface31() {
   
   // Initialization State
   const [macAddress, setMacAddress] = useState<string | null>(null);
-  const [physicalMedium, setPhysicalMedium] = useState<'COPPER' | 'FIBER' | 'WIFI' | null>(null);
+  const [physicalMedia, setPhysicalMedia] = useState<string[]>([]);
 
   // Hardware Toggles
   const [tcpOffloadEnabled, setTcpOffloadEnabled] = useState(false);
@@ -147,7 +147,7 @@ export default function NetworkInterface31() {
     setTcpOffloadEnabled(false);
     setQosEnabled(false);
     setMacAddress(null);
-    setPhysicalMedium(null);
+    setPhysicalMedia([]);
   };
 
   // Briefing mapping
@@ -228,7 +228,7 @@ export default function NetworkInterface31() {
                 isStreaming={isStreaming}
                 cpuOverloaded={cpuLoad > 95}
                 macAddress={macAddress}
-                physicalMedium={physicalMedium}
+                physicalMedia={physicalMedia}
               />
             </div>
           </div>
@@ -270,30 +270,49 @@ export default function NetworkInterface31() {
             )}
 
             {step === 'INIT_MEDIUM' && (
-              <div className="grid grid-cols-3 gap-2 shrink-0">
-                {(['COPPER', 'FIBER', 'WIFI'] as const).map(med => (
-                  <button
-                    key={med}
-                    onClick={() => {
-                      if (playPop) playPop();
-                      setPhysicalMedium(med);
-                      setTimeout(() => {
+              <div className="flex flex-col gap-3 shrink-0">
+                <div className="grid grid-cols-3 gap-2">
+                  {(['COPPER', 'FIBER', 'WIFI'] as const).map(med => {
+                    const isSelected = physicalMedia.includes(med);
+                    return (
+                      <motion.button
+                        key={med}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          if (isSelected) return;
+                          if (playPop) playPop();
+                          setPhysicalMedia(prev => [...prev, med]);
+                        }}
+                        className={`rounded-xl p-2 flex flex-col items-center justify-center gap-1 text-[10px] font-black tracking-wider transition-all border-2 ${
+                          isSelected
+                            ? 'bg-sky-500 border-sky-600 text-white shadow-inner'
+                            : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:border-slate-300'
+                        }`}
+                      >
+                        {med === 'COPPER' && <Network size={16} />}
+                        {med === 'FIBER' && <Zap size={16} />}
+                        {med === 'WIFI' && <Info size={16} />}
+                        {med}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                <AnimatePresence>
+                  {physicalMedia.length > 0 && (
+                    <motion.button
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      onClick={() => {
                         if (playSuccess) playSuccess();
                         setStep('TRY_RAW');
-                      }, 1000);
-                    }}
-                    className={`rounded-xl p-2 flex flex-col items-center justify-center gap-1 text-[10px] font-black tracking-wider transition-all border-2 ${
-                      physicalMedium === med
-                        ? 'bg-sky-100 border-sky-400 text-sky-700'
-                        : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:border-slate-300'
-                    }`}
-                  >
-                    {med === 'COPPER' && <Network size={16} />}
-                    {med === 'FIBER' && <Zap size={16} />}
-                    {med === 'WIFI' && <Info size={16} />}
-                    {med}
-                  </button>
-                ))}
+                      }}
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider transition-all shadow-md active:scale-[0.98]"
+                    >
+                      Install Modules & Continue <ArrowRight size={18} />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
