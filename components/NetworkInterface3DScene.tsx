@@ -129,25 +129,39 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
         </group>
       )}
 
-      {/* RJ45 Ethernet Port */}
+      {/* Base Port Block (Always there, but modules plug into it) */}
       <group position={[-2.7, 0.4, -1]}>
         <mesh castShadow>
-          <boxGeometry args={[0.8, 0.7, 1]} />
+          <boxGeometry args={[0.8, 0.7, 1.2]} />
           <meshStandardMaterial color="#cbd5e1" metalness={0.5} roughness={0.3} />
         </mesh>
-        {/* Port Hole */}
-        <mesh position={[-0.41, 0, 0]}>
-          <boxGeometry args={[0.1, 0.5, 0.7]} />
-          <meshStandardMaterial 
-            color="#000000" 
-            emissive={
-              physicalMedia.includes('FIBER') && physicalMedia.includes('COPPER') ? "#a855f7" :
-              physicalMedia.includes('FIBER') ? "#f43f5e" : 
-              physicalMedia.includes('COPPER') ? "#3b82f6" : "#000000"
-            } 
-            emissiveIntensity={physicalMedia.includes('FIBER') || physicalMedia.includes('COPPER') ? 2 : 0} 
-          />
+      </group>
+
+      {/* Copper PHY Chip */}
+      <group position={[-1.8, 0.1, -1.3]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.5, 0.1, 0.5]} />
+          <meshStandardMaterial color={physicalMedia.includes('COPPER') ? "#3b82f6" : "#334155"} emissive={physicalMedia.includes('COPPER') ? "#3b82f6" : "#000000"} emissiveIntensity={physicalMedia.includes('COPPER') ? 0.5 : 0} />
         </mesh>
+        <Text position={[0, 0.06, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.1} color="#ffffff">COPPER</Text>
+      </group>
+
+      {/* Fiber SFP+ Transceiver */}
+      <group position={[-1.8, 0.1, -0.7]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.6, 0.15, 0.4]} />
+          <meshStandardMaterial color={physicalMedia.includes('FIBER') ? "#f43f5e" : "#334155"} metalness={0.8} emissive={physicalMedia.includes('FIBER') ? "#f43f5e" : "#000000"} emissiveIntensity={physicalMedia.includes('FIBER') ? 0.5 : 0} />
+        </mesh>
+        <Text position={[0, 0.08, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.1} color="#ffffff">FIBER</Text>
+      </group>
+
+      {/* WiFi Baseband SoC */}
+      <group position={[-2.3, 0.1, -0.1]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.4, 0.08, 0.4]} />
+          <meshStandardMaterial color={physicalMedia.includes('WIFI') ? "#38bdf8" : "#334155"} emissive={physicalMedia.includes('WIFI') ? "#38bdf8" : "#000000"} emissiveIntensity={physicalMedia.includes('WIFI') ? 0.5 : 0} />
+        </mesh>
+        <Text position={[0, 0.05, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.08} color="#ffffff">WIFI</Text>
       </group>
 
       {/* Main Processor (MAC / Base Controller) */}
