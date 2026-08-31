@@ -83,9 +83,9 @@ export default function DataVisualization36() {
     TRY_RAW: "Look at this raw temperature data. Quick, identify the peak summer trend just by reading the numbers. It's difficult and slow!",
     FAIL_PIE: "Let's push it through a Visualization Engine. Try using the Pie Chart engine for this temperature data.",
     UNDERSTAND: "A Pie Chart for temperature? Pie charts show proportions (like market share), not trends! Time-series data needs a Line Graph.",
-    IMPROVE: "Let's route datasets correctly. Line Graphs for time, Bar Graphs for categories, and Pie Charts for proportions. Try all three!",
-    COMPLETE: "The chart looks great, but it's missing context. Click the matplotlib commands below to add labels to your Bar Chart.",
-    OUTCOME: "Perfect! You transformed raw data into a clear, labeled visualization using Python. The dashboard is ready."
+    IMPROVE: "Let's fix the routing. Time-series data needs a Line Chart. Comparisons need a Bar Chart. Parts of a whole need a Pie Chart. Match any dataset to its proper engine.",
+    COMPLETE: "Perfect! You selected the correct engine for that data structure. Now, stamp it with clear labels so others can read it.",
+    OUTCOME: "The visualization is fully rendered and labeled. You have successfully translated raw data into a human-readable format!"
   };
 
   // Check completion for the labels step
@@ -279,11 +279,17 @@ export default function DataVisualization36() {
                     {step !== 'LEARN' && step !== 'TRY_RAW' && (
                       <div className="w-full h-full relative z-10">
                         {/* Applied Labels for COMPLETE stage */}
-                        {step === 'COMPLETE' || step === 'OUTCOME' ? (
+                        {(step === 'COMPLETE' || step === 'OUTCOME') ? (
                           <>
-                            {labels.title && <div className="absolute top-0 left-0 w-full text-center font-black text-slate-800 text-sm z-10 uppercase tracking-widest bg-white/80 p-1">City Populations (Millions)</div>}
-                            {labels.ylabel && <div className="absolute top-1/2 -left-6 -translate-y-1/2 -rotate-90 font-black text-slate-600 text-[10px] z-10 uppercase tracking-widest bg-white/80 px-2 py-1">Population</div>}
-                            {labels.xlabel && <div className="absolute bottom-0 left-0 w-full text-center font-black text-slate-600 text-[10px] z-10 uppercase tracking-widest bg-white/80 p-1">Indian Cities</div>}
+                            {labels.title && <div className="absolute top-0 left-0 w-full text-center font-black text-slate-800 text-sm z-10 uppercase tracking-widest bg-white/80 p-1">
+                              {activeData === 'CITY' ? 'City Populations (Millions)' : activeData === 'TEMP' ? 'Monthly Temperature (°C)' : 'Favorite Sports (Votes)'}
+                            </div>}
+                            {labels.ylabel && activeEngine !== 'PIE' && <div className="absolute top-1/2 -left-6 -translate-y-1/2 -rotate-90 font-black text-slate-600 text-[10px] z-10 uppercase tracking-widest bg-white/80 px-2 py-1">
+                              {activeData === 'CITY' ? 'Population' : 'Temperature'}
+                            </div>}
+                            {labels.xlabel && activeEngine !== 'PIE' && <div className="absolute bottom-0 left-0 w-full text-center font-black text-slate-600 text-[10px] z-10 uppercase tracking-widest bg-white/80 p-1">
+                              {activeData === 'CITY' ? 'Indian Cities' : 'Months'}
+                            </div>}
                           </>
                         ) : null}
                         
@@ -345,9 +351,9 @@ export default function DataVisualization36() {
                     <span className="text-slate-500"># 3. Apply Labels</span><br/>
                     {(step === 'COMPLETE' || step === 'OUTCOME') ? (
                       <>
-                        {labels.title ? <span>plt.<span className="text-yellow-200">title</span>(<span className="text-green-400">'City Populations'</span>)<br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
-                        {labels.xlabel ? <span>plt.<span className="text-yellow-200">xlabel</span>(<span className="text-green-400">'Indian Cities'</span>)<br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
-                        {labels.ylabel ? <span>plt.<span className="text-yellow-200">ylabel</span>(<span className="text-green-400">'Population'</span>)<br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
+                        {labels.title ? <span>plt.<span className="text-yellow-200">title</span>(<span className="text-green-400">'{activeData === 'CITY' ? 'City Populations' : activeData === 'TEMP' ? 'Monthly Temp' : 'Favorite Sports'}'</span>)<br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
+                        {labels.xlabel ? <span>plt.<span className="text-yellow-200">xlabel</span>(<span className="text-green-400">'{activeData === 'CITY' ? 'Indian Cities' : activeData === 'TEMP' ? 'Months' : 'Sports'}'</span>)<br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
+                        {labels.ylabel ? <span>plt.<span className="text-yellow-200">ylabel</span>(<span className="text-green-400">'{activeData === 'CITY' ? 'Population' : activeData === 'TEMP' ? 'Temp (C)' : 'Votes'}'</span>)<br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
                       </>
                     ) : (
                       <span className="text-slate-700"># (Awaiting routing lock...)<br/></span>
@@ -413,7 +419,9 @@ export default function DataVisualization36() {
                         </button>
                       </div>
                       
-                      {activeData === 'CITY' && activeEngine === 'BAR' && (
+                      {((activeData === 'CITY' && activeEngine === 'BAR') || 
+                        (activeData === 'TEMP' && activeEngine === 'LINE') || 
+                        (activeData === 'SPORT' && activeEngine === 'PIE')) && (
                         <button onClick={() => { if(playSuccess) playSuccess(); setStep('COMPLETE'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg p-3 font-black uppercase tracking-wider text-xs transition-all active:translate-y-1 shadow-[0_4px_0_#047857] active:shadow-[0_0px_0_#047857]">
                           Lock Routing
                         </button>
