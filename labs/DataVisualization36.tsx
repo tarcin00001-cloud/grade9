@@ -158,7 +158,7 @@ export default function DataVisualization36() {
   return (
     <LabShell 
       labId="datavisualization36"
-      bgOverride="bg-slate-50"
+      bgOverride="bg-slate-50 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:1.5rem_1.5rem]"
       title="Data Visualization" 
       instruction="Route raw data to the correct visualization engines."
       compact={true}
@@ -167,23 +167,24 @@ export default function DataVisualization36() {
       <div className="flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4">
         
         {/* HUD - Top Bar */}
-        <div className="flex flex-col md:flex-row gap-2 shrink-0">
-          {/* Step Tracker */}
-          <div className="flex-[2] lg:flex-[2.5] bg-white rounded-xl p-2 md:p-2.5 border-2 border-slate-100 flex items-center shadow-sm overflow-hidden min-h-0">
-            <div className="flex items-center gap-1 lg:gap-1.5 px-1 overflow-x-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex flex-col md:flex-row gap-3 shrink-0">
+          
+          {/* Step Tracker (Data Pipeline Style) */}
+          <div className="flex-[2] lg:flex-[2.5] bg-white/80 backdrop-blur-md rounded-2xl p-2 md:p-3 border border-slate-200/60 flex items-center shadow-sm overflow-hidden min-h-0">
+            <div className="flex items-center gap-1.5 px-2 overflow-x-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {STEPS.map((s, idx) => {
                 const isActive = step === s.id;
                 const isPast = STEPS.findIndex(x => x.id === step) > idx;
                 return (
                   <React.Fragment key={s.id}>
-                    <div className={`px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
-                      isActive ? 'bg-slate-800 text-white shadow-md' :
-                      isPast ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-400 border border-slate-200/60'
+                    <div className={`px-2.5 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${
+                      isActive ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 scale-105 ring-2 ring-indigo-200' :
+                      isPast ? 'bg-indigo-50 text-indigo-600' : 'bg-transparent text-slate-400'
                     }`}>
                       {s.label}
                     </div>
                     {idx < STEPS.length - 1 && (
-                      <div className={`h-0.5 w-1.5 lg:w-2 shrink-0 rounded-full ${isPast ? 'bg-emerald-300' : 'bg-slate-100'}`} />
+                      <div className={`h-1 w-3 shrink-0 rounded-full transition-colors ${isPast ? 'bg-indigo-200' : 'bg-slate-200'}`} />
                     )}
                   </React.Fragment>
                 );
@@ -192,12 +193,12 @@ export default function DataVisualization36() {
           </div>
           
           {/* Briefing Panel */}
-          <div className="flex-[1] lg:flex-1 bg-white rounded-xl p-3 md:p-4 border-2 border-slate-200 flex items-start gap-3 shadow-sm min-w-0">
-            <div className="bg-slate-100 p-1.5 rounded-full border border-slate-200 shrink-0">
-              <Info className="text-slate-600" size={16} strokeWidth={3} />
+          <div className="flex-[1] lg:flex-1 bg-white/80 backdrop-blur-md rounded-2xl p-3 md:p-4 border border-slate-200/60 flex items-center gap-3 shadow-sm min-w-0">
+            <div className="bg-indigo-100 p-2 rounded-xl shrink-0">
+              <Info className="text-indigo-600" size={18} strokeWidth={2.5} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-sm font-bold text-slate-700 leading-snug">
+              <p className="text-xs md:text-sm font-bold text-slate-800 leading-snug">
                 {briefings[step]}
               </p>
             </div>
@@ -205,16 +206,16 @@ export default function DataVisualization36() {
         </div>
 
         {/* Workspace Split */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden px-1 pb-1">
           
           {/* Left Hemisphere: The Canvas */}
-          <div className="flex-[1.5] lg:flex-[2] bg-white rounded-2xl border-4 border-slate-100 p-4 shadow-sm min-h-0 overflow-hidden relative flex flex-col">
+          <div className="flex-[1.5] lg:flex-[2] bg-white shadow-xl shadow-slate-200/50 rounded-3xl p-5 min-h-0 overflow-hidden relative flex flex-col border border-white">
             <div className="flex items-center gap-2 mb-4 shrink-0">
-              <BarChart2 className="text-slate-400" size={18} />
-              <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest">The Canvas</h2>
+              <BarChart2 className="text-indigo-400" size={20} strokeWidth={2.5} />
+              <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">The Canvas</h2>
             </div>
             
-            <div className="flex-1 bg-slate-50 rounded-xl border-2 border-slate-100 relative overflow-hidden flex flex-col items-center justify-center p-4">
+            <div className="flex-1 relative overflow-hidden flex flex-col items-center justify-center">
               
               {/* State: LEARN (Standby Placeholder) */}
               {step === 'LEARN' && (
@@ -280,16 +281,23 @@ export default function DataVisualization36() {
           </div>
           
           {/* Right Hemisphere: The Palette / Code */}
-          <div className="flex-1 flex flex-col bg-slate-900 rounded-2xl border-4 border-slate-800 p-4 shadow-xl min-h-0 overflow-hidden relative">
-            <div className="flex items-center gap-2 mb-4 shrink-0 border-b border-slate-700 pb-2">
-              <Code2 className="text-sky-400" size={18} />
-              <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Python Script</h2>
+          <div className="flex-1 flex flex-col bg-slate-900 rounded-3xl shadow-xl shadow-slate-900/20 min-h-0 overflow-hidden relative">
+            
+            {/* macOS Style Window Header */}
+            <div className="bg-slate-800/80 backdrop-blur-sm flex items-center px-4 py-3 shrink-0 border-b border-slate-700/50">
+              <div className="flex gap-1.5 mr-4">
+                <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+              </div>
+              <Code2 className="text-sky-400 mr-2" size={16} />
+              <h2 className="text-xs font-bold text-slate-300 uppercase tracking-widest font-mono">script.py</h2>
             </div>
             
-            <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4">
+            <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4 p-5">
               
               {/* Code Preview */}
-              <div className="font-mono text-xs md:text-sm text-sky-100 bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div className="font-mono text-xs md:text-sm text-sky-100 bg-transparent py-2 px-1">
                 <span className="text-purple-400">import</span> <span className="text-sky-100">matplotlib.pyplot</span> <span className="text-purple-400">as</span> <span className="text-sky-100">plt</span><br/><br/>
                 <span className="text-slate-500"># 1. Load Data</span><br/>
                 <span className="text-sky-100">data = {activeData === 'TEMP' ? 'temperature_log' : activeData === 'CITY' ? 'populations' : activeData === 'SPORT' ? 'favorites' : 'raw_json'}</span><br/><br/>
