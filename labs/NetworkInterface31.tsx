@@ -146,6 +146,8 @@ export default function NetworkInterface31() {
     setVideoProgress(0);
     setTcpOffloadEnabled(false);
     setQosEnabled(false);
+    setMacAddress(null);
+    setPhysicalMedium(null);
   };
 
   // Briefing mapping
