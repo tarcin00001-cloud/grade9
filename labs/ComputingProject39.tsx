@@ -1,356 +1,348 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
-import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Bug, Rocket, TrendingUp, AlertTriangle, FileText, Code, ShieldCheck } from "lucide-react";
+import Celebration from "@/components/Celebration";
+import { 
+  Folder, ShieldAlert, Database, FileText, Smartphone, 
+  CheckSquare, Square, AlertOctagon, Signature, ShieldCheck
+} from "lucide-react";
 
-type Step = 'learn' | 'try' | 'running_fail' | 'failed' | 'improve' | 'running_success' | 'success';
+type Step = 'LEARN' | 'FAIL_SCOPE' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+type ProjectId = 'python' | 'security' | 'database' | 'essay' | 'web';
 
-const COLORS = {
-  blue: { bg: 'bg-blue-100', text: 'text-blue-600' },
-  amber: { bg: 'bg-amber-100', text: 'text-amber-600' },
-  emerald: { bg: 'bg-emerald-100', text: 'text-emerald-600' }
-};
-
-function ChartView({ data, crashed }: { data: number[], crashed: boolean }) {
-  const maxVal = Math.max(100, ...data);
-  const points = data.map((val, i) => `${(i / 50) * 100},${100 - (val / maxVal) * 100}`).join(" ");
-  
-  return (
-    <div className="w-full h-full relative border-l-2 border-b-2 border-slate-300">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full overflow-visible">
-        <polyline 
-          points={points} 
-          fill="none" 
-          stroke={crashed ? "#ef4444" : "#f59e0b"} 
-          strokeWidth="3" 
-          vectorEffect="non-scaling-stroke"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      {/* Grid lines */}
-      <div className="absolute top-1/4 w-full border-t border-slate-100 -z-10" />
-      <div className="absolute top-2/4 w-full border-t border-slate-100 -z-10" />
-      <div className="absolute top-3/4 w-full border-t border-slate-100 -z-10" />
-
-      <div className="absolute top-2 left-2 text-[10px] text-slate-400 font-mono font-bold tracking-widest">ACTIVE USERS</div>
-      <div className="absolute bottom-2 right-2 text-[10px] text-slate-400 font-mono font-bold tracking-widest">LAUNCH DAYS</div>
-    </div>
-  );
+interface Project {
+  id: ProjectId;
+  title: string;
+  color: string;
+  bgLight: string;
+  icon: React.ElementType;
+  desc: string;
+  deliverables: string[];
+  anecdote: string;
+  risks: string[];
 }
+
+const PROJECTS: Project[] = [
+  {
+    id: 'python',
+    title: 'Python Data Analysis',
+    color: 'text-blue-600',
+    bgLight: 'bg-blue-50 border-blue-200',
+    icon: Folder,
+    desc: 'Collect a real dataset, compute statistics, and generate visualizations.',
+    deliverables: ['Real dataset (≥20 records)', 'Compute mean, median, mode', 'Display a matplotlib chart'],
+    anecdote: "Adhiyan once analyzed his own gaming hours and immediately deleted the results in panic. Don't over-analyze, just deliver!",
+    risks: ['I will pick a simple dataset and not get stuck on data collection.', 'I will include the raw data alongside my python script.']
+  },
+  {
+    id: 'security',
+    title: 'Network Security Case',
+    color: 'text-rose-600',
+    bgLight: 'bg-rose-50 border-rose-200',
+    icon: ShieldAlert,
+    desc: 'Research a historical cyber breach and write a structured case study.',
+    deliverables: ['Research a real breach (e.g. WannaCry)', 'Detail vulnerabilities & damage', 'Recommend countermeasures'],
+    anecdote: "Riya wrote a brilliant 10-page report on a fictional movie hack instead of a real breach and scored a zero.",
+    risks: ['I will research a REAL historical cyber attack.', 'I will properly cite every claim and source.']
+  },
+  {
+    id: 'database',
+    title: 'Relational Database',
+    color: 'text-purple-600',
+    bgLight: 'bg-purple-50 border-purple-200',
+    icon: Database,
+    desc: 'Build a structured database application for a school, hospital, or library.',
+    deliverables: ['Build MySQL/Access DB', '≥4 related tables', '10 meaningful queries & 2 reports'],
+    anecdote: "Kabir created 50 tables for a simple library system and spent 3 weeks just linking them.",
+    risks: ['I will keep the scope small (exactly 4-5 tables).', 'I will ensure my queries solve real-world problems.']
+  },
+  {
+    id: 'essay',
+    title: 'Digital Citizenship',
+    color: 'text-amber-600',
+    bgLight: 'bg-amber-50 border-amber-200',
+    icon: FileText,
+    desc: 'Write a research paper on deepfakes, privacy law, or algorithmic bias.',
+    deliverables: ['600-800 word paper', 'Clear intro, argument, and conclusion', 'Address a counter-argument'],
+    anecdote: "Sara wrote 2000 words on why she hates algorithms without a single cited fact.",
+    risks: ['I will keep my paper strictly under 800 words.', 'I will include a fair counter-argument and cite sources.']
+  },
+  {
+    id: 'web',
+    title: 'Responsive Web App',
+    color: 'text-emerald-600',
+    bgLight: 'bg-emerald-50 border-emerald-200',
+    icon: Smartphone,
+    desc: 'Build a small HTML/CSS/JS application like a quiz or unit converter.',
+    deliverables: ['2-3 page HTML/CSS/JS app', 'Interactive JavaScript element', 'Must work on Desktop & Mobile'],
+    anecdote: "Sirpi spent weeks building a beautiful game review site that worked perfectly on his phone and nowhere else.",
+    risks: ['I will not overcomplicate the JS logic.', 'I will test my CSS on both desktop and mobile screens.']
+  }
+];
 
 export default function ComputingProject39() {
-  const { playClick, playSuccess, playError, playPop } = useLabAudio();
-  const { reportComplete } = useLMSBridge("computingproject39");
+  const [step, setStep] = useState<Step>('LEARN');
+  const [activeProject, setActiveProject] = useState<ProjectId | null>(null);
+  const [checkedRisks, setCheckedRisks] = useState<Record<string, boolean>>({});
+  const { playSuccess, playError, playClick, playPop } = useLabAudio();
+  const { reportComplete } = useLMSBridge('computingproject39');
 
-  const [step, setStep] = useState<Step>('learn');
-  const [planning, setPlanning] = useState(10);
-  const [dev, setDev] = useState(80);
-  const [qa, setQa] = useState(10);
-  const [chartData, setChartData] = useState<number[]>([]);
+  const selected = useMemo(() => PROJECTS.find(p => p.id === activeProject), [activeProject]);
 
-  const total = planning + dev + qa;
-  const remaining = 100 - total;
+  const allChecked = useMemo(() => {
+    if (!selected) return false;
+    return selected.risks.every(r => checkedRisks[r]);
+  }, [selected, checkedRisks]);
 
   useEffect(() => {
-    if (step === 'running_fail' || step === 'running_success') {
-      let tick = 0;
-      setChartData([0]);
-      
-      const interval = setInterval(() => {
-        tick++;
-        
-        if (step === 'running_fail') {
-          if (tick <= 30) {
-            // Exponential growth up to tick 30
-            setChartData(prev => [...prev, Math.floor(Math.pow(1.3, tick))]);
-          } else if (tick === 31) {
-            // Crash to 0
-            setChartData(prev => [...prev, 0]);
-            if (playError) playError();
-            clearInterval(interval);
-            setTimeout(() => setStep('failed'), 1200);
-          }
-        } else if (step === 'running_success') {
-          if (tick <= 50) {
-            // Stable growth
-            setChartData(prev => [...prev, Math.floor(Math.pow(1.25, tick))]);
-          } else {
-            if (playSuccess) playSuccess();
-            clearInterval(interval);
-            setTimeout(() => {
-               setStep('success');
-               setTimeout(reportComplete, 4500);
-            }, 1000);
-          }
-        }
-      }, 100);
-      
-      return () => clearInterval(interval);
+    if (step === 'IMPROVE' && allChecked) {
+      setStep('COMPLETE');
+      if (playPop) playPop();
+    } else if (step === 'COMPLETE' && !allChecked) {
+      setStep('IMPROVE');
     }
-  }, [step, playError, playSuccess, reportComplete]);
+  }, [allChecked, step, playPop]);
 
-  // Derived state for launch button
-  let launchError = "";
-  if (remaining !== 0) {
-    launchError = `Allocate exactly 100 days (Current: ${total})`;
-  } else if (step === 'try' && qa >= 20) {
-    launchError = "Investors demand fast launch! (QA < 20)";
-  } else if (step === 'improve' && qa < 20) {
-    launchError = "Technical debt risk! (QA must be ≥ 20)";
-  }
+  const handleSelect = (id: ProjectId) => {
+    if (playClick) playClick();
+    setActiveProject(id);
+    setCheckedRisks({});
+    setStep('LEARN');
+  };
 
-  const handleLaunch = () => {
-    if (remaining !== 0) {
+  const toggleRisk = (risk: string) => {
+    if (playClick) playClick();
+    setCheckedRisks(prev => ({ ...prev, [risk]: !prev[risk] }));
+    if (step === 'LEARN' || step === 'FAIL_SCOPE') {
+      setStep('IMPROVE');
+    }
+  };
+
+  const handleAuthorize = () => {
+    if (!selected) return;
+    if (!allChecked) {
       if (playError) playError();
+      setStep('FAIL_SCOPE');
       return;
     }
-    if (playPop) playPop();
     
-    if (step === 'try') {
-      if (qa >= 20) {
-        if (playError) playError();
-        return;
-      }
-      setStep('running_fail');
-    } else if (step === 'improve') {
-      if (qa < 20) {
-        if (playError) playError();
-        return;
-      }
-      setStep('running_success');
-    }
+    if (playSuccess) playSuccess();
+    setStep('OUTCOME');
+    reportComplete();
   };
 
-  const handleReset = () => {
-     setStep('learn');
-     setPlanning(10);
-     setDev(80);
-     setQa(10);
-     setChartData([]);
+  const resetLab = () => {
+    setStep('LEARN');
+    setActiveProject(null);
+    setCheckedRisks({});
   };
 
-  const isInputDisabled = !['try', 'improve'].includes(step);
+  const briefings: Record<Step, string> = {
+    LEARN: "Welcome to the Dispatch Center. Select a project dossier to review its requirements.",
+    FAIL_SCOPE: "Authorization Denied! You cannot commit to a project without acknowledging its biggest risks.",
+    IMPROVE: "Read the failure anecdote and check off the risk acknowledgments.",
+    COMPLETE: "Risks acknowledged. The charter is ready for your signature. Click Authorize.",
+    OUTCOME: "Project Authorized! Your charter is finalized and you are ready to begin."
+  };
 
   return (
-    <LabShell
+    <LabShell 
       labId="computingproject39"
-      title="Hackathon Tycoon"
-      subtitle="Technical Debt & SDLC"
-      instruction="Balance your 100-day Software Development Life Cycle (SDLC) across Planning, Development, and QA to achieve a successful startup launch."
-      theme="circuit"
-      bgOverride="bg-orange-950"
-      onReset={handleReset}
+      title="Hackathon Tycoon" 
+      subtitle="Grade 9 | Computing Project"
+      instruction={briefings[step]}
+      bgOverride="bg-slate-200"
+      onReset={resetLab}
     >
-      <div className="flex flex-col h-full gap-4 relative">
-        <Celebration isActive={step === 'success'} message="Unicorn Status Achieved!" onReplay={handleReset} />
-
-        {/* TOP PANEL: Story / Status / Chart */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col p-6 relative z-10">
+      <div className="absolute inset-0 top-[60px] md:top-[80px] p-2 md:p-4 flex justify-center overflow-hidden">
+        <div className="w-full max-w-6xl h-full flex flex-col md:flex-row gap-4 min-h-0">
           
-          <AnimatePresence mode="wait">
-            {step === 'learn' && (
-              <motion.div 
-                key="learn"
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="flex flex-col items-center justify-center h-full text-center max-w-sm mx-auto"
-              >
-                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
-                  <Rocket className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">Welcome to Hackathon Tycoon</h3>
-                <p className="text-sm text-slate-600 mb-6">
-                  You have exactly 100 days to launch a startup. 
-                  The Software Development Life Cycle (SDLC) consists of three key phases: <strong>Planning</strong>, <strong>Development</strong>, and <strong>Quality Assurance (QA)</strong>.
-                </p>
-                <button 
-                  onClick={() => { if (playClick) playClick(); setStep('try'); }}
-                  className="bg-orange-500 text-white font-bold px-6 py-3 rounded-full hover:bg-orange-600 transition-colors shadow-md active:scale-95"
+          {/* LEFT: Project Grid */}
+          <div className="w-full md:w-[40%] lg:w-[35%] flex flex-col gap-2 overflow-y-auto pr-2 pb-10 md:pb-0">
+            {PROJECTS.map(proj => {
+              const isActive = activeProject === proj.id;
+              const Icon = proj.icon as any;
+              return (
+                <button
+                  key={proj.id}
+                  onClick={() => handleSelect(proj.id)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                    isActive 
+                      ? `${proj.bgLight} shadow-md scale-[1.02] border-opacity-100` 
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
                 >
-                  Start Phase 1
+                  <div className={`p-2 rounded-lg ${isActive ? 'bg-white shadow-sm' : 'bg-slate-100'} ${proj.color}`}>
+                    <Icon size={24} />
+                  </div>
+                  <div>
+                    <h3 className={`font-black uppercase tracking-wide text-sm ${isActive ? 'text-slate-800' : 'text-slate-600'}`}>
+                      {proj.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 line-clamp-1">{proj.desc}</p>
+                  </div>
                 </button>
-              </motion.div>
-            )}
+              );
+            })}
+          </div>
 
-            {step === 'try' && (
-              <motion.div 
-                key="try"
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="flex flex-col items-center justify-center h-full text-center max-w-sm mx-auto"
-              >
-                <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4">
-                  <AlertTriangle className="w-8 h-8" />
+          {/* RIGHT: Inspector Pad */}
+          <div className="w-full md:w-[60%] lg:w-[65%] bg-[#e0e4e8] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.15)] border-t border-l border-white border-b-[6px] border-r-[4px] border-slate-300 p-3 md:p-6 flex flex-col min-h-0 relative">
+            
+            {!selected ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 opacity-60">
+                <Folder size={64} className="mb-4" />
+                <h2 className="text-xl font-black uppercase tracking-widest">Select a Dossier</h2>
+                <p className="text-sm font-medium">Awaiting project selection...</p>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col min-h-0 relative">
+                
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-4 pb-4 border-b-2 border-slate-300/50">
+                  <div className={`p-3 rounded-xl bg-white shadow-sm ${selected.color}`}>
+                    {React.createElement(selected.icon as React.ElementType, { size: 32 })}
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Project Dossier</div>
+                    <h2 className="text-xl md:text-2xl font-black uppercase text-slate-800 leading-tight">
+                      {selected.title}
+                    </h2>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">The Rush Job</h3>
-                <p className="text-sm text-slate-600 mb-6">
-                  Investors demand a fast launch! Allocate your 100 days below. To hit their aggressive deadline, you must allocate <strong>less than 20 days to QA</strong>.
-                </p>
-                <div className="text-xs font-bold text-orange-500 animate-pulse bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-                  Awaiting Launch Configuration...
-                </div>
-              </motion.div>
-            )}
 
-            {step === 'failed' && (
-              <motion.div 
-                key="failed"
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute inset-6 bg-white/95 backdrop-blur-sm border-2 border-red-200 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-2xl z-20"
-              >
-                <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                  <Bug className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-black text-red-700 uppercase tracking-wider mb-2">Server Crash</h3>
-                <p className="text-sm text-slate-700 mb-6 max-w-xs leading-relaxed">
-                  A critical memory leak brought down the app at peak traffic. Because <strong className="text-red-600">QA testing was rushed</strong>, technical debt destroyed the product!
-                </p>
-                <button 
-                  onClick={() => { if (playClick) playClick(); setStep('improve'); }}
-                  className="bg-red-500 text-white font-bold px-8 py-3 rounded-full hover:bg-red-600 transition-colors shadow-md active:scale-95 flex items-center gap-2"
-                >
-                  <ShieldCheck className="w-4 h-4" /> Improve Process
-                </button>
-              </motion.div>
-            )}
+                {/* Content Scroll Area */}
+                <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                  
+                  {/* Deliverables */}
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Required Deliverables</h3>
+                    <ul className="space-y-2">
+                      {selected.deliverables.map((del, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm font-medium text-slate-700 bg-white/50 p-2 rounded">
+                          <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                          <span>{del}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-            {step === 'improve' && (
-              <motion.div 
-                key="improve"
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="flex flex-col items-center justify-center h-full text-center max-w-sm mx-auto"
-              >
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
-                  <ShieldCheck className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">The Balanced SDLC</h3>
-                <p className="text-sm text-slate-600 mb-6">
-                  You cannot skip testing! Re-allocate your 100 days. This time, ensure Quality Assurance (QA) gets <strong>at least 20 days</strong> to catch bugs before users do.
-                </p>
-                <div className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                  Ready for a stable launch...
-                </div>
-              </motion.div>
-            )}
+                  {/* Failure Mode Warning */}
+                  <div className="bg-amber-100/80 border border-amber-300 rounded-lg p-4 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                    <div className="flex items-start gap-3">
+                      <AlertOctagon className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                      <div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-amber-800 mb-1">Common Failure Mode</h3>
+                        <p className="text-sm font-medium text-amber-900 leading-snug">{selected.anecdote}</p>
+                      </div>
+                    </div>
+                  </div>
 
-            {step === 'success' && (
-              <motion.div 
-                key="success"
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="absolute inset-6 bg-white/95 backdrop-blur-sm border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-2xl z-20"
-              >
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                  <TrendingUp className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-black text-emerald-700 uppercase tracking-wider mb-2">Unicorn Status</h3>
-                <p className="text-sm text-slate-700 max-w-xs leading-relaxed">
-                  The app safely handled the massive user load. Balancing your SDLC is the key to sustainable software success!
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {/* Risk Assessment */}
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Risk Assessment Checklist</h3>
+                    <div className="space-y-2">
+                      {selected.risks.map((risk, i) => {
+                        const isChecked = checkedRisks[risk];
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => toggleRisk(risk)}
+                            className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
+                              isChecked 
+                                ? 'bg-emerald-50 border-emerald-200' 
+                                : 'bg-white border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <div className={`mt-0.5 shrink-0 ${isChecked ? 'text-emerald-500' : 'text-slate-300'}`}>
+                              {isChecked ? <CheckSquare size={20} /> : <Square size={20} />}
+                            </div>
+                            <span className={`font-mono text-sm leading-tight transition-all ${
+                              isChecked ? 'text-emerald-700 line-through opacity-70' : 'text-slate-700'
+                            }`}>
+                              {risk}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-          {/* Background Chart */}
-          {chartData.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className={`absolute inset-4 ${['failed', 'success'].includes(step) ? 'opacity-20' : 'opacity-100'} transition-opacity duration-1000 p-4 pt-8`}
-            >
-              <ChartView data={chartData} crashed={step === 'failed'} />
-            </motion.div>
-          )}
+                </div>
+
+                {/* Footer Action */}
+                <div className="pt-4 mt-4 border-t-2 border-slate-300/50 relative">
+                  <button
+                    onClick={handleAuthorize}
+                    className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all ${
+                      step === 'OUTCOME'
+                        ? 'bg-emerald-500 text-white shadow-inner'
+                        : allChecked
+                          ? 'bg-slate-800 text-white shadow-lg hover:bg-slate-700 hover:scale-[1.02] active:scale-[0.98]'
+                          : 'bg-slate-300 text-slate-500'
+                    }`}
+                  >
+                    {step === 'OUTCOME' ? (
+                      <>
+                        <ShieldCheck size={24} />
+                        Authorized
+                      </>
+                    ) : (
+                      <>
+                        <Signature size={24} />
+                        Authorize Project
+                      </>
+                    )}
+                  </button>
+
+                  {/* STAMPS */}
+                  <AnimatePresence>
+                    {step === 'FAIL_SCOPE' && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 3, rotate: -15 }}
+                        animate={{ opacity: 1, scale: 1, rotate: -15 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ type: 'spring', damping: 12, stiffness: 200 }}
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+                      >
+                        <div className="border-4 border-rose-600 text-rose-600 px-6 py-2 rounded-lg bg-white/90 backdrop-blur-sm shadow-[0_0_30px_rgba(225,29,72,0.3)]">
+                          <h2 className="text-3xl font-black uppercase tracking-widest">Scope Rejected</h2>
+                        </div>
+                      </motion.div>
+                    )}
+                    
+                    {step === 'OUTCOME' && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 3, rotate: 10 }}
+                        animate={{ opacity: 1, scale: 1, rotate: 10 }}
+                        transition={{ type: 'spring', damping: 12, stiffness: 200 }}
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+                      >
+                        <div className="border-4 border-emerald-600 text-emerald-600 px-6 py-2 rounded-lg bg-white/90 backdrop-blur-sm shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                          <h2 className="text-3xl font-black uppercase tracking-widest">Authorized</h2>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                </div>
+              </div>
+            )}
+          </div>
 
         </div>
-
-        {/* BOTTOM PANEL: Controls */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col gap-4 relative z-20">
-          <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 shrink-0">
-            <span className="font-bold text-slate-500 uppercase tracking-wider text-xs">Days Available</span>
-            <span className={`font-mono font-black text-xl bg-slate-100 px-3 py-1 rounded-lg ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
-              {Math.abs(remaining)} {remaining < 0 ? 'OVER' : remaining === 0 ? 'READY' : 'LEFT'}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
-            <SliderRow 
-              label="Planning & Design" 
-              value={planning} 
-              onChange={setPlanning} 
-              color="blue" 
-              icon={FileText} 
-              disabled={isInputDisabled}
-            />
-            <SliderRow 
-              label="Development" 
-              value={dev} 
-              onChange={setDev} 
-              color="amber" 
-              icon={Code} 
-              disabled={isInputDisabled}
-            />
-            <SliderRow 
-              label="QA (Testing)" 
-              value={qa} 
-              onChange={setQa} 
-              color="emerald" 
-              icon={ShieldCheck} 
-              disabled={isInputDisabled}
-            />
-          </div>
-
-          <div className="mt-1 flex flex-col gap-2 shrink-0">
-            <button 
-              onClick={handleLaunch} 
-              disabled={launchError !== "" || isInputDisabled}
-              className={`w-full py-4 rounded-xl font-black tracking-widest uppercase transition-all shadow-sm flex items-center justify-center gap-2 ${
-                launchError === "" && !isInputDisabled
-                ? 'bg-orange-500 text-white hover:bg-orange-600 hover:shadow-md active:scale-[0.98]'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed border-2 border-slate-200'
-              }`}
-            >
-              <Rocket className="w-5 h-5" /> Launch Startup
-            </button>
-            <div className="h-4 flex items-center justify-center">
-              {launchError && !isInputDisabled && (
-                <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider animate-pulse text-center">
-                  {launchError}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
       </div>
+      
+      <Celebration 
+        isActive={step === 'OUTCOME'} 
+        message={`Project Authorized: ${selected?.title}! Now execute it.`} 
+        hideModal={true}
+      />
     </LabShell>
   );
-}
-
-function SliderRow({ 
-  label, value, onChange, color, icon: Icon, disabled 
-}: { 
-  label: string, value: number, onChange: (v: number) => void, color: keyof typeof COLORS, icon: any, disabled: boolean 
-}) {
-  return (
-    <div className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${disabled ? 'opacity-50' : 'hover:bg-slate-50'}`}>
-      <div className={`w-10 h-10 rounded-xl ${COLORS[color].bg} flex items-center justify-center shrink-0 shadow-inner`}>
-         <Icon className={`${COLORS[color].text} w-5 h-5`} />
-      </div>
-      <div className="flex-1 flex flex-col justify-center gap-1.5">
-         <div className="flex justify-between text-xs font-bold text-slate-700">
-            <span className="uppercase tracking-wider">{label}</span>
-            <span className="font-mono bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100">{value} DAYS</span>
-         </div>
-         <input 
-           type="range" min="0" max="100" step="5"
-           value={value} onChange={e => onChange(Number(e.target.value))}
-           disabled={disabled}
-           className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 disabled:cursor-not-allowed"
-         />
-      </div>
-    </div>
-  )
 }
