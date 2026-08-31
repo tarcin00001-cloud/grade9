@@ -196,7 +196,7 @@ export default function NetworkInterface3DScene({
   isStreaming, 
   cpuOverloaded,
   macAddress,
-  physicalMedium 
+  physicalMedia 
 }: NetworkInterface3DSceneProps) {
   return (
     <div className="w-full h-full relative bg-slate-50">
@@ -212,7 +212,7 @@ export default function NetworkInterface3DScene({
             isStreaming={isStreaming}
             cpuOverloaded={cpuOverloaded}
             macAddress={macAddress}
-            physicalMedium={physicalMedium}
+            physicalMedia={physicalMedia}
           />
           
           <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={15} blur={2} far={4} color="#0f172a" />
