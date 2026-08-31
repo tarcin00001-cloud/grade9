@@ -12,7 +12,7 @@ interface NetworkInterface3DSceneProps {
   isStreaming: boolean;
   cpuOverloaded: boolean;
   macAddress?: string | null;
-  physicalMedium?: 'COPPER' | 'FIBER' | 'WIFI' | null;
+  physicalMedia?: string[];
 }
 
 // Glowing data traces on the PCB
@@ -65,7 +65,7 @@ const DataTraces = ({ isStreaming, tcpOffloadEnabled, qosEnabled, cpuOverloaded 
 };
 
 // Main NIC Board
-const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded, macAddress, physicalMedium }: any) => {
+const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded, macAddress, physicalMedia = [] }: any) => {
   const offloadChipRef = useRef<THREE.Mesh>(null);
   const qosChipRef = useRef<THREE.Mesh>(null);
 
@@ -116,7 +116,7 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
       </mesh>
 
       {/* WiFi Antenna (Only shows if WiFi) */}
-      {physicalMedium === 'WIFI' && (
+      {physicalMedia.includes('WIFI') && (
         <group position={[-3.1, 1.25, -1]}>
           <mesh castShadow position={[0, 0.5, 0]}>
             <cylinderGeometry args={[0.05, 0.05, 1]} />
@@ -140,8 +140,8 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
           <boxGeometry args={[0.1, 0.5, 0.7]} />
           <meshStandardMaterial 
             color="#000000" 
-            emissive={physicalMedium === 'FIBER' ? "#f43f5e" : physicalMedium === 'COPPER' ? "#3b82f6" : "#000000"} 
-            emissiveIntensity={physicalMedium ? 2 : 0} 
+            emissive={physicalMedia.includes('FIBER') ? "#f43f5e" : physicalMedia.includes('COPPER') ? "#3b82f6" : "#000000"} 
+            emissiveIntensity={physicalMedia.length > 0 ? 2 : 0} 
           />
         </mesh>
       </group>
