@@ -153,7 +153,7 @@ export default function ComputingProject39() {
     <LabShell 
       labId="computingproject39"
       title="Hackathon Tycoon" 
-      subtitle="Grade 9 | Computing Project"
+      compact={true}
       instruction={briefings[step]}
       bgOverride="bg-slate-200"
       onReset={resetLab}
@@ -161,8 +161,8 @@ export default function ComputingProject39() {
       <div className="absolute inset-0 top-[60px] md:top-[80px] p-2 md:p-4 flex justify-center overflow-hidden">
         <div className="w-full max-w-6xl h-full flex flex-col md:flex-row gap-4 min-h-0">
           
-          {/* LEFT: Project Grid */}
-          <div className="w-full md:w-[40%] lg:w-[35%] flex flex-col gap-2 overflow-y-auto pr-2 pb-10 md:pb-0">
+          {/* LEFT: Project Grid (Sorting Tray) */}
+          <div className="w-full md:w-[40%] lg:w-[35%] flex flex-col gap-2 overflow-y-auto bg-slate-300 shadow-inner rounded-2xl p-3 border border-slate-400/50 pb-10 md:pb-3">
             {PROJECTS.map(proj => {
               const isActive = activeProject === proj.id;
               const Icon = proj.icon as any;
@@ -194,7 +194,7 @@ export default function ComputingProject39() {
           <div className="w-full md:w-[60%] lg:w-[65%] bg-[#e0e4e8] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.15)] border-t border-l border-white border-b-[6px] border-r-[4px] border-slate-300 p-3 md:p-6 flex flex-col min-h-0 relative">
             
             {!selected ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 opacity-60">
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 drop-shadow-sm">
                 <Folder size={64} className="mb-4" />
                 <h2 className="text-xl font-black uppercase tracking-widest">Select a Dossier</h2>
                 <p className="text-sm font-medium">Awaiting project selection...</p>
