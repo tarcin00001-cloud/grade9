@@ -1,428 +1,379 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
-import Celebration from "@/components/Celebration";
+import { useLMSBridge } from "@/hooks/useLMSBridge";
 import LabShell from "@/components/LabShell";
-import { Play, Terminal, Activity, PieChart, BarChart3, Database, CheckCircle2, ScatterChart } from "lucide-react";
+import Celebration from "@/components/Celebration";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip,
+  LineChart, Line, PieChart, Pie, Cell 
+} from "recharts";
+import { 
+  Info, Database, PieChart as PieIcon, BarChart2, TrendingUp, CheckCircle2, 
+  AlertTriangle, Code2, Play, MousePointerClick 
+} from "lucide-react";
+
+// ============================================================================
+// DATASETS
+// ============================================================================
+
+const TEMP_DATA = [
+  { label: 'Jan', val: 5 }, { label: 'Feb', val: 8 }, { label: 'Mar', val: 15 },
+  { label: 'Apr', val: 22 }, { label: 'May', val: 28 }, { label: 'Jun', val: 32 },
+  { label: 'Jul', val: 35 }, { label: 'Aug', val: 34 }, { label: 'Sep', val: 29 },
+  { label: 'Oct', val: 21 }, { label: 'Nov', val: 12 }, { label: 'Dec', val: 7 }
+];
+
+const CITY_DATA = [
+  { label: 'Mumbai', val: 20.4 },
+  { label: 'Delhi', val: 16.7 },
+  { label: 'Kolkata', val: 14.1 },
+  { label: 'Chennai', val: 8.6 },
+  { label: 'Bangalore', val: 8.5 }
+];
+
+const SPORT_DATA = [
+  { label: 'Cricket', val: 45 },
+  { label: 'Football', val: 25 },
+  { label: 'Badminton', val: 15 },
+  { label: 'Tennis', val: 10 },
+  { label: 'Hockey', val: 5 }
+];
+
+const PIE_COLORS = ['#fbbf24', '#f43f5e', '#0ea5e9', '#10b981', '#a855f7'];
+
+type Step = 'LEARN' | 'TRY_RAW' | 'FAIL_PIE' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+type Engine = 'BAR' | 'LINE' | 'PIE' | null;
+type Dataset = 'TEMP' | 'CITY' | 'SPORT' | null;
+
+const STEPS: { id: Step; label: string }[] = [
+  { id: 'LEARN', label: '1. Briefing' },
+  { id: 'TRY_RAW', label: '2. Raw Data' },
+  { id: 'FAIL_PIE', label: '3. Wrong Engine' },
+  { id: 'UNDERSTAND', label: '4. Insight' },
+  { id: 'IMPROVE', label: '5. Routing' },
+  { id: 'COMPLETE', label: '6. Python Code' },
+  { id: 'OUTCOME', label: '7. Flawless' },
+];
 
 export default function DataVisualization36() {
   const { playClick, playSuccess, playError, playPop } = useLabAudio();
-  
-  const [currentLevel, setCurrentLevel] = useState(0);
-  const [win, setWin] = useState(false);
+  const { reportComplete } = useLMSBridge("datavisualization36");
 
-  // === Level 0 & 1: The Sorting Chute ===
-  const [boxPosition, setBoxPosition] = useState<'belt' | 'pie' | 'bar' | 'line' | 'scatter'>('belt');
+  const [step, setStep] = useState<Step>('LEARN');
   
-  const routeBox = (type: 'pie' | 'bar' | 'line' | 'scatter') => {
-    if (playClick) playClick();
-    setBoxPosition(type);
+  // Data Routing State
+  const [activeData, setActiveData] = useState<Dataset>('TEMP');
+  const [activeEngine, setActiveEngine] = useState<Engine>(null);
+  
+  // Code Builder State
+  const [labels, setLabels] = useState({ title: false, xlabel: false, ylabel: false });
+
+  const resetLab = () => {
+    setStep('LEARN');
+    setActiveData('TEMP');
+    setActiveEngine(null);
+    setLabels({ title: false, xlabel: false, ylabel: false });
+  };
+
+  const briefings: Record<Step, string> = {
+    LEARN: "Welcome to the Digital Data Studio. Raw data is flowing in, but numbers hide patterns. We use matplotlib to reveal them.",
+    TRY_RAW: "Look at this raw temperature data. Quick, identify the peak summer trend just by reading the numbers. It's difficult and slow!",
+    FAIL_PIE: "Let's push it through a Visualization Engine. Try using the Pie Chart engine for this temperature data.",
+    UNDERSTAND: "A Pie Chart for temperature? Pie charts show proportions (like market share), not trends! Time-series data needs a Line Graph.",
+    IMPROVE: "Let's route datasets correctly. Line Graphs for time, Bar Graphs for categories, and Pie Charts for proportions. Try all three!",
+    COMPLETE: "The chart looks great, but it's missing context. Click the matplotlib commands below to add labels to your Bar Chart.",
+    OUTCOME: "Perfect! You transformed raw data into a clear, labeled visualization using Python. The dashboard is ready."
+  };
+
+  // Check completion for the labels step
+  useEffect(() => {
+    if (step === 'COMPLETE' && labels.title && labels.xlabel && labels.ylabel) {
+      if (playSuccess) playSuccess();
+      const timer = setTimeout(() => {
+        setStep('OUTCOME');
+        reportComplete();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [labels, step, playSuccess, reportComplete]);
+
+  // Render Chart based on Engine
+  const renderChart = (data: typeof TEMP_DATA, engine: Engine, highlightError: boolean = false) => {
+    if (!engine) return null;
+
+    if (engine === 'PIE') {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} cx="50%" cy="50%" innerRadius={0} outerRadius={80} dataKey="val" animationDuration={800}>
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={highlightError ? '#ef4444' : PIE_COLORS[index % PIE_COLORS.length]} />
+              ))}
+            </Pie>
+            {!highlightError && <Tooltip />}
+          </PieChart>
+        </ResponsiveContainer>
+      );
+    }
     
-    setTimeout(() => {
-      if ((currentLevel === 0 && type === 'line') || (currentLevel === 1 && type === 'scatter')) {
-        if (playSuccess) playSuccess();
-        setTimeout(() => {
-          setBoxPosition('belt');
-          nextLevel();
-        }, 1500);
-      } else {
-        if (playError) playError();
-        setTimeout(() => setBoxPosition('belt'), 1000);
-      }
-    }, 600);
-  };
-
-  // === Level 2: Python Wiring ===
-  const [wires, setWires] = useState({ pie: '', bar: '', line: '', scatter: '' });
-  const handleWire = (chartType: 'pie'|'bar'|'line'|'scatter', command: string) => {
-    if (playClick) playClick();
-    setWires(prev => ({ ...prev, [chartType]: command }));
-  };
-
-  const checkWires = () => {
-    if (wires.pie === 'plt.pie()' && wires.bar === 'plt.bar()' && wires.line === 'plt.plot()' && wires.scatter === 'plt.scatter()') {
-      if (playSuccess) playSuccess();
-      setTimeout(() => nextLevel(), 1000);
-    } else {
-      if (playError) playError();
-      setWires({ pie: '', bar: '', line: '', scatter: '' });
+    if (engine === 'LINE') {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 20, right: 20, left: -20, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+            <Tooltip />
+            <Line type="monotone" dataKey="val" stroke="#ec4899" strokeWidth={4} dot={{ r: 4, fill: '#ec4899', strokeWidth: 0 }} animationDuration={1000} />
+          </LineChart>
+        </ResponsiveContainer>
+      );
     }
-  };
 
-  // === Level 3: Customizing Bar Chart ===
-  const [barCode, setBarCode] = useState({ title: "'City Population'", color: "'blue'" });
-  const checkBarCode = () => {
-    if (playClick) playClick();
-    if (barCode.title !== "''" && (barCode.color === "'green'" || barCode.color === "'red'" || barCode.color === "'blue'")) {
-      if (playSuccess) playSuccess();
-      setTimeout(() => nextLevel(), 1500);
-    } else {
-      if (playError) playError();
+    if (engine === 'BAR') {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 30, right: 20, left: -20, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+            <Tooltip cursor={{ fill: '#f8fafc' }} />
+            <Bar dataKey="val" fill="#3b82f6" radius={[4, 4, 0, 0]} animationDuration={1000} />
+          </BarChart>
+        </ResponsiveContainer>
+      );
     }
+    return null;
   };
 
-  // === Level 4: Customizing Scatter Plot ===
-  const [scatterCode, setScatterCode] = useState({ size: "50", marker: "'o'" });
-  const checkScatterCode = () => {
-    if (playClick) playClick();
-    if ((scatterCode.size === "100" || scatterCode.size === "200") && (scatterCode.marker === "'*'" || scatterCode.marker === "'s'" || scatterCode.marker === "'o'")) {
-      if (playSuccess) playSuccess();
-      setWin(true);
-    } else {
-      if (playError) playError();
-    }
-  };
-
-  const nextLevel = () => {
-    setCurrentLevel(l => l + 1);
-  };
-
-  const handleReset = () => {
-    setWin(false);
-    setCurrentLevel(0);
-    setBoxPosition('belt');
-    setWires({ pie: '', bar: '', line: '', scatter: '' });
-    setBarCode({ title: "'City Population'", color: "'blue'" });
-    setScatterCode({ size: "50", marker: "'o'" });
+  const getActiveDataset = () => {
+    if (activeData === 'TEMP') return TEMP_DATA;
+    if (activeData === 'CITY') return CITY_DATA;
+    return SPORT_DATA;
   };
 
   return (
-    <LabShell
+    <LabShell 
       labId="datavisualization36"
-      title="Data Visualization Techniques"
-      subtitle="The Chart Translator Machine"
-      instruction="1. Understand the importance of mapping raw data to visual representations. 2. Enter the interactive factory simulation to process raw datasets. 3. Use Python-based visualization tools to create meaningful charts and graphs. 4. Customize the visual elements to highlight key data trends and insights."
-      theme="garden"
-      onReset={handleReset}
+      bgOverride="bg-slate-50"
+      title="Data Visualization" 
+      instruction="Route raw data to the correct visualization engines."
+      compact={true}
+      onReset={resetLab}
     >
-      {/* Progress Lights */}
-      <div className="w-full max-w-6xl mx-auto flex justify-end mb-2 relative z-20">
-        <div className="flex gap-2 bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className={`w-3 h-3 rounded-full border ${currentLevel > i ? 'bg-green-500 border-green-600 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : currentLevel === i ? 'bg-amber-400 border-amber-500 shadow-[0_0_8px_rgba(250,204,21,0.6)] animate-pulse' : 'bg-slate-700 border-slate-600'}`} />
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content: Side-by-Side (Compact, no scroll) */}
-      <div className="flex flex-1 min-h-0 relative bg-slate-100 rounded-xl overflow-hidden shadow-2xl w-full max-w-6xl mx-auto border-4 border-slate-700/30">
-        <Celebration isActive={win} onReplay={handleReset} message="You built the Data Factory and mastered all 4 chart types!" />
+      <div className="flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4">
         
-        {!win && (
-          <>
-            {/* LEFT PANEL: Control Terminal (Compact) */}
-            <div className="w-[420px] bg-white border-r border-slate-200 flex flex-col z-10 shadow-lg text-slate-800">
-              
-              <div className="bg-slate-50 border-b border-slate-200 p-2 flex items-center gap-2 shrink-0">
-                <Terminal size={16} className="text-blue-600" />
-                <span className="font-bold text-sm text-slate-700 uppercase">Command Interface</span>
-              </div>
-              
-              <div className="flex-1 p-3 flex flex-col gap-3 overflow-hidden">
-                
-                {(currentLevel === 0 || currentLevel === 1) && (
-                  <div className="flex flex-col gap-2 h-full">
-                    <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r shrink-0">
-                      <h3 className="font-black text-blue-900 text-base mb-1">Objective: Route Data</h3>
-                      <p className="text-sm text-blue-800 leading-tight">Identify if the data on the belt represents a trend, proportion, comparison, or correlation. Route it to the correct machine!</p>
+        {/* HUD - Top Bar */}
+        <div className="flex flex-col md:flex-row gap-2 shrink-0">
+          {/* Step Tracker */}
+          <div className="flex-[2] lg:flex-[2.5] bg-white rounded-xl p-2 md:p-2.5 border-2 border-slate-100 flex items-center shadow-sm overflow-hidden min-h-0">
+            <div className="flex items-center gap-1 lg:gap-1.5 px-1 overflow-x-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {STEPS.map((s, idx) => {
+                const isActive = step === s.id;
+                const isPast = STEPS.findIndex(x => x.id === step) > idx;
+                return (
+                  <React.Fragment key={s.id}>
+                    <div className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-[10px] sm:text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
+                      isActive ? 'bg-slate-800 text-white shadow-md' :
+                      isPast ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-400 border border-slate-200/60'
+                    }`}>
+                      {s.label}
                     </div>
-                    
-                    <div className="flex flex-col gap-2 flex-1 justify-center">
-                      <p className="text-xs font-bold text-slate-500 uppercase">Machine Controls</p>
-                      
-                      <button onClick={() => routeBox('line')} className="bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 text-slate-700 font-bold py-2 px-3 rounded flex items-center justify-between transition-all group">
-                        <span className="flex items-center gap-2 text-base"><Activity className="text-emerald-500" size={18}/> Line Chute</span>
-                        <Play size={14} className="text-slate-300 group-hover:text-emerald-500" />
-                      </button>
-                      
-                      <button onClick={() => routeBox('scatter')} className="bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 font-bold py-2 px-3 rounded flex items-center justify-between transition-all group">
-                        <span className="flex items-center gap-2 text-base"><ScatterChart className="text-blue-500" size={18}/> Scatter Chute</span>
-                        <Play size={14} className="text-slate-300 group-hover:text-blue-500" />
-                      </button>
-                      
-                      <button onClick={() => routeBox('bar')} className="bg-white border border-slate-200 hover:border-amber-400 hover:bg-amber-50 text-slate-700 font-bold py-2 px-3 rounded flex items-center justify-between transition-all group">
-                        <span className="flex items-center gap-2 text-base"><BarChart3 className="text-amber-500" size={18}/> Bar Chute</span>
-                        <Play size={14} className="text-slate-300 group-hover:text-amber-500" />
-                      </button>
-                      
-                      <button onClick={() => routeBox('pie')} className="bg-white border border-slate-200 hover:border-purple-400 hover:bg-purple-50 text-slate-700 font-bold py-2 px-3 rounded flex items-center justify-between transition-all group">
-                        <span className="flex items-center gap-2 text-base"><PieChart className="text-purple-500" size={18}/> Pie Chute</span>
-                        <Play size={14} className="text-slate-300 group-hover:text-purple-500" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {currentLevel === 2 && (
-                  <div className="flex flex-col gap-2 h-full">
-                    <div className="bg-amber-50 border-l-4 border-amber-500 p-2 rounded-r shrink-0">
-                      <h3 className="font-black text-amber-900 text-base">Objective: Python Logic</h3>
-                      <p className="text-sm text-amber-800 leading-tight mt-1">Match the correct `matplotlib` command to each physical module.</p>
-                    </div>
-                    
-                    <div className="flex-1 flex flex-col gap-2 justify-center">
-                      <div className="flex justify-between items-center text-sm text-blue-600 font-mono font-bold bg-slate-100 p-1 rounded">
-                        <span>plt.plot()</span><span>plt.bar()</span><span>plt.pie()</span><span>plt.scatter()</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 mt-1">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-bold text-slate-700">Line Logic:</label>
-                          <select value={wires.line} onChange={(e) => handleWire('line', e.target.value)} className="bg-white border border-slate-200 rounded p-1 font-mono text-sm text-blue-700 focus:border-blue-500 outline-none">
-                            <option value="">-- select --</option><option value="plt.bar()">plt.bar()</option><option value="plt.pie()">plt.pie()</option><option value="plt.plot()">plt.plot()</option><option value="plt.scatter()">plt.scatter()</option>
-                          </select>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-bold text-slate-700">Scatter Logic:</label>
-                          <select value={wires.scatter} onChange={(e) => handleWire('scatter', e.target.value)} className="bg-white border border-slate-200 rounded p-1 font-mono text-sm text-blue-700 focus:border-blue-500 outline-none">
-                            <option value="">-- select --</option><option value="plt.bar()">plt.bar()</option><option value="plt.pie()">plt.pie()</option><option value="plt.plot()">plt.plot()</option><option value="plt.scatter()">plt.scatter()</option>
-                          </select>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-bold text-slate-700">Bar Logic:</label>
-                          <select value={wires.bar} onChange={(e) => handleWire('bar', e.target.value)} className="bg-white border border-slate-200 rounded p-1 font-mono text-sm text-blue-700 focus:border-blue-500 outline-none">
-                            <option value="">-- select --</option><option value="plt.bar()">plt.bar()</option><option value="plt.pie()">plt.pie()</option><option value="plt.plot()">plt.plot()</option><option value="plt.scatter()">plt.scatter()</option>
-                          </select>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-bold text-slate-700">Pie Logic:</label>
-                          <select value={wires.pie} onChange={(e) => handleWire('pie', e.target.value)} className="bg-white border border-slate-200 rounded p-1 font-mono text-sm text-blue-700 focus:border-blue-500 outline-none">
-                            <option value="">-- select --</option><option value="plt.bar()">plt.bar()</option><option value="plt.pie()">plt.pie()</option><option value="plt.plot()">plt.plot()</option><option value="plt.scatter()">plt.scatter()</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <button onClick={checkWires} className="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-sm py-2 rounded shadow-md transition-colors w-full">
-                        Boot System
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {currentLevel === 3 && (
-                  <div className="flex flex-col gap-2 h-full">
-                    <div className="bg-purple-50 border-l-4 border-purple-500 p-2 rounded-r shrink-0">
-                      <h3 className="font-black text-purple-900 text-base">Objective: Customize Bar</h3>
-                      <p className="text-sm text-purple-800 leading-tight mt-1">Change the chart title and pick a different color for the bars.</p>
-                    </div>
-                    
-                    <div className="bg-slate-50 border border-slate-200 rounded overflow-hidden font-mono text-sm mt-2">
-                      <div className="bg-slate-200 text-slate-500 text-xs px-2 py-1 font-bold">script.py</div>
-                      <div className="p-3 flex flex-col gap-1 text-slate-600">
-                        <div><span className="text-pink-600">import</span> <span className="text-blue-600">matplotlib.pyplot</span> <span className="text-pink-600">as</span> plt</div>
-                        <div className="mt-2 text-slate-400"># Render Bar Chart</div>
-                        <div>
-                          plt.bar(x, y, 
-                          <span className="text-orange-600">color</span>=
-                          <select value={barCode.color} onChange={(e) => { if(playPop) playPop(); setBarCode(prev => ({...prev, color: e.target.value})) }} className="bg-white border border-slate-300 text-green-700 px-1 ml-1 rounded outline-none cursor-pointer">
-                            <option value="'blue'">'blue'</option>
-                            <option value="'green'">'green'</option>
-                            <option value="'red'">'red'</option>
-                          </select>)
-                        </div>
-                        <div className="mt-2 text-slate-400"># Set Title</div>
-                        <div className="flex items-center">
-                          plt.title(<input type="text" value={barCode.title.replace(/'/g, '')} onChange={(e) => setBarCode(prev => ({...prev, title: "'" + e.target.value + "'"}))} className="bg-white border border-slate-300 text-green-700 px-1 ml-1 rounded w-32 outline-none focus:border-blue-500" />)
-                        </div>
-                        <div className="mt-2">plt.show()</div>
-                      </div>
-                    </div>
-
-                    <button onClick={checkBarCode} className="mt-auto bg-purple-600 hover:bg-purple-700 text-white font-black uppercase text-sm py-2 rounded shadow-md transition-colors w-full">
-                      Render Art
-                    </button>
-                  </div>
-                )}
-
-                {currentLevel === 4 && (
-                  <div className="flex flex-col gap-2 h-full">
-                    <div className="bg-pink-50 border-l-4 border-pink-500 p-2 rounded-r shrink-0">
-                      <h3 className="font-black text-pink-900 text-base">Objective: Customize Scatter</h3>
-                      <p className="text-sm text-pink-800 leading-tight mt-1">Change the scatter point size (`s`) and marker shape (`marker`).</p>
-                    </div>
-                    
-                    <div className="bg-slate-50 border border-slate-200 rounded overflow-hidden font-mono text-sm mt-2">
-                      <div className="bg-slate-200 text-slate-500 text-xs px-2 py-1 font-bold">script.py</div>
-                      <div className="p-3 flex flex-col gap-1 text-slate-600">
-                        <div><span className="text-pink-600">import</span> <span className="text-blue-600">matplotlib.pyplot</span> <span className="text-pink-600">as</span> plt</div>
-                        <div className="mt-2 text-slate-400"># Render Scatter Plot</div>
-                        <div>
-                          plt.scatter(x, y, 
-                          <span className="text-orange-600">s</span>=
-                          <select value={scatterCode.size} onChange={(e) => { if(playPop) playPop(); setScatterCode(prev => ({...prev, size: e.target.value})) }} className="bg-white border border-slate-300 text-green-700 px-1 ml-1 rounded outline-none cursor-pointer">
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                            <option value="200">200</option>
-                          </select>,
-                        </div>
-                        <div className="pl-4">
-                          <span className="text-orange-600">marker</span>=
-                          <select value={scatterCode.marker} onChange={(e) => { if(playPop) playPop(); setScatterCode(prev => ({...prev, marker: e.target.value})) }} className="bg-white border border-slate-300 text-green-700 px-1 ml-1 rounded outline-none cursor-pointer">
-                            <option value="'o'">circle ('o')</option>
-                            <option value="'s'">square ('s')</option>
-                            <option value="'*'">star ('*')</option>
-                          </select>)
-                        </div>
-                        <div className="mt-2">plt.show()</div>
-                      </div>
-                    </div>
-
-                    <button onClick={checkScatterCode} className="mt-auto bg-pink-600 hover:bg-pink-700 text-white font-black uppercase text-sm py-2 rounded shadow-md transition-colors w-full">
-                      Render Art
-                    </button>
-                  </div>
-                )}
-                
-              </div>
+                    {idx < STEPS.length - 1 && (
+                      <div className={`h-0.5 w-1.5 lg:w-2 shrink-0 rounded-full ${isPast ? 'bg-emerald-300' : 'bg-slate-100'}`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
+          </div>
+          
+          {/* Briefing Panel */}
+          <div className="flex-[1] lg:flex-1 bg-white rounded-xl p-3 md:p-4 border-2 border-slate-200 flex items-start gap-3 shadow-sm min-w-0">
+            <div className="bg-slate-100 p-1.5 rounded-full border border-slate-200 shrink-0">
+              <Info className="text-slate-600" size={16} strokeWidth={3} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs md:text-sm font-bold text-slate-700 leading-snug">
+                {briefings[step]}
+              </p>
+            </div>
+          </div>
+        </div>
 
-            {/* RIGHT PANEL: Factory Floor */}
-            <div className="flex-1 bg-blue-50 relative overflow-hidden flex flex-col justify-center">
+        {/* Workspace Split */}
+        <div className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0 overflow-hidden">
+          
+          {/* Left Hemisphere: The Canvas */}
+          <div className="flex-[1.5] lg:flex-[2] bg-white rounded-2xl border-4 border-slate-100 p-4 shadow-sm min-h-0 overflow-hidden relative flex flex-col">
+            <div className="flex items-center gap-2 mb-4 shrink-0">
+              <BarChart2 className="text-slate-400" size={18} />
+              <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest">The Canvas</h2>
+            </div>
+            
+            <div className="flex-1 bg-slate-50 rounded-xl border-2 border-slate-100 relative overflow-hidden flex flex-col items-center justify-center p-4">
               
-              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]" />
-              
-              {(currentLevel === 0 || currentLevel === 1) && (
-                <div className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4">
+              {/* State: TRY_RAW */}
+              {step === 'TRY_RAW' && (
+                <div className="w-full h-full font-mono text-[10px] md:text-xs text-slate-400 overflow-y-auto break-all p-4">
+                  {JSON.stringify(TEMP_DATA, null, 2).repeat(10)}
+                </div>
+              )}
+
+              {/* State: Chart Rendering */}
+              {step !== 'LEARN' && step !== 'TRY_RAW' && (
+                <div className="w-full h-full relative">
+                  {/* Applied Labels for COMPLETE stage */}
+                  {step === 'COMPLETE' || step === 'OUTCOME' ? (
+                    <>
+                      {labels.title && <div className="absolute top-0 left-0 w-full text-center font-bold text-slate-700 text-sm z-10">City Populations (Millions)</div>}
+                      {labels.ylabel && <div className="absolute top-1/2 -left-6 -translate-y-1/2 -rotate-90 font-bold text-slate-500 text-[10px] z-10">Population</div>}
+                      {labels.xlabel && <div className="absolute bottom-0 left-0 w-full text-center font-bold text-slate-500 text-[10px] z-10">Indian Cities</div>}
+                    </>
+                  ) : null}
                   
-                  {/* Conveyor Belt */}
-                  <div className="relative w-full max-w-sm h-24 bg-slate-200 border-y-4 border-slate-300 rounded flex items-center justify-center shadow-inner mb-6 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full animate-[slide_1.5s_linear_infinite]" />
-                    
-                    <motion.div 
-                      animate={{ 
-                        x: boxPosition === 'belt' ? 0 : 250,
-                        y: boxPosition === 'pie' ? -150 : boxPosition === 'bar' ? 150 : boxPosition === 'scatter' ? 75 : boxPosition === 'line' ? -75 : 0,
-                        scale: boxPosition === 'belt' ? 1 : 0.4,
-                        opacity: boxPosition === 'belt' ? 1 : 0
-                      }}
-                      className="bg-white border-[3px] border-blue-400 p-2 rounded shadow-md flex flex-col items-center z-20"
-                    >
-                      <Database className="text-blue-500" size={24} />
-                      <span className="font-black text-slate-700 text-xs uppercase tracking-tight text-center mt-1">
-                        {currentLevel === 0 ? "Monthly Temp" : "Height vs Age"}
-                      </span>
-                    </motion.div>
-                  </div>
-
-                  {/* Chutes */}
-                  <div className="absolute right-4 top-4 bottom-4 flex flex-col justify-between">
-                    <div className="bg-white/80 backdrop-blur border-2 border-purple-200 p-2 rounded-xl flex items-center gap-2 shadow-md w-36">
-                      <PieChart size={24} className="text-purple-500 shrink-0" />
-                      <span className="font-bold text-xs text-purple-700 uppercase">Pie Module</span>
+                  {activeEngine ? renderChart(getActiveDataset(), activeEngine, step === 'FAIL_PIE') : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-slate-400 uppercase tracking-widest">
+                      Awaiting Data Engine...
                     </div>
-                    
-                    <div className="bg-white/80 backdrop-blur border-2 border-emerald-200 p-2 rounded-xl flex items-center gap-2 shadow-md w-36 relative">
-                      <Activity size={24} className="text-emerald-500 shrink-0" />
-                      <span className="font-bold text-xs text-emerald-700 uppercase">Line Module</span>
-                      {boxPosition === 'line' && currentLevel === 0 && (
-                        <motion.div initial={{ scale:0 }} animate={{ scale:1 }} className="absolute -left-20 bg-green-500 text-white font-bold text-sm p-1 rounded">Correct!</motion.div>
-                      )}
-                    </div>
-                    
-                    <div className="bg-white/80 backdrop-blur border-2 border-blue-200 p-2 rounded-xl flex items-center gap-2 shadow-md w-36 relative">
-                      <ScatterChart size={24} className="text-blue-500 shrink-0" />
-                      <span className="font-bold text-xs text-blue-700 uppercase">Scatter Mod</span>
-                      {boxPosition === 'scatter' && currentLevel === 1 && (
-                        <motion.div initial={{ scale:0 }} animate={{ scale:1 }} className="absolute -left-20 bg-green-500 text-white font-bold text-sm p-1 rounded">Correct!</motion.div>
-                      )}
-                    </div>
+                  )}
 
-                    <div className="bg-white/80 backdrop-blur border-2 border-amber-200 p-2 rounded-xl flex items-center gap-2 shadow-md w-36">
-                      <BarChart3 size={24} className="text-amber-500 shrink-0" />
-                      <span className="font-bold text-xs text-amber-700 uppercase">Bar Module</span>
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
-              {currentLevel === 2 && (
-                <div className="flex-1 flex items-center justify-center p-4 relative z-10 w-full">
-                  <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
-                    
-                    {[
-                      { type: 'line', icon: Activity, color: 'emerald', cmd: wires.line, expected: 'plt.plot()' },
-                      { type: 'bar', icon: BarChart3, color: 'amber', cmd: wires.bar, expected: 'plt.bar()' },
-                      { type: 'scatter', icon: ScatterChart, color: 'blue', cmd: wires.scatter, expected: 'plt.scatter()' },
-                      { type: 'pie', icon: PieChart, color: 'purple', cmd: wires.pie, expected: 'plt.pie()' }
-                    ].map((m) => (
-                      <div key={m.type} className={`bg-white border-[3px] rounded-xl p-3 flex flex-col items-center gap-2 shadow-lg transition-colors ${m.cmd === m.expected ? "border-" + m.color + "-400 bg-" + m.color + "-50" : m.cmd ? 'border-red-400 bg-red-50' : 'border-slate-200'}`}>
-                        <m.icon size={36} className={m.cmd === m.expected ? "text-" + m.color + "-500" : 'text-slate-300'} />
-                        <div className="text-center">
-                          <h4 className="font-black text-slate-700 text-sm uppercase">{m.type} Graph</h4>
+                  {/* Feedback overlay for FAIL_PIE */}
+                  <AnimatePresence>
+                    {step === 'FAIL_PIE' && activeEngine === 'PIE' && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm z-20"
+                      >
+                        <div className="bg-rose-50 border-2 border-rose-200 p-4 rounded-2xl flex flex-col items-center text-center shadow-lg max-w-[80%]">
+                          <AlertTriangle className="text-rose-500 mb-2" size={32} />
+                          <h3 className="font-black text-rose-700 uppercase tracking-wider mb-1 text-sm">Trend Invisible</h3>
+                          <p className="text-xs text-rose-600 font-bold">This pie chart shows no temporal trend! It just looks like a pizza. We need a Line Graph.</p>
                         </div>
-                        <div className={`w-full py-1 text-center rounded font-mono text-xs font-bold ${m.cmd === m.expected ? "bg-" + m.color + "-500 text-white" : m.cmd ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                          {m.cmd || 'NO LOGIC'}
-                        </div>
-                      </div>
-                    ))}
-                    
-                  </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
-
-              {currentLevel === 3 && (
-                <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10 w-full">
-                  <div className="bg-white border border-slate-200 rounded-xl shadow-xl p-6 w-full max-w-lg">
-                    <h2 className="text-lg font-black text-slate-800 text-center mb-6">{barCode.title === "''" ? "Untitled Chart" : barCode.title.replace(/'/g, '')}</h2>
-                    
-                    <div className="flex items-end justify-around h-48 border-b-2 border-l-2 border-slate-300 pb-1 pl-2 pr-2">
-                      {/* Bars */}
-                      <motion.div initial={{height:0}} animate={{height: 120}} className={`w-12 rounded-t-sm shadow-md ${barCode.color === "'blue'" ? 'bg-blue-500' : barCode.color === "'green'" ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <motion.div initial={{height:0}} animate={{height: 90}} className={`w-12 rounded-t-sm shadow-md ${barCode.color === "'blue'" ? 'bg-blue-400' : barCode.color === "'green'" ? 'bg-green-400' : 'bg-red-400'}`} />
-                      <motion.div initial={{height:0}} animate={{height: 150}} className={`w-12 rounded-t-sm shadow-md ${barCode.color === "'blue'" ? 'bg-blue-600' : barCode.color === "'green'" ? 'bg-green-600' : 'bg-red-600'}`} />
-                      <motion.div initial={{height:0}} animate={{height: 60}} className={`w-12 rounded-t-sm shadow-md ${barCode.color === "'blue'" ? 'bg-blue-300' : barCode.color === "'green'" ? 'bg-green-300' : 'bg-red-300'}`} />
-                    </div>
-                    <div className="flex justify-around mt-1 text-xs font-bold text-slate-500 uppercase">
-                      <span>Mumbai</span><span>Delhi</span><span>Bangalore</span><span>Chennai</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {currentLevel === 4 && (
-                <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10 w-full">
-                  <div className="bg-white border border-slate-200 rounded-xl shadow-xl p-6 w-full max-w-lg">
-                    <h2 className="text-lg font-black text-slate-800 text-center mb-4">Height vs Age</h2>
-                    
-                    <div className="h-48 border-b-2 border-l-2 border-slate-300 relative">
-                      
-                      {/* Scatter Points */}
-                      {[
-                        {x: 10, y: 20}, {x: 20, y: 35}, {x: 30, y: 40}, {x: 40, y: 55}, {x: 50, y: 65}, {x: 60, y: 70}, {x: 70, y: 85}, {x: 80, y: 90}
-                      ].map((pt, i) => (
-                        <motion.div 
-                          key={i}
-                          initial={{ scale: 0 }} 
-                          animate={{ scale: 1 }}
-                          style={{ left: pt.x + "%", bottom: pt.y + "%" }}
-                          className="absolute -translate-x-1/2 translate-y-1/2 flex items-center justify-center"
-                        >
-                          {scatterCode.marker === "'o'" && <div className="bg-pink-500 rounded-full opacity-80" style={{ width: (parseInt(scatterCode.size)/5) + "px", height: (parseInt(scatterCode.size)/5) + "px" }} />}
-                          {scatterCode.marker === "'s'" && <div className="bg-pink-500 opacity-80" style={{ width: (parseInt(scatterCode.size)/5) + "px", height: (parseInt(scatterCode.size)/5) + "px" }} />}
-                          {scatterCode.marker === "'*'" && (
-                            <svg className="text-pink-500 fill-current opacity-80" style={{ width: (parseInt(scatterCode.size)/4) + "px", height: (parseInt(scatterCode.size)/4) + "px" }} viewBox="0 0 24 24">
-                              <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
-                            </svg>
-                          )}
-                        </motion.div>
-                      ))}
-
-                    </div>
-                    <div className="flex justify-between mt-1 text-xs font-bold text-slate-500 uppercase px-2">
-                      <span>Age 10</span><span>Age 20</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
             </div>
-          </>
-        )}
+          </div>
+          
+          {/* Right Hemisphere: The Palette / Code */}
+          <div className="flex-1 flex flex-col bg-slate-900 rounded-2xl border-4 border-slate-800 p-4 shadow-xl min-h-0 overflow-hidden relative">
+            <div className="flex items-center gap-2 mb-4 shrink-0 border-b border-slate-700 pb-2">
+              <Code2 className="text-sky-400" size={18} />
+              <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Python Script</h2>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4">
+              
+              {/* Code Preview */}
+              <div className="font-mono text-xs md:text-sm text-sky-100 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-purple-400">import</span> matplotlib.pyplot <span className="text-purple-400">as</span> plt<br/><br/>
+                <span className="text-slate-500"># 1. Load Data</span><br/>
+                data = {activeData === 'TEMP' ? 'temperature_log' : activeData === 'CITY' ? 'populations' : activeData === 'SPORT' ? 'favorites' : 'raw_json'}<br/><br/>
+                
+                <span className="text-slate-500"># 2. Select Engine</span><br/>
+                {activeEngine === 'BAR' && <span>plt.<span className="text-blue-300">bar</span>(data)</span>}
+                {activeEngine === 'LINE' && <span>plt.<span className="text-pink-300">plot</span>(data)</span>}
+                {activeEngine === 'PIE' && <span>plt.<span className="text-amber-300">pie</span>(data)</span>}
+                {!activeEngine && <span className="text-slate-600">plt.???(data)</span>}<br/><br/>
+
+                {(step === 'COMPLETE' || step === 'OUTCOME') && (
+                  <>
+                    <span className="text-slate-500"># 3. Apply Labels</span><br/>
+                    {labels.title ? <span>plt.<span className="text-yellow-200">title</span>(<span className="text-green-300">'City Populations'</span>)<br/></span> : <span className="text-slate-700"># plt.title(...)<br/></span>}
+                    {labels.xlabel ? <span>plt.<span className="text-yellow-200">xlabel</span>(<span className="text-green-300">'Indian Cities'</span>)<br/></span> : <span className="text-slate-700"># plt.xlabel(...)<br/></span>}
+                    {labels.ylabel ? <span>plt.<span className="text-yellow-200">ylabel</span>(<span className="text-green-300">'Population'</span>)<br/></span> : <span className="text-slate-700"># plt.ylabel(...)<br/></span>}
+                    <br/>
+                  </>
+                )}
+                
+                <span className="text-slate-500"># Render Chart</span><br/>
+                plt.<span className="text-yellow-200">show</span>()
+              </div>
+
+              {/* Controls */}
+              <div className="mt-auto flex flex-col gap-2 shrink-0">
+                {step === 'LEARN' && (
+                  <button onClick={() => { if(playPop) playPop(); setStep('TRY_RAW'); }} className="w-full bg-sky-500 hover:bg-sky-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors flex items-center justify-center gap-2">
+                    <Database size={16} /> Import Raw Data
+                  </button>
+                )}
+
+                {step === 'TRY_RAW' && (
+                  <button onClick={() => { if(playPop) playPop(); setStep('FAIL_PIE'); }} className="w-full bg-rose-500 hover:bg-rose-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors flex items-center justify-center gap-2">
+                    <PieIcon size={16} /> Try Pie Chart
+                  </button>
+                )}
+
+                {step === 'FAIL_PIE' && (
+                  <>
+                    <button onClick={() => { if(playError) playError(); setActiveEngine('PIE'); }} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors border border-slate-700">
+                      Generate Pie Chart
+                    </button>
+                    {activeEngine === 'PIE' && (
+                      <button onClick={() => { if(playPop) playPop(); setStep('UNDERSTAND'); setActiveEngine(null); }} className="w-full bg-sky-500 hover:bg-sky-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors mt-2">
+                        Analyze Issue
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {step === 'UNDERSTAND' && (
+                  <button onClick={() => { if(playPop) playPop(); setStep('IMPROVE'); setActiveData('CITY'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors">
+                    Re-route Engines
+                  </button>
+                )}
+
+                {step === 'IMPROVE' && (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <button onClick={() => { if(playClick) playClick(); setActiveData('TEMP'); setActiveEngine('LINE'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] sm:text-xs uppercase transition-colors flex flex-col items-center justify-center gap-1 ${activeData === 'TEMP' && activeEngine === 'LINE' ? 'bg-pink-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                        <TrendingUp size={16} /> Temp / Line
+                      </button>
+                      <button onClick={() => { if(playClick) playClick(); setActiveData('CITY'); setActiveEngine('BAR'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] sm:text-xs uppercase transition-colors flex flex-col items-center justify-center gap-1 ${activeData === 'CITY' && activeEngine === 'BAR' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                        <BarChart2 size={16} /> Cities / Bar
+                      </button>
+                      <button onClick={() => { if(playClick) playClick(); setActiveData('SPORT'); setActiveEngine('PIE'); }} className={`flex-1 p-2 rounded-lg font-bold text-[10px] sm:text-xs uppercase transition-colors flex flex-col items-center justify-center gap-1 ${activeData === 'SPORT' && activeEngine === 'PIE' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                        <PieIcon size={16} /> Sports / Pie
+                      </button>
+                    </div>
+                    {activeData === 'CITY' && activeEngine === 'BAR' && (
+                      <button onClick={() => { if(playSuccess) playSuccess(); setStep('COMPLETE'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl p-3 font-black uppercase tracking-wider text-sm transition-colors mt-2">
+                        Configure Labels
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {step === 'COMPLETE' && (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Click to apply labels</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button disabled={labels.title} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, title: true})); }} className={`p-2 rounded-lg font-bold text-xs font-mono transition-colors ${labels.title ? 'bg-slate-800 text-slate-600' : 'bg-sky-900/50 text-sky-300 hover:bg-sky-800 border border-sky-700/50'}`}>plt.title()</button>
+                      <button disabled={labels.xlabel} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, xlabel: true})); }} className={`p-2 rounded-lg font-bold text-xs font-mono transition-colors ${labels.xlabel ? 'bg-slate-800 text-slate-600' : 'bg-sky-900/50 text-sky-300 hover:bg-sky-800 border border-sky-700/50'}`}>plt.xlabel()</button>
+                      <button disabled={labels.ylabel} onClick={() => { if(playClick) playClick(); setLabels(p => ({...p, ylabel: true})); }} className={`p-2 rounded-lg font-bold text-xs font-mono transition-colors ${labels.ylabel ? 'bg-slate-800 text-slate-600' : 'bg-sky-900/50 text-sky-300 hover:bg-sky-800 border border-sky-700/50'}`}>plt.ylabel()</button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
-      
+
+      <Celebration 
+        isActive={step === 'OUTCOME'} 
+        message="Visualization Pipeline Complete!" 
+        onReplay={resetLab} 
+      />
     </LabShell>
   );
 }
