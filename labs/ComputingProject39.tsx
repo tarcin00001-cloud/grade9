@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
@@ -8,145 +8,277 @@ import LabShell from "@/components/LabShell";
 import Celebration from "@/components/Celebration";
 import { 
   Folder, ShieldAlert, Database, FileText, Smartphone, 
-  CheckSquare, Square, AlertOctagon, Signature, ShieldCheck
+  AlertOctagon, Signature, ShieldCheck, Clock, Plus, Minus,
+  Sparkles, CheckCircle2, RotateCcw
 } from "lucide-react";
 
 type Step = 'LEARN' | 'FAIL_SCOPE' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
 type ProjectId = 'python' | 'security' | 'database' | 'essay' | 'web';
+type Phase = 'planning' | 'building' | 'testing';
 
 interface Project {
   id: ProjectId;
   title: string;
   color: string;
+  accentBg: string;
   bgLight: string;
-  icon: React.ElementType;
+  icon: any;
   desc: string;
   deliverables: string[];
   anecdote: string;
-  risks: string[];
+  recommendedHint: string;
+  validate: (alloc: Record<Phase, number>) => { valid: boolean; reason?: string };
 }
+
+const TOTAL_BUDGET = 40;
+const STEP_SIZE = 5;
 
 const PROJECTS: Project[] = [
   {
     id: 'python',
     title: 'Python Data Analysis',
     color: 'text-blue-600',
+    accentBg: 'bg-blue-600',
     bgLight: 'bg-blue-50 border-blue-200',
     icon: Folder,
-    desc: 'Collect a real dataset, compute statistics, and generate visualizations.',
-    deliverables: ['Real dataset (≥20 records)', 'Compute mean, median, mode', 'Display a matplotlib chart'],
-    anecdote: "Adhiyan once analyzed his own gaming hours and immediately deleted the results in panic. Don't over-analyze, just deliver!",
-    risks: ['I will pick a simple dataset and not get stuck on data collection.', 'I will include the raw data alongside my python script.']
+    desc: 'Collect ≥20 records, compute mean/median/mode, display matplotlib chart.',
+    deliverables: ['Real dataset (≥20 records)', 'Compute mean, median, mode', 'Matplotlib visualization'],
+    anecdote: "Adhiyan spent 3 weeks over-analyzing endless datasets, panicked, and deleted everything! Don't over-plan.",
+    recommendedHint: "Cap Planning under 15h. Focus the majority of hours on Building & writing Python code.",
+    validate: (alloc) => {
+      if (alloc.planning >= 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! You allocated ${alloc.planning}h to Planning. Like Adhiyan, you're at risk of over-analyzing! Cap Planning below 15h and dedicate more time to Building.`
+        };
+      }
+      if (alloc.building < 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! You only gave ${alloc.building}h to Building. Python data cleaning and charting requires at least 15h.`
+        };
+      }
+      return { valid: true };
+    }
   },
   {
     id: 'security',
     title: 'Network Security Case',
     color: 'text-rose-600',
+    accentBg: 'bg-rose-600',
     bgLight: 'bg-rose-50 border-rose-200',
     icon: ShieldAlert,
-    desc: 'Research a historical cyber breach and write a structured case study.',
-    deliverables: ['Research a real breach (e.g. WannaCry)', 'Detail vulnerabilities & damage', 'Recommend countermeasures'],
-    anecdote: "Riya wrote a brilliant 10-page report on a fictional movie hack instead of a real breach and scored a zero.",
-    risks: ['I will research a REAL historical cyber attack.', 'I will properly cite every claim and source.']
+    desc: 'Research a historical cyber breach (e.g. WannaCry), analyze flaws & countermeasures.',
+    deliverables: ['Real breach research (WannaCry)', 'Vulnerabilities & damage map', 'Countermeasures with citations'],
+    anecdote: "Riya wrote a 10-page report on a fictional Hollywood movie hack with zero real sources and got zero marks.",
+    recommendedHint: "Allocate at least 15h to Research & Planning so every technical claim cites real incident reports.",
+    validate: (alloc) => {
+      if (alloc.planning < 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Research & Planning has only ${alloc.planning}h. Riya failed because she didn't research a real historical breach! Give at least 15h to Research.`
+        };
+      }
+      if (alloc.testing < 10) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Testing & Review has only ${alloc.testing}h. Case studies need at least 10h to fact-check sources and peer review citations.`
+        };
+      }
+      return { valid: true };
+    }
   },
   {
     id: 'database',
     title: 'Relational Database',
     color: 'text-purple-600',
+    accentBg: 'bg-purple-600',
     bgLight: 'bg-purple-50 border-purple-200',
     icon: Database,
-    desc: 'Build a structured database application for a school, hospital, or library.',
-    deliverables: ['Build MySQL/Access DB', '≥4 related tables', '10 meaningful queries & 2 reports'],
-    anecdote: "Kabir created 50 tables for a simple library system and spent 3 weeks just linking them.",
-    risks: ['I will keep the scope small (exactly 4-5 tables).', 'I will ensure my queries solve real-world problems.']
+    desc: 'Build a MySQL/Access DB (School/Hospital domain) with ≥4 tables & 10 queries.',
+    deliverables: ['Normalized schema (≥4 tables)', '10 SQL queries + 2 reports', 'Data dictionary & ER diagram'],
+    anecdote: "Kabir created 50 messy tables without schema planning, then spent 3 weeks stuck in broken foreign key loops.",
+    recommendedHint: "Allocate at least 15h to Planning to model your ER diagram and primary keys before touching SQL.",
+    validate: (alloc) => {
+      if (alloc.planning < 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Only ${alloc.planning}h for Planning. Kabir built 50 broken tables by skipping ER planning! Spend at least 15h designing your schema first.`
+        };
+      }
+      if (alloc.building < 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! You need at least 15h in Building to construct tables and craft 10 meaningful relational queries.`
+        };
+      }
+      return { valid: true };
+    }
   },
   {
     id: 'essay',
     title: 'Digital Citizenship',
     color: 'text-amber-600',
+    accentBg: 'bg-amber-600',
     bgLight: 'bg-amber-50 border-amber-200',
     icon: FileText,
-    desc: 'Write a research paper on deepfakes, privacy law, or algorithmic bias.',
-    deliverables: ['600-800 word paper', 'Clear intro, argument, and conclusion', 'Address a counter-argument'],
-    anecdote: "Sara wrote 2000 words on why she hates algorithms without a single cited fact.",
-    risks: ['I will keep my paper strictly under 800 words.', 'I will include a fair counter-argument and cite sources.']
+    desc: 'Write a 600-800 word paper on deepfakes/AI bias with cited counter-arguments.',
+    deliverables: ['600-800 word focused paper', 'Structured introduction & conclusion', 'Well-cited counter-argument'],
+    anecdote: "Sara wrote 2000 rambling words about algorithms without a single cited statistic or verified counter-argument.",
+    recommendedHint: "Give at least 15h to Research & Fact-finding, and reserve time in Review to enforce the 800-word limit.",
+    validate: (alloc) => {
+      if (alloc.planning < 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Only ${alloc.planning}h in Research. Sara wrote 2000 unverified words! Allocate at least 15h to gather verified facts and citations.`
+        };
+      }
+      if (alloc.testing < 10) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Review & Polish has only ${alloc.testing}h. You need at least 10h to trim the word count strictly to 600-800 words.`
+        };
+      }
+      return { valid: true };
+    }
   },
   {
     id: 'web',
     title: 'Responsive Web App',
     color: 'text-emerald-600',
+    accentBg: 'bg-emerald-600',
     bgLight: 'bg-emerald-50 border-emerald-200',
     icon: Smartphone,
-    desc: 'Build a small HTML/CSS/JS application like a quiz or unit converter.',
-    deliverables: ['2-3 page HTML/CSS/JS app', 'Interactive JavaScript element', 'Must work on Desktop & Mobile'],
-    anecdote: "Sirpi spent weeks building a beautiful game review site that worked perfectly on his phone and nowhere else.",
-    risks: ['I will not overcomplicate the JS logic.', 'I will test my CSS on both desktop and mobile screens.']
+    desc: 'Build a 2-3 page interactive HTML/CSS/JS app that adapts seamlessly to desktop & mobile.',
+    deliverables: ['2-3 page semantic HTML/CSS/JS', 'Interactive quiz or calculator', 'Flawless mobile & desktop layout'],
+    anecdote: "Sirpi spent 4 weeks building a stunning game site that only worked on his specific phone screen and failed testing.",
+    recommendedHint: "Allocate at least 15h to Testing & Review to verify media queries across multiple screen viewports.",
+    validate: (alloc) => {
+      if (alloc.testing < 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Testing & Review has only ${alloc.testing}h. Sirpi's site broke on every device except his phone! Allocate at least 15h to multi-device testing.`
+        };
+      }
+      if (alloc.building < 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Building & Coding has only ${alloc.building}h. Developing interactive JS elements needs at least 15h.`
+        };
+      }
+      return { valid: true };
+    }
+  }
+];
+
+const PHASES: { key: Phase; label: string; desc: string; iconColor: string }[] = [
+  { 
+    key: 'planning', 
+    label: 'Research & Planning', 
+    desc: 'ER schemas, literature search, outline, data selection',
+    iconColor: 'bg-indigo-100 text-indigo-700'
+  },
+  { 
+    key: 'building', 
+    label: 'Building & Coding', 
+    desc: 'Writing Python scripts, SQL tables, HTML/CSS/JS, drafting text',
+    iconColor: 'bg-blue-100 text-blue-700'
+  },
+  { 
+    key: 'testing', 
+    label: 'Testing & Review', 
+    desc: 'Cross-device checks, bug fixes, citation auditing, word count trimming',
+    iconColor: 'bg-emerald-100 text-emerald-700'
   }
 ];
 
 export default function ComputingProject39() {
   const [step, setStep] = useState<Step>('LEARN');
-  const [activeProject, setActiveProject] = useState<ProjectId | null>(null);
-  const [checkedRisks, setCheckedRisks] = useState<Record<string, boolean>>({});
+  const [activeProject, setActiveProject] = useState<ProjectId | null>('web');
+  const [allocations, setAllocations] = useState<Record<Phase, number>>({
+    planning: 10,
+    building: 20,
+    testing: 10
+  });
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+
   const { playSuccess, playError, playClick, playPop } = useLabAudio();
   const { reportComplete } = useLMSBridge('computingproject39');
 
   const selected = useMemo(() => PROJECTS.find(p => p.id === activeProject), [activeProject]);
 
-  const allChecked = useMemo(() => {
-    if (!selected) return false;
-    return selected.risks.every(r => checkedRisks[r]);
-  }, [selected, checkedRisks]);
+  const totalAllocated = useMemo(() => {
+    return allocations.planning + allocations.building + allocations.testing;
+  }, [allocations]);
 
-  useEffect(() => {
-    if (step === 'IMPROVE' && allChecked) {
-      setStep('COMPLETE');
-      if (playPop) playPop();
-    } else if (step === 'COMPLETE' && !allChecked) {
-      setStep('IMPROVE');
-    }
-  }, [allChecked, step, playPop]);
+  const remainingHours = TOTAL_BUDGET - totalAllocated;
 
   const handleSelect = (id: ProjectId) => {
     if (playClick) playClick();
     setActiveProject(id);
-    setCheckedRisks({});
+    setRejectionReason(null);
     setStep('LEARN');
+    // Default starter distribution
+    setAllocations({ planning: 10, building: 20, testing: 10 });
   };
 
-  const toggleRisk = (risk: string) => {
-    if (playClick) playClick();
-    setCheckedRisks(prev => ({ ...prev, [risk]: !prev[risk] }));
-    if (step === 'LEARN' || step === 'FAIL_SCOPE') {
+  const adjustHours = (phase: Phase, delta: number) => {
+    const current = allocations[phase];
+    const target = current + delta;
+    if (target < 0) return;
+    
+    // If adding, make sure we do not exceed TOTAL_BUDGET
+    if (delta > 0 && totalAllocated + delta > TOTAL_BUDGET) return;
+
+    if (playPop) playPop();
+    setAllocations(prev => ({
+      ...prev,
+      [phase]: target
+    }));
+
+    if (rejectionReason) {
+      setRejectionReason(null);
+    }
+    if (step === 'FAIL_SCOPE') {
       setStep('IMPROVE');
     }
   };
 
   const handleAuthorize = () => {
     if (!selected) return;
-    if (!allChecked) {
+    
+    if (totalAllocated !== TOTAL_BUDGET) {
       if (playError) playError();
+      return;
+    }
+
+    const validation = selected.validate(allocations);
+    if (!validation.valid) {
+      if (playError) playError();
+      setRejectionReason(validation.reason || "Scope requirements not met.");
       setStep('FAIL_SCOPE');
       return;
     }
-    
+
     if (playSuccess) playSuccess();
+    setRejectionReason(null);
     setStep('OUTCOME');
     reportComplete();
   };
 
   const resetLab = () => {
     setStep('LEARN');
-    setActiveProject(null);
-    setCheckedRisks({});
+    setActiveProject('web');
+    setAllocations({ planning: 10, building: 20, testing: 10 });
+    setRejectionReason(null);
   };
 
   const briefings: Record<Step, string> = {
-    LEARN: "Welcome to the Dispatch Center. Select a project dossier to review its requirements.",
-    FAIL_SCOPE: "Authorization Denied! You cannot commit to a project without acknowledging its biggest risks.",
-    IMPROVE: "Read the failure anecdote and check off the risk acknowledgments.",
-    COMPLETE: "Risks acknowledged. The charter is ready for your signature. Click Authorize.",
-    OUTCOME: "Project Authorized! Your charter is finalized and you are ready to begin."
+    LEARN: "Capstone Dispatch: Balance your 40 Project Hours to avoid the common failure mode and authorize your charter.",
+    FAIL_SCOPE: "Scope Rejected! Review the feedback below, rebalance your time budget, and try again.",
+    IMPROVE: "Rebalancing budget: adjust hours between Planning, Building, and Testing.",
+    COMPLETE: "40 hours balanced! Click Authorize Project Charter to commit.",
+    OUTCOME: "Charter Authorized! You balanced the project scope successfully."
   };
 
   return (
@@ -158,173 +290,268 @@ export default function ComputingProject39() {
       bgOverride="bg-slate-200"
       onReset={resetLab}
     >
-      <div className="absolute inset-0 top-[60px] md:top-[80px] p-2 md:p-4 flex justify-center overflow-hidden">
-        <div className="w-full max-w-6xl h-full flex flex-col md:flex-row gap-4 min-h-0">
+      <div className="absolute inset-0 top-[52px] md:top-[68px] p-2 md:p-3 flex justify-center overflow-hidden">
+        <div className="w-full max-w-6xl h-full flex flex-col md:flex-row gap-3 min-h-0">
           
           {/* LEFT: Project Grid (Sorting Tray) */}
-          <div className="w-full md:w-[40%] lg:w-[35%] flex flex-col gap-2 overflow-y-auto bg-slate-300 shadow-inner rounded-2xl p-3 border border-slate-400/50 pb-10 md:pb-3">
+          <div className="w-full md:w-[38%] lg:w-[34%] flex flex-col gap-1.5 overflow-y-auto bg-slate-300 shadow-inner rounded-2xl p-2.5 border border-slate-400/50 shrink-0 min-h-0">
+            <div className="px-1 py-0.5 flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-600">Choose Option (1 of 5)</span>
+              <span className="text-[10px] font-bold text-slate-500 bg-white/60 px-2 py-0.5 rounded-full">4-Week Capstone</span>
+            </div>
+            
             {PROJECTS.map(proj => {
               const isActive = activeProject === proj.id;
-              const Icon = proj.icon as any;
+              const Icon = proj.icon;
               return (
                 <button
                   key={proj.id}
                   onClick={() => handleSelect(proj.id)}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border-2 text-left transition-all ${
                     isActive 
-                      ? `${proj.bgLight} shadow-md scale-[1.02] border-opacity-100` 
+                      ? `${proj.bgLight} shadow-sm border-opacity-100 scale-[1.01] ring-2 ring-sky-400/40` 
                       : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className={`p-2 rounded-lg ${isActive ? 'bg-white shadow-sm' : 'bg-slate-100'} ${proj.color}`}>
-                    <Icon size={24} />
+                  <div className={`p-2 rounded-lg shrink-0 ${isActive ? 'bg-white shadow-xs' : 'bg-slate-100'} ${proj.color}`}>
+                    <Icon size={20} />
                   </div>
-                  <div>
-                    <h3 className={`font-black uppercase tracking-wide text-sm ${isActive ? 'text-slate-800' : 'text-slate-600'}`}>
+                  <div className="min-w-0 flex-1">
+                    <h3 className={`font-black uppercase tracking-wide text-xs truncate ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>
                       {proj.title}
                     </h3>
-                    <p className="text-xs text-slate-500 line-clamp-1">{proj.desc}</p>
+                    <p className="text-[11px] text-slate-500 line-clamp-1 leading-snug">{proj.desc}</p>
                   </div>
                 </button>
               );
             })}
+
+            {/* Quick Context Card */}
+            <div className="mt-auto bg-white/70 rounded-xl p-2.5 border border-slate-300/80 text-[11px] text-slate-600">
+              <span className="font-bold text-slate-800">💡 Course Rule: </span>
+              Worth 10% of your final Grade 9 course mark. You complete exactly ONE project over 4 weeks.
+            </div>
           </div>
 
-          {/* RIGHT: Inspector Pad */}
-          <div className="w-full md:w-[60%] lg:w-[65%] bg-[#e0e4e8] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.15)] border-t border-l border-white border-b-[6px] border-r-[4px] border-slate-300 p-3 md:p-6 flex flex-col min-h-0 relative">
+          {/* RIGHT: Inspector Pad & Scope Balancer */}
+          <div className="w-full md:w-[62%] lg:w-[66%] bg-[#e2e6ea] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.12)] border-t border-l border-white border-b-[5px] border-r-[3px] border-slate-300 p-3 md:p-4 flex flex-col min-h-0 relative">
             
             {!selected ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 drop-shadow-sm">
-                <Folder size={64} className="mb-4" />
-                <h2 className="text-xl font-black uppercase tracking-widest">Select a Dossier</h2>
-                <p className="text-sm font-medium">Awaiting project selection...</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 drop-shadow-xs">
+                <Folder size={56} className="mb-3 opacity-60" />
+                <h2 className="text-lg font-black uppercase tracking-widest text-slate-700">Select a Dossier</h2>
+                <p className="text-xs font-medium text-slate-500">Pick a project from the left dispatch tray to begin.</p>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col min-h-0 relative">
+              <div className="flex-1 flex flex-col min-h-0">
                 
-                {/* Header */}
-                <div className="flex items-center gap-4 mb-2 pb-2 border-b-2 border-slate-300/50">
-                  <div className={`p-2 rounded-xl bg-white shadow-sm ${selected.color}`}>
-                    {React.createElement(selected.icon as React.ElementType, { size: 28 })}
+                {/* Dossier Header */}
+                <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-300 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-xl bg-white shadow-xs ${selected.color}`}>
+                      {React.createElement(selected.icon, { size: 24 })}
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-none">Project Dossier</div>
+                      <h2 className="text-lg md:text-xl font-black uppercase text-slate-800 leading-tight">
+                        {selected.title}
+                      </h2>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Project Dossier</div>
-                    <h2 className="text-xl md:text-2xl font-black uppercase text-slate-800 leading-tight">
-                      {selected.title}
-                    </h2>
+
+                  {/* Budget Pill */}
+                  <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-slate-300 shadow-xs shrink-0">
+                    <Clock size={14} className="text-slate-500" />
+                    <span className="text-xs font-bold text-slate-700">
+                      Budget: <strong className={remainingHours === 0 ? "text-emerald-600" : "text-amber-600"}>{totalAllocated}</strong>/40h
+                    </span>
                   </div>
                 </div>
 
-                {/* Content Scroll Area */}
-                <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                {/* Main Scrollable Content */}
+                <div className="flex-1 overflow-y-auto py-2 pr-1 space-y-2.5 min-h-0">
                   
-                  {/* Deliverables */}
-                  <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Required Deliverables</h3>
-                    <ul className="space-y-0.5">
-                      {selected.deliverables.map((del, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm font-medium text-slate-700">
-                          <div className="mt-1.5 w-1 h-1 rounded-full bg-slate-400 shrink-0" />
-                          <span>{del}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Failure Mode Warning */}
-                  <div className="bg-amber-100/80 border border-amber-300 rounded-lg p-2.5 relative overflow-hidden shadow-sm">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-                    <div className="flex items-start gap-2">
-                      <AlertOctagon className="text-amber-600 shrink-0 mt-0.5" size={16} />
-                      <div>
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-amber-800 mb-0.5">Common Failure Mode</h3>
-                        <p className="text-xs font-semibold text-amber-900 leading-tight">{selected.anecdote}</p>
+                  {/* Failure Mode Warning & Anecdote */}
+                  <div className="bg-amber-50 border border-amber-300/80 rounded-xl p-2.5 relative overflow-hidden shadow-xs">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500" />
+                    <div className="flex items-start gap-2.5">
+                      <AlertOctagon className="text-amber-600 shrink-0 mt-0.5" size={18} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-800">Common Failure Mode</h4>
+                          <span className="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.2 rounded font-semibold">Avoid this trap!</span>
+                        </div>
+                        <p className="text-xs font-medium text-amber-950 mt-0.5 leading-snug">{selected.anecdote}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Risk Assessment */}
-                  <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">Risk Assessment Checklist</h3>
-                    <div className="space-y-1.5">
-                      {selected.risks.map((risk, i) => {
-                        const isChecked = checkedRisks[risk];
+                  {/* Scope Balancer Controls */}
+                  <div className="bg-white rounded-xl p-3 border border-slate-300/80 shadow-xs">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700">Scope Balancer (40 Hours Total)</h4>
+                        <p className="text-[11px] text-slate-500">Distribute your hours to defend against the failure mode.</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xs font-black uppercase px-2 py-0.5 rounded ${
+                          remainingHours === 0 ? "bg-emerald-100 text-emerald-800" :
+                          remainingHours > 0 ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {remainingHours === 0 ? "Balanced (40h)" : `${Math.abs(remainingHours)}h ${remainingHours > 0 ? 'Remaining' : 'Over'}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Stepper Rows */}
+                    <div className="space-y-2">
+                      {PHASES.map(ph => {
+                        const val = allocations[ph.key];
+                        const pct = Math.round((val / TOTAL_BUDGET) * 100);
                         return (
-                          <button
-                            key={i}
-                            onClick={() => toggleRisk(risk)}
-                            className={`w-full flex items-start gap-2.5 p-2 rounded-lg border-2 text-left transition-all ${
-                              isChecked 
-                                ? 'bg-emerald-50 border-emerald-200 shadow-sm' 
-                                : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
-                            }`}
-                          >
-                            <div className={`mt-0.5 shrink-0 transition-colors ${isChecked ? 'text-emerald-500' : 'text-slate-300'}`}>
-                              {isChecked ? <CheckSquare size={18} /> : <Square size={18} />}
+                          <div key={ph.key} className="bg-slate-50 rounded-lg p-2 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-slate-800">{ph.label}</span>
+                                <span className="text-[11px] font-mono font-bold text-slate-500">{val}h ({pct}%)</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 truncate">{ph.desc}</p>
+                              
+                              {/* Visual Mini Progress Bar */}
+                              <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                <div 
+                                  className="h-full bg-sky-600 transition-all duration-200 rounded-full"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
                             </div>
-                            <span className={`font-mono text-xs leading-tight transition-all ${
-                              isChecked ? 'text-emerald-700 line-through opacity-70' : 'text-slate-700'
-                            }`}>
-                              {risk}
-                            </span>
-                          </button>
+
+                            {/* Stepper Controls (+/- 5h) */}
+                            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                              <button
+                                onClick={() => adjustHours(ph.key, -STEP_SIZE)}
+                                disabled={val <= 0}
+                                className="w-8 h-8 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs active:scale-95 transition-transform"
+                                title={`Subtract ${STEP_SIZE} hours`}
+                              >
+                                <Minus size={14} />
+                              </button>
+                              
+                              <div className="w-10 text-center font-mono font-black text-sm text-slate-800">
+                                {val}h
+                              </div>
+
+                              <button
+                                onClick={() => adjustHours(ph.key, STEP_SIZE)}
+                                disabled={remainingHours <= 0}
+                                className="w-8 h-8 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs active:scale-95 transition-transform"
+                                title={`Add ${STEP_SIZE} hours`}
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          </div>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Rejection Alert Banner (Fail Safely State) */}
+                  <AnimatePresence>
+                    {step === 'FAIL_SCOPE' && rejectionReason && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        className="bg-rose-50 border-2 border-rose-400 rounded-xl p-3 shadow-sm"
+                      >
+                        <div className="flex items-start gap-2">
+                          <ShieldAlert className="text-rose-600 shrink-0 mt-0.5" size={18} />
+                          <div>
+                            <h4 className="text-xs font-black uppercase tracking-wider text-rose-800">Rejection Rationale:</h4>
+                            <p className="text-xs font-semibold text-rose-950 mt-0.5">{rejectionReason}</p>
+                            <p className="text-[11px] font-medium text-rose-700 mt-1">
+                              👉 <em>Fix:</em> Use the +/- buttons above to rebalance your hours, then re-authorize.
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Deliverables Checklist Chips */}
+                  <div className="bg-white/80 rounded-xl p-2.5 border border-slate-300/60">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">Required Deliverables</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                      {selected.deliverables.map((del, i) => (
+                        <div key={i} className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded text-[11px] text-slate-700 font-medium border border-slate-200 truncate">
+                          <CheckCircle2 size={12} className="text-sky-600 shrink-0" />
+                          <span className="truncate">{del}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                 </div>
 
                 {/* Footer Action */}
-                <div className="pt-2 mt-2 border-t-2 border-slate-300/50 relative">
+                <div className="pt-2 mt-1 border-t border-slate-300/80 shrink-0 relative">
                   <button
                     onClick={handleAuthorize}
-                    className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all ${
+                    disabled={totalAllocated !== TOTAL_BUDGET}
+                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm md:text-base uppercase tracking-wider transition-all ${
                       step === 'OUTCOME'
                         ? 'bg-emerald-500 text-white shadow-inner'
-                        : allChecked
-                          ? 'bg-slate-800 text-white shadow-lg hover:bg-slate-700 hover:scale-[1.02] active:scale-[0.98]'
-                          : 'bg-slate-300 text-slate-500'
+                        : totalAllocated === TOTAL_BUDGET
+                          ? 'bg-slate-800 text-white shadow-md hover:bg-slate-700 hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
+                          : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                     }`}
                   >
                     {step === 'OUTCOME' ? (
                       <>
-                        <ShieldCheck size={24} />
-                        Authorized
+                        <ShieldCheck size={20} />
+                        Charter Authorized!
+                      </>
+                    ) : totalAllocated !== TOTAL_BUDGET ? (
+                      <>
+                        <Clock size={18} />
+                        {remainingHours > 0 
+                          ? `Allocate ${remainingHours}h More to Authorize` 
+                          : `Remove ${Math.abs(remainingHours)}h to Reach 40h`}
                       </>
                     ) : (
                       <>
-                        <Signature size={24} />
-                        Authorize Project
+                        <Signature size={20} />
+                        Authorize Project Charter
                       </>
                     )}
                   </button>
 
-                  {/* STAMPS */}
+                  {/* Physical Stamp Animation Overlays */}
                   <AnimatePresence>
                     {step === 'FAIL_SCOPE' && (
                       <motion.div
-                        initial={{ opacity: 0, scale: 3, rotate: -15 }}
-                        animate={{ opacity: 1, scale: 1, rotate: -15 }}
+                        initial={{ opacity: 0, scale: 2.5, rotate: -12 }}
+                        animate={{ opacity: 1, scale: 1, rotate: -12 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ type: 'spring', damping: 12, stiffness: 200 }}
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+                        transition={{ type: 'spring', damping: 14, stiffness: 220 }}
+                        className="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none z-30"
                       >
-                        <div className="border-4 border-rose-600 text-rose-600 px-6 py-2 rounded-lg bg-white/90 backdrop-blur-sm shadow-[0_0_30px_rgba(225,29,72,0.3)]">
-                          <h2 className="text-3xl font-black uppercase tracking-widest">Scope Rejected</h2>
+                        <div className="border-4 border-rose-600 text-rose-600 px-5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md shadow-2xl">
+                          <h2 className="text-2xl font-black uppercase tracking-widest">Scope Rejected</h2>
                         </div>
                       </motion.div>
                     )}
                     
                     {step === 'OUTCOME' && (
                       <motion.div
-                        initial={{ opacity: 0, scale: 3, rotate: 10 }}
-                        animate={{ opacity: 1, scale: 1, rotate: 10 }}
-                        transition={{ type: 'spring', damping: 12, stiffness: 200 }}
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+                        initial={{ opacity: 0, scale: 2.5, rotate: 8 }}
+                        animate={{ opacity: 1, scale: 1, rotate: 8 }}
+                        transition={{ type: 'spring', damping: 14, stiffness: 220 }}
+                        className="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none z-30"
                       >
-                        <div className="border-4 border-emerald-600 text-emerald-600 px-6 py-2 rounded-lg bg-white/90 backdrop-blur-sm shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                          <h2 className="text-3xl font-black uppercase tracking-widest">Authorized</h2>
+                        <div className="border-4 border-emerald-600 text-emerald-600 px-5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md shadow-2xl">
+                          <h2 className="text-2xl font-black uppercase tracking-widest">Charter Approved</h2>
                         </div>
                       </motion.div>
                     )}
@@ -340,7 +567,7 @@ export default function ComputingProject39() {
       
       <Celebration 
         isActive={step === 'OUTCOME'} 
-        message={`Project Authorized: ${selected?.title}! Now execute it.`} 
+        message={`Project Charter Authorized for ${selected?.title}! Your 40-hour plan is balanced and ready.`} 
         hideModal={true}
       />
     </LabShell>
