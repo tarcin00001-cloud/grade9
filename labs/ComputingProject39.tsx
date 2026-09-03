@@ -230,7 +230,9 @@ const PHASES: { key: Phase; label: string; desc: string; iconColor: string }[] =
 
 export default function ComputingProject39() {
   const [step, setStep] = useState<Step>('LEARN');
-  const [activeProject, setActiveProject] = useState<ProjectId | null>('web');
+  const [activeProject, setActiveProject] = useState<ProjectId | null>('python');
+  const [approvedProjects, setApprovedProjects] = useState<Record<ProjectId, boolean>>({} as any);
+  const [savedAllocations, setSavedAllocations] = useState<Record<ProjectId, Record<Phase, number>>>({} as any);
   const [allocations, setAllocations] = useState<Record<Phase, number>>({
     planning: 10,
     building: 20,
@@ -243,6 +245,12 @@ export default function ComputingProject39() {
 
   const selected = useMemo(() => PROJECTS.find(p => p.id === activeProject), [activeProject]);
 
+  const approvedCount = useMemo(() => {
+    return Object.values(approvedProjects).filter(Boolean).length;
+  }, [approvedProjects]);
+
+  const isCurrentApproved = activeProject ? !!approvedProjects[activeProject] : false;
+
   const totalAllocated = useMemo(() => {
     return allocations.planning + allocations.building + allocations.testing;
   }, [allocations]);
@@ -253,9 +261,26 @@ export default function ComputingProject39() {
     if (playClick) playClick();
     setActiveProject(id);
     setRejectionReason(null);
-    setStep('LEARN');
-    // Default starter distribution
-    setAllocations({ planning: 10, building: 20, testing: 10 });
+    const isApproved = !!approvedProjects[id];
+    setStep(isApproved ? 'COMPLETE' : 'LEARN');
+    if (savedAllocations[id]) {
+      setAllocations(savedAllocations[id]);
+    } else {
+      // Default starter distribution
+      setAllocations({ planning: 10, building: 20, testing: 10 });
+    }
+  };
+
+  const handleNextProject = () => {
+    if (playClick) playClick();
+    const nextUnapproved = PROJECTS.find(p => !approvedProjects[p.id]);
+    if (nextUnapproved) {
+      handleSelect(nextUnapproved.id);
+    } else {
+      const currentIndex = PROJECTS.findIndex(p => p.id === activeProject);
+      const nextIndex = (currentIndex + 1) % PROJECTS.length;
+      handleSelect(PROJECTS[nextIndex].id);
+    }
   };
 
   const adjustHours = (phase: Phase, delta: number) => {
@@ -298,31 +323,49 @@ export default function ComputingProject39() {
 
     if (playSuccess) playSuccess();
     setRejectionReason(null);
-    setStep('OUTCOME');
-    reportComplete();
+
+    const nextApproved = { ...approvedProjects, [selected.id]: true };
+    setApprovedProjects(nextApproved);
+    setSavedAllocations(prev => ({ ...prev, [selected.id]: { ...allocations } }));
+
+    const count = Object.values(nextApproved).filter(Boolean).length;
+    if (count === PROJECTS.length) {
+      setStep('OUTCOME');
+      reportComplete();
+    } else {
+      setStep('COMPLETE');
+    }
   };
 
   const resetLab = () => {
     setStep('LEARN');
-    setActiveProject('web');
+    setActiveProject('python');
+    setApprovedProjects({} as any);
+    setSavedAllocations({} as any);
     setAllocations({ planning: 10, building: 20, testing: 10 });
     setRejectionReason(null);
   };
 
-  const briefings: Record<Step, string> = {
-    LEARN: "Capstone Dispatch: Balance your 40 Project Hours to avoid the common failure mode and authorize your charter.",
-    FAIL_SCOPE: "Scope Rejected! Review the feedback below, rebalance your time budget, and try again.",
-    IMPROVE: "Rebalancing budget: adjust hours between Planning, Building, and Testing.",
-    COMPLETE: "40 hours balanced! Click Authorize Project Charter to commit.",
-    OUTCOME: "Charter Authorized! You balanced the project scope successfully."
-  };
+  const currentInstruction = useMemo(() => {
+    if (approvedCount === PROJECTS.length) {
+      return "🎉 Capstone Master: All 5 computing projects balanced and approved!";
+    }
+    if (step === 'FAIL_SCOPE' && rejectionReason) {
+      return rejectionReason;
+    }
+    if (isCurrentApproved) {
+      return `Project "${selected?.title}" approved! Click 'Next Project Brief' to continue (${approvedCount}/5 completed).`;
+    }
+    const idx = PROJECTS.findIndex(p => p.id === activeProject) + 1;
+    return `Project ${idx} of 5: Balance hours for ${selected?.title} to defend against its failure mode.`;
+  }, [approvedCount, step, rejectionReason, isCurrentApproved, selected, activeProject]);
 
   return (
     <LabShell 
       labId="computingproject39"
       title="Computing Project" 
       compact={true}
-      instruction={briefings[step]}
+      instruction={currentInstruction}
       bgOverride="bg-slate-200"
       onReset={resetLab}
     >
@@ -332,40 +375,62 @@ export default function ComputingProject39() {
           {/* LEFT: Project Grid (Sorting Tray) */}
           <div className="w-full md:w-[38%] lg:w-[34%] flex flex-col gap-1.5 overflow-y-auto bg-slate-300 shadow-inner rounded-2xl p-2.5 border border-slate-400/50 shrink-0 min-h-0">
             <div className="px-1 py-0.5 flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-600">Choose Option (1 of 5)</span>
-              <span className="text-[10px] font-bold text-slate-500 bg-white/60 px-2 py-0.5 rounded-full">4-Week Capstone</span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">All 5 Projects Required</span>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                approvedCount === PROJECTS.length ? "bg-emerald-200 text-emerald-900" : "bg-sky-100 text-sky-800"
+              }`}>
+                {approvedCount}/5 Approved
+              </span>
             </div>
             
             {PROJECTS.map(proj => {
               const isActive = activeProject === proj.id;
+              const isApproved = !!approvedProjects[proj.id];
               const Icon = proj.icon;
               return (
                 <button
                   key={proj.id}
                   onClick={() => handleSelect(proj.id)}
-                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border-2 text-left transition-all ${
+                  className={`flex items-center gap-2.5 p-2 rounded-xl border-2 text-left transition-all ${
                     isActive 
                       ? `${proj.bgLight} shadow-sm border-opacity-100 scale-[1.01] ring-2 ring-sky-400/40` 
-                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      : isApproved
+                        ? 'bg-emerald-50/70 border-emerald-200 hover:bg-emerald-50'
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className={`p-2 rounded-lg shrink-0 ${isActive ? 'bg-white shadow-xs' : 'bg-slate-100'} ${proj.color}`}>
-                    <Icon size={20} />
+                  <div className={`p-1.5 rounded-lg shrink-0 ${isApproved ? 'bg-emerald-100 text-emerald-700' : isActive ? 'bg-white shadow-xs' : 'bg-slate-100'} ${proj.color}`}>
+                    <Icon size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className={`font-black uppercase tracking-wide text-xs truncate ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>
-                      {proj.title}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 line-clamp-1 leading-snug">{proj.desc}</p>
+                    <div className="flex items-center justify-between gap-1">
+                      <h3 className={`font-black uppercase tracking-wide text-xs truncate ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>
+                        {proj.title}
+                      </h3>
+                      {isApproved && (
+                        <span className="text-[9px] font-black uppercase bg-emerald-600 text-white px-1.5 py-0.2 rounded shrink-0">
+                          ✓ Done
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 line-clamp-1 leading-snug">{proj.desc}</p>
                   </div>
                 </button>
               );
             })}
 
-            {/* Quick Context Card */}
-            <div className="mt-auto bg-white/70 rounded-xl p-2.5 border border-slate-300/80 text-[11px] text-slate-600">
-              <span className="font-bold text-slate-800">💡 Course Rule: </span>
-              Worth 10% of your final Grade 9 course mark. You complete exactly ONE project over 4 weeks.
+            {/* Quick Context Card & Progress Meter */}
+            <div className="mt-auto bg-white/80 rounded-xl p-2 border border-slate-300/80 text-[10px] text-slate-600">
+              <div className="flex items-center justify-between font-bold text-slate-800 mb-1">
+                <span>🎯 Mission Progress</span>
+                <span className="text-sky-700 font-mono font-black">{approvedCount} of 5 Completed</span>
+              </div>
+              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                  style={{ width: `${(approvedCount / PROJECTS.length) * 100}%` }}
+                />
+              </div>
             </div>
           </div>
 
@@ -388,7 +453,14 @@ export default function ComputingProject39() {
                       {React.createElement(selected.icon, { size: 22 })}
                     </div>
                     <div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-none">Project Brief</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-none">Project Brief</span>
+                        {isCurrentApproved && (
+                          <span className="text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded">
+                            Approved
+                          </span>
+                        )}
+                      </div>
                       <h2 className="text-base md:text-lg font-black uppercase text-slate-800 leading-tight">
                         {selected.title}
                       </h2>
@@ -404,7 +476,7 @@ export default function ComputingProject39() {
                   </div>
                 </div>
 
-                {/* Status / Alert Banner: Morphs between Failure Trap and Scope Rejection to preserve constant height */}
+                {/* Status / Alert Banner: Morphs between Failure Trap, Rejection, and Approval */}
                 <div className="shrink-0">
                   {step === 'FAIL_SCOPE' && rejectionReason ? (
                     <motion.div
@@ -421,6 +493,21 @@ export default function ComputingProject39() {
                         <p className="text-[11px] font-semibold text-rose-950 leading-tight mt-0.5">{rejectionReason}</p>
                       </div>
                     </motion.div>
+                  ) : isCurrentApproved ? (
+                    <div className="bg-emerald-50 border border-emerald-300 rounded-lg px-2.5 py-1.5 shadow-xs flex items-center gap-2">
+                      <ShieldCheck className="text-emerald-600 shrink-0" size={16} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-200/80 px-1.5 py-0.2 rounded">Charter Approved</span>
+                          <span className="text-[10px] text-emerald-700 font-semibold">Scope verified successfully!</span>
+                        </div>
+                        <p className="text-[11px] font-medium text-emerald-950 leading-tight mt-0.5">
+                          {approvedCount < PROJECTS.length 
+                            ? `Great job! Click 'Next Project Brief' below to analyze the remaining ${PROJECTS.length - approvedCount} projects.`
+                            : "Excellent! You have successfully balanced and approved all 5 capstone project types."}
+                        </p>
+                      </div>
+                    </div>
                   ) : (
                     <div className="bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 shadow-xs flex items-center gap-2">
                       <AlertOctagon className="text-amber-600 shrink-0" size={16} />
@@ -519,36 +606,49 @@ export default function ComputingProject39() {
 
                 {/* Footer Action */}
                 <div className="pt-1 shrink-0 relative">
-                  <button
-                    onClick={handleAuthorize}
-                    disabled={totalAllocated !== TOTAL_BUDGET}
-                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider transition-all ${
-                      step === 'OUTCOME'
-                        ? 'bg-emerald-500 text-white shadow-inner'
-                        : totalAllocated === TOTAL_BUDGET
+                  {isCurrentApproved ? (
+                    approvedCount === PROJECTS.length ? (
+                      <button
+                        disabled
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider bg-emerald-600 text-white shadow-md cursor-default"
+                      >
+                        <ShieldCheck size={18} />
+                        🎉 All 5 Charters Approved! Lab Complete
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleNextProject}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider bg-sky-600 hover:bg-sky-500 active:scale-[0.99] text-white shadow-md cursor-pointer transition-all"
+                      >
+                        <Sparkles size={18} />
+                        Next Project Brief ({approvedCount}/5 Completed) →
+                      </button>
+                    )
+                  ) : (
+                    <button
+                      onClick={handleAuthorize}
+                      disabled={totalAllocated !== TOTAL_BUDGET}
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider transition-all ${
+                        totalAllocated === TOTAL_BUDGET
                           ? 'bg-slate-800 text-white shadow-md hover:bg-slate-700 hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
                           : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {step === 'OUTCOME' ? (
-                      <>
-                        <ShieldCheck size={18} />
-                        Charter Authorized!
-                      </>
-                    ) : totalAllocated !== TOTAL_BUDGET ? (
-                      <>
-                        <Clock size={16} />
-                        {remainingHours > 0 
-                          ? `Allocate ${remainingHours}h More to Authorize` 
-                          : `Remove ${Math.abs(remainingHours)}h to Reach 40h`}
-                      </>
-                    ) : (
-                      <>
-                        <Signature size={18} />
-                        Authorize Project Charter
-                      </>
-                    )}
-                  </button>
+                      }`}
+                    >
+                      {totalAllocated !== TOTAL_BUDGET ? (
+                        <>
+                          <Clock size={16} />
+                          {remainingHours > 0 
+                            ? `Allocate ${remainingHours}h More to Authorize` 
+                            : `Remove ${Math.abs(remainingHours)}h to Reach 40h`}
+                        </>
+                      ) : (
+                        <>
+                          <Signature size={18} />
+                          Authorize {selected.title} Charter
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   {/* Physical Stamp Animation Overlays */}
                   <AnimatePresence>
@@ -566,7 +666,7 @@ export default function ComputingProject39() {
                       </motion.div>
                     )}
                     
-                    {step === 'OUTCOME' && (
+                    {isCurrentApproved && !rejectionReason && (
                       <motion.div
                         initial={{ opacity: 0, scale: 2.2, rotate: 8 }}
                         animate={{ opacity: 1, scale: 1, rotate: 8 }}
@@ -589,8 +689,8 @@ export default function ComputingProject39() {
       </div>
       
       <Celebration 
-        isActive={step === 'OUTCOME'} 
-        message={`Project Charter Authorized for ${selected?.title}! Your 40-hour plan is balanced and ready.`} 
+        isActive={approvedCount === PROJECTS.length} 
+        message="Mastery Complete! You have successfully balanced and approved all 5 Grade 9 Capstone projects!" 
         hideModal={true}
       />
     </LabShell>
