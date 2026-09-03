@@ -290,9 +290,9 @@ export default function RansomwareIncidentResponse() {
 
     // RENDER MONITOR BASE
     const renderMonitorBase = (title: string, Icon: any, children: any, isServer: boolean = false) => (
-        <div className="w-full max-w-xs flex flex-col items-center shrink-0 z-20">
+        <div className="w-full max-w-sm lg:max-w-[390px] flex flex-col items-center shrink-0 z-20">
             <div className={`w-full rounded-t-xl p-3 border-x-4 border-t-4 flex items-center justify-between shadow-xl ${isServer ? 'bg-slate-900 border-slate-950' : 'bg-slate-100 border-slate-900'}`}>
-                <span className={`font-black tracking-widest text-xs flex items-center gap-1.5 ${isServer ? 'text-slate-300' : 'text-slate-800'}`}>
+                <span className={`font-black tracking-widest text-sm flex items-center gap-2 ${isServer ? 'text-slate-300' : 'text-slate-800'}`}>
                     <Icon size={14}/> {title}
                 </span>
                 {isServer && (
@@ -302,18 +302,18 @@ export default function RansomwareIncidentResponse() {
                     </div>
                 )}
             </div>
-            <div className={`w-full p-4 border-x-4 border-b-4 rounded-b-xl shadow-2xl relative min-h-[11rem] flex flex-col ${isServer ? 'bg-slate-800 border-slate-950' : 'bg-white border-slate-900'}`}>
+            <div className={`w-full p-4 border-x-4 border-b-4 rounded-b-xl shadow-2xl relative min-h-[14rem] flex flex-col ${isServer ? 'bg-slate-800 border-slate-950' : 'bg-white border-slate-900'}`}>
                 {children}
             </div>
             {!isServer ? (
                 <>
-                    <div className="w-12 h-5 bg-slate-900 rounded-b shadow-xl border-x-4 border-slate-950 shrink-0"></div>
-                    <div className="w-24 h-2.5 bg-slate-800 rounded-b shadow-2xl border-x-4 border-b-4 border-slate-950 shrink-0 mb-1"></div>
+                    <div className="w-14 h-6 bg-slate-900 rounded-b shadow-xl border-x-4 border-slate-950 shrink-0"></div>
+                    <div className="w-28 h-3.5 bg-slate-800 rounded-b shadow-2xl border-x-4 border-b-4 border-slate-950 shrink-0 mb-1"></div>
                 </>
             ) : (
                 <>
-                    <div className="w-12 h-5 invisible shrink-0"></div>
-                    <div className="w-24 h-2.5 invisible shrink-0 mb-1"></div>
+                    <div className="w-14 h-6 invisible shrink-0"></div>
+                    <div className="w-28 h-3.5 invisible shrink-0 mb-1"></div>
                 </>
             )}
         </div>
@@ -330,14 +330,14 @@ export default function RansomwareIncidentResponse() {
                             <div 
                                 key={f.id} 
                                 onClick={() => { if (f.id === 1 && phase === 'M1_LEARN') startM1Attack(); }}
-                                className={`flex flex-col items-center justify-center p-2 rounded border-2 transition-all ${
+                                className={`flex flex-col items-center justify-center p-2.5 md:p-3 rounded-lg border-2 transition-all ${
                                     f.isEncrypted ? 'bg-rose-100 border-rose-500 text-rose-600 shadow-[inset_0_0_10px_rgba(225,29,72,0.3)]' : 
                                     f.id === 1 && phase === 'M1_LEARN' ? 'bg-rose-50 border-rose-300 text-rose-600 hover:bg-rose-100 cursor-pointer border-dashed animate-pulse' :
                                     'bg-slate-50 border-slate-200 text-slate-500'
                                 }`}
                             >
-                                {f.isEncrypted ? <ShieldAlert size={22} className="mb-1" /> : f.id === 1 ? <FileText size={22} className="mb-1 text-rose-500" /> : <ImageIcon size={22} className="mb-1" />}
-                                <span className="text-[9px] font-bold text-center break-all leading-tight">
+                                {f.isEncrypted ? <ShieldAlert size={28} className="mb-1.5" /> : f.id === 1 ? <FileText size={28} className="mb-1.5 text-rose-500" /> : <ImageIcon size={28} className="mb-1.5" />}
+                                <span className="text-xs font-bold text-center break-all leading-snug">
                                     {f.isEncrypted ? 'ENCRYPTED.locked' : f.name}
                                 </span>
                             </div>
@@ -348,27 +348,27 @@ export default function RansomwareIncidentResponse() {
                 {/* CENTER CABLE & RAPID ACTION DOCK */}
                 <div className="flex flex-col items-center justify-center gap-3 shrink-0 z-20">
                     {/* Action Panel Docked In Center */}
-                    <div className="w-48 bg-slate-900/90 p-2.5 rounded-xl border-2 border-slate-700 shadow-xl flex flex-col items-center gap-2">
-                        <div className="flex items-center gap-1.5 text-rose-400 font-mono text-[9px] font-black uppercase tracking-wider">
+                    <div className="w-56 bg-slate-900/95 p-3.5 rounded-2xl border-2 border-slate-700 shadow-xl flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-1.5 text-rose-400 font-mono text-[11px] font-black uppercase tracking-wider">
                             <Activity size={12}/> Containment Dock
                         </div>
                         <div className="flex w-full gap-2">
                             <button 
                                 onClick={handleTaskManager} 
-                                className="flex-1 px-1 py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all flex flex-col items-center"
+                                className="flex-1 px-2 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold text-[11px] uppercase tracking-wider active:scale-95 transition-all flex flex-col items-center"
                             >
-                                <Cpu size={14} className="mb-0.5 text-slate-400"/>
+                                <Cpu size={18} className="mb-1 text-slate-400"/>
                                 Software
                             </button>
                             <button 
                                 onClick={handleUnplug} 
-                                className={`flex-1 px-1 py-2 rounded font-black text-[9px] uppercase tracking-wider transition-all flex flex-col items-center ${
+                                className={`flex-1 px-2 py-2.5 rounded-lg font-black text-[11px] uppercase tracking-wider transition-all flex flex-col items-center ${
                                     phase === 'M1_INFECTING' 
                                         ? 'bg-amber-500 hover:bg-amber-400 text-amber-950 border border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.8)] animate-pulse scale-105 cursor-pointer' 
                                         : 'bg-slate-800 text-slate-600 border-slate-700 opacity-50 cursor-not-allowed'
                                 }`}
                             >
-                                <Wifi size={14} className="mb-0.5 text-amber-400"/>
+                                <Wifi size={18} className="mb-1 text-amber-400"/>
                                 Pull Cable
                             </button>
                         </div>
@@ -380,14 +380,14 @@ export default function RansomwareIncidentResponse() {
                     </div>
 
                     {/* PHYSICAL ETHERNET WIRE */}
-                    <div className="w-8 md:w-32 h-16 md:h-8 flex flex-col md:flex-row items-center justify-center shrink-0 relative">
+                    <div className="w-8 md:w-40 h-20 md:h-10 flex flex-col md:flex-row items-center justify-center shrink-0 relative">
                         {networkConnected ? (
-                            <div className="w-3 h-full md:w-full md:h-3.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 rounded-full border border-amber-800 shadow-[0_0_15px_rgba(245,158,11,0.6)]"></div>
+                            <div className="w-3.5 h-full md:w-full md:h-4.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 rounded-full border border-amber-800 shadow-[0_0_15px_rgba(245,158,11,0.6)]"></div>
                         ) : (
                             <div className="w-full h-full flex flex-col md:flex-row items-center justify-between">
-                                <div className="w-3 h-6 md:w-10 md:h-3.5 bg-gradient-to-r from-slate-400 to-slate-600 rounded-full border border-slate-800"></div>
+                                <div className="w-3.5 h-8 md:w-12 md:h-4.5 bg-gradient-to-r from-slate-400 to-slate-600 rounded-full border border-slate-800"></div>
                                 <span className="text-[8px] font-mono font-bold text-rose-500 uppercase px-1">DISCONNECTED</span>
-                                <div className="w-3 h-6 md:w-10 md:h-3.5 bg-gradient-to-r from-slate-400 to-slate-600 rounded-full border border-slate-800"></div>
+                                <div className="w-3.5 h-8 md:w-12 md:h-4.5 bg-gradient-to-r from-slate-400 to-slate-600 rounded-full border border-slate-800"></div>
                             </div>
                         )}
                     </div>
@@ -398,8 +398,8 @@ export default function RansomwareIncidentResponse() {
                     <div className="grid grid-cols-2 gap-2 w-full h-full">
                         {backupFiles.map((f: any) => (
                             <div key={f.id} className={`flex flex-col items-center justify-center p-2 rounded border-2 transition-colors ${f.isEncrypted ? 'bg-rose-950/50 border-rose-900 text-rose-500 shadow-[inset_0_0_10px_rgba(225,29,72,0.2)]' : 'bg-slate-900/80 border-slate-700 text-slate-400'}`}>
-                                {f.isEncrypted ? <ShieldAlert size={22} className="mb-1" /> : <Archive size={22} className="mb-1 text-slate-500" />}
-                                <span className="text-[9px] font-mono font-bold text-center break-all leading-tight">{f.isEncrypted ? 'ENCRYPTED' : f.name}</span>
+                                {f.isEncrypted ? <ShieldAlert size={28} className="mb-1.5" /> : <Archive size={28} className="mb-1.5 text-slate-500" />}
+                                <span className="text-xs font-mono font-bold text-center break-all leading-snug">{f.isEncrypted ? 'ENCRYPTED' : f.name}</span>
                             </div>
                         ))}
                     </div>
@@ -411,14 +411,14 @@ export default function RansomwareIncidentResponse() {
     // M2 FIREWALL WORKSPACE
     const renderM2Workspace = () => (
         <div className="w-full h-full flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-4xl bg-slate-900/95 p-6 rounded-2xl border-2 border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_0_20px_rgba(15,23,42,1)] flex flex-col gap-6 relative overflow-hidden">
+            <div className="w-full max-w-5xl bg-slate-900/95 p-7 rounded-2xl border-2 border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_0_20px_rgba(15,23,42,1)] flex flex-col gap-6 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none mix-blend-overlay"></div>
                 
                 {/* Laser scan line */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500/0 via-cyan-400 to-cyan-500/0 opacity-60"></div>
                 
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800 relative z-10">
-                    <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs font-black uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-cyan-400 font-mono text-sm font-black uppercase tracking-widest">
                         <Wifi size={16} className="text-cyan-400"/> Firewall Routing Matrix — Wi-Fi Subsystem
                     </div>
                     <span className="text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
@@ -435,8 +435,8 @@ export default function RansomwareIncidentResponse() {
                             <div key={i} className="flex-1 min-w-0 flex items-center justify-between relative group px-3 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 shadow-inner">
                                 {/* Source Interface */}
                                 <div className="flex flex-col items-center gap-1 shrink-0 z-10">
-                                    <Wifi size={20} className={isThreat ? 'text-rose-500' : 'text-emerald-500'} />
-                                    <span className="text-[8px] font-mono text-slate-400 uppercase">WLAN_{i}</span>
+                                    <Wifi size={24} className={isThreat ? 'text-rose-500' : 'text-emerald-500'} />
+                                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">WLAN_{i}</span>
                                 </div>
                                 
                                 {/* Left Data Stream Line */}
@@ -457,7 +457,7 @@ export default function RansomwareIncidentResponse() {
                                             playClick();
                                         }
                                     }}
-                                    className={`relative z-20 w-12 h-12 rotate-45 rounded-lg border-2 flex items-center justify-center transition-all duration-500 group-hover:scale-105 shrink-0 ${
+                                    className={`relative z-20 w-14 h-14 rotate-45 rounded-xl border-2 flex items-center justify-center transition-all duration-500 group-hover:scale-105 shrink-0 ${
                                         isBlocked 
                                             ? 'bg-slate-800 border-slate-600 shadow-[0_0_20px_rgba(71,85,105,0.8)] cursor-default'
                                             : isThreat
@@ -489,8 +489,8 @@ export default function RansomwareIncidentResponse() {
                                 
                                 {/* Destination Server */}
                                 <div className="flex flex-col items-center gap-1 shrink-0 z-10">
-                                    <Server size={20} className={isBlocked ? 'text-slate-600' : isThreat ? 'text-rose-500' : 'text-emerald-500'} />
-                                    <span className="text-[8px] font-mono text-slate-400 uppercase">{isThreat ? 'C2_SVR' : `NODE_${i}`}</span>
+                                    <Server size={24} className={isBlocked ? 'text-slate-600' : isThreat ? 'text-rose-500' : 'text-emerald-500'} />
+                                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">{isThreat ? 'C2_SVR' : `NODE_${i}`}</span>
                                 </div>
                             </div>
                         );
@@ -503,7 +503,7 @@ export default function RansomwareIncidentResponse() {
     // M3 ERADICATION WORKSPACE (BROUGHT DOWN TO MAIN STAGE!)
     const renderM3Workspace = () => (
         <div className="w-full h-full flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-3xl bg-slate-900/95 p-6 rounded-2xl border-2 border-slate-700 shadow-2xl flex flex-col md:flex-row items-center justify-center gap-8 relative overflow-hidden">
+            <div className="w-full max-w-4xl bg-slate-900/95 p-8 rounded-2xl border-2 border-slate-700 shadow-2xl flex flex-col md:flex-row items-center justify-center gap-8 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-15 pointer-events-none"></div>
 
                 {/* Local Drive Under Scan */}
@@ -517,7 +517,7 @@ export default function RansomwareIncidentResponse() {
                         {Array(16).fill(0).map((_, i) => (
                             <div 
                                 key={i} 
-                                className={`h-12 rounded border flex flex-col items-center justify-center transition-all ${
+                                className={`h-16 rounded-lg border flex flex-col items-center justify-center transition-all ${
                                     i === 5 && !quarantined 
                                         ? scanProgress > 50 
                                             ? 'bg-rose-950/80 border-rose-500 text-rose-400 animate-pulse' 
@@ -556,10 +556,10 @@ export default function RansomwareIncidentResponse() {
                                 playPop();
                             }
                         }}
-                        className="w-40 p-3 bg-slate-800 hover:bg-slate-700 rounded-xl border-2 border-cyan-500/80 shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2 cursor-grab active:cursor-grabbing transition-transform hover:scale-105"
+                        className="w-48 p-4 bg-slate-800 hover:bg-slate-700 rounded-xl border-2 border-cyan-500/80 shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2 cursor-grab active:cursor-grabbing transition-transform hover:scale-105"
                     >
                         <Search size={18} className="text-cyan-400 animate-pulse" />
-                        <span className="font-mono text-[10px] font-black tracking-wider text-cyan-300 uppercase">Drag X-Ray</span>
+                        <span className="font-mono text-xs font-black tracking-wider text-cyan-300 uppercase">Drag X-Ray</span>
                     </motion.div>
 
                     {/* Draggable Quarantine Cage */}
@@ -577,14 +577,14 @@ export default function RansomwareIncidentResponse() {
                                 playError();
                             }
                         }}
-                        className={`w-40 p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
+                        className={`w-48 p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
                             scanProgress > 50 && !quarantined 
                                 ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.6)] cursor-grab active:cursor-grabbing animate-bounce' 
                                 : 'bg-slate-800 text-slate-500 border-slate-700 opacity-60 cursor-not-allowed'
                         }`}
                     >
                         <ShieldAlert size={18} />
-                        <span className="font-mono text-[10px] font-black tracking-wider uppercase">Quarantine Cage</span>
+                        <span className="font-mono text-xs font-black tracking-wider uppercase">Quarantine Cage</span>
                     </motion.div>
                 </div>
             </div>
@@ -607,7 +607,7 @@ export default function RansomwareIncidentResponse() {
                                 setIsWiped(true);
                             }}
                             disabled={isWiped}
-                            className={`w-full py-3.5 px-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-lg ${
+                            className={`w-full py-3.5 px-4 rounded-xl font-black text-base py-4 uppercase tracking-wider transition-all shadow-lg ${
                                 isWiped 
                                     ? 'bg-slate-700 text-slate-500 border border-slate-600 cursor-not-allowed' 
                                     : 'bg-rose-600 hover:bg-rose-500 text-white border-2 border-rose-700 shadow-rose-600/40 cursor-pointer active:scale-95 animate-pulse'
@@ -631,7 +631,7 @@ export default function RansomwareIncidentResponse() {
                                 setTimeout(() => setPhase('M4_SUCCESS'), 1200);
                             }
                         }}
-                        className={`w-36 py-3 px-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
+                        className={`w-44 py-4 px-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${
                             isWiped && !isCloning
                                 ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.8)] cursor-grab active:cursor-grabbing animate-pulse'
                                 : isCloning
@@ -640,7 +640,7 @@ export default function RansomwareIncidentResponse() {
                         }`}
                     >
                         <Database size={16} />
-                        <span className="font-mono text-[9px] font-black uppercase tracking-wider">
+                        <span className="font-mono text-[11px] font-black uppercase tracking-wider">
                             {isCloning ? "Restoring..." : "Clone Cable"}
                         </span>
                     </motion.div>
@@ -651,8 +651,8 @@ export default function RansomwareIncidentResponse() {
                     <div className="grid grid-cols-2 gap-2 w-full h-full">
                         {backupFiles.map((f: any) => (
                             <div key={f.id} className="flex flex-col items-center justify-center p-2 rounded border-2 bg-slate-900/80 border-slate-700 text-slate-400">
-                                <Archive size={22} className="mb-1 text-emerald-400" />
-                                <span className="text-[9px] font-mono font-bold text-center break-all leading-tight">{f.name}</span>
+                                <Archive size={28} className="mb-1.5 text-emerald-400" />
+                                <span className="text-xs font-mono font-bold text-center break-all leading-snug">{f.name}</span>
                             </div>
                         ))}
                     </div>
@@ -664,15 +664,15 @@ export default function RansomwareIncidentResponse() {
     // M5 FORENSICS WORKSPACE
     const renderM5Workspace = () => (
         <div className="w-full h-full flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-slate-900/95 p-6 rounded-2xl border-2 border-slate-700 shadow-2xl flex flex-col gap-4">
+            <div className="w-full max-w-3xl bg-slate-900/95 p-7 rounded-2xl border-2 border-slate-700 shadow-2xl flex flex-col gap-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                    <div className="flex items-center gap-2 text-fuchsia-400 font-mono text-xs font-black uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-fuchsia-400 font-mono text-sm font-black uppercase tracking-widest">
                         <Search size={16}/> SIEM Forensics Console — Patient Zero Investigation
                     </div>
                     <span className="text-[10px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded">auth.log</span>
                 </div>
 
-                <div className="flex flex-col gap-2 font-mono text-xs">
+                <div className="flex flex-col gap-2.5 font-mono text-sm">
                     {[
                         { time: '10:14:02', user: 'system', event: 'Cron daily task backup initiated', threat: false },
                         { time: '10:15:22', user: 'j.smith', event: 'Opened email attachment: invoice.pdf.exe', threat: true },
@@ -718,7 +718,7 @@ export default function RansomwareIncidentResponse() {
         <div className="w-full h-full flex flex-col items-center justify-center p-4">
             <div className="flex flex-col md:flex-row items-center justify-center gap-8 w-full max-w-2xl">
                 {/* Employee ID Badge */}
-                <div className="w-56 bg-white rounded-2xl shadow-2xl p-5 flex flex-col items-center border-2 border-slate-300 relative">
+                <div className="w-64 bg-white rounded-2xl shadow-2xl p-6 flex flex-col items-center border-2 border-slate-300 relative">
                     <div className="w-10 h-2 bg-slate-300 rounded-full mb-3"></div>
                     <div className="w-16 h-16 rounded-full bg-slate-200 border-2 border-slate-300 flex items-center justify-center mb-3 text-slate-400">
                         <User size={32} />
@@ -736,7 +736,7 @@ export default function RansomwareIncidentResponse() {
                 </div>
 
                 {/* Anti-Static Chip Tray */}
-                <div className="w-56 bg-slate-900 p-5 rounded-2xl border-2 border-slate-700 shadow-2xl flex flex-col items-center gap-3">
+                <div className="w-64 bg-slate-900 p-6 rounded-2xl border-2 border-slate-700 shadow-2xl flex flex-col items-center gap-3">
                     <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-widest">ANTI-STATIC TRAY</span>
 
                     {/* Standard User Chip */}
@@ -752,7 +752,7 @@ export default function RansomwareIncidentResponse() {
                                 reportComplete();
                             }
                         }}
-                        className={`w-28 py-3 rounded-xl border-2 flex flex-col items-center justify-center shadow-lg transition-all ${
+                        className={`w-32 py-4 rounded-xl border-2 flex flex-col items-center justify-center shadow-lg transition-all ${
                             chipSwapped 
                                 ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 cursor-default' 
                                 : 'bg-slate-800 hover:bg-slate-700 border-cyan-400 text-cyan-300 cursor-grab active:cursor-grabbing animate-bounce'
@@ -781,22 +781,22 @@ export default function RansomwareIncidentResponse() {
             <div className="flex-1 w-full h-full flex flex-col min-h-0 bg-slate-950 relative overflow-hidden" ref={constraintsRef}>
                 
                 {/* ─── TOP MISSION HUD (SLEEK, UNIFIED ~60PX BAR) ─── */}
-                <div className="w-full shrink-0 bg-slate-900/95 border-b-2 border-slate-800 px-4 md:px-6 py-2.5 flex items-center justify-between shadow-lg z-30">
+                <div className="w-full shrink-0 bg-slate-900/95 border-b-2 border-slate-800 px-4 md:px-6 py-3 px-6 flex items-center justify-between shadow-lg z-30">
                     {/* Left: Phase Title & Status Tag */}
                     <div className="flex items-center gap-3 shrink-0">
                         <div className="flex flex-col">
-                            <span className="text-slate-400 font-mono text-[10px] uppercase tracking-wider font-bold">
+                            <span className="text-slate-400 font-mono text-xs uppercase tracking-wider font-black">
                                 {missionInfo.title}
                             </span>
                         </div>
-                        <span className={`text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded ${missionInfo.statusColor}`}>
+                        <span className={`text-[11px] font-mono font-black uppercase px-3 py-1 rounded shadow-sm ${missionInfo.statusColor}`}>
                             {missionInfo.status}
                         </span>
                     </div>
 
                     {/* Center: Tactical Instruction Headline */}
                     <div className="hidden md:flex flex-1 items-center justify-center px-4">
-                        <p className={`font-mono text-xs font-bold text-center ${missionInfo.textColor} drop-shadow-sm line-clamp-1`}>
+                        <p className={`font-mono text-sm font-bold text-center ${missionInfo.textColor} drop-shadow-sm line-clamp-1`}>
                             {missionInfo.instruction}
                         </p>
                     </div>
@@ -822,7 +822,7 @@ export default function RansomwareIncidentResponse() {
                                     if(phase === 'M4_SUCCESS') setPhase('M5_FORENSICS');
                                     if(phase === 'M5_SUCCESS') setPhase('M6_HARDENING');
                                 }}
-                                className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg font-mono font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+                                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl font-mono font-black text-sm uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-1.5"
                             >
                                 Next Phase <ArrowRight size={13} />
                             </button>
