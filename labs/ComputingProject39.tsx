@@ -16,6 +16,12 @@ type Step = 'LEARN' | 'FAIL_SCOPE' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
 type ProjectId = 'python' | 'security' | 'database' | 'essay' | 'web';
 type Phase = 'planning' | 'building' | 'testing';
 
+interface PhaseDetail {
+  label: string;
+  task: string;
+  reqTag: string;
+}
+
 interface Project {
   id: ProjectId;
   title: string;
@@ -27,11 +33,13 @@ interface Project {
   deliverables: string[];
   anecdote: string;
   recommendedHint: string;
+  phases: Record<Phase, PhaseDetail>;
   validate: (alloc: Record<Phase, number>) => { valid: boolean; reason?: string };
 }
 
 const TOTAL_BUDGET = 40;
 const STEP_SIZE = 5;
+const PHASE_KEYS: Phase[] = ['planning', 'building', 'testing'];
 
 const PROJECTS: Project[] = [
   {
@@ -44,30 +52,47 @@ const PROJECTS: Project[] = [
     desc: 'Collect ≥20 records, compute mean/median/mode, display matplotlib chart.',
     deliverables: ['Real dataset (≥20 records)', 'Compute mean, median, mode', 'Matplotlib visualization'],
     anecdote: "Adhiyan spent 3 weeks over-analyzing endless datasets, panicked, and deleted everything! Don't over-plan.",
-    recommendedHint: "Keep Planning at 5–10h. Focus heavy hours (≥20h) on Building & writing Python code.",
+    recommendedHint: "Keep Dataset Collection at 5–10h. Focus heavy hours (≥20h) on Python Coding.",
+    phases: {
+      planning: {
+        label: 'Dataset Collection & Cleaning',
+        task: 'Locate ≥20 records, clean missing values, verify CSV format',
+        reqTag: '5–10h max'
+      },
+      building: {
+        label: 'Python Scripts & Matplotlib',
+        task: 'Write Python functions for mean, median, mode and plot charts',
+        reqTag: 'Req: ≥20h'
+      },
+      testing: {
+        label: 'Statistical Math Validation',
+        task: 'Hand-verify calculations against raw data records',
+        reqTag: 'Req: ≥5h'
+      }
+    },
     validate: (alloc) => {
       if (alloc.planning < 5) {
         return {
           valid: false,
-          reason: `Scope Rejected! Research & Planning has only ${alloc.planning}h. You need at least 5h to locate and inspect your dataset records before writing scripts!`
+          reason: `Scope Rejected! Dataset Collection & Cleaning has only ${alloc.planning}h. You need at least 5h to locate and inspect your dataset records before writing scripts!`
         };
       }
       if (alloc.planning > 10) {
         return {
           valid: false,
-          reason: `Scope Rejected! You allocated ${alloc.planning}h to Planning. Like Adhiyan, you're spending too much time over-analyzing! Cap Planning at 5–10h and spend more time building.`
+          reason: `Scope Rejected! You allocated ${alloc.planning}h to Dataset Collection. Like Adhiyan, you're spending too much time over-analyzing! Cap at 5–10h and spend more time building.`
         };
       }
       if (alloc.building < 20) {
         return {
           valid: false,
-          reason: `Scope Rejected! Building & Coding has only ${alloc.building}h. Cleaning data and coding matplotlib visualizations requires at least 20h.`
+          reason: `Scope Rejected! Python Scripts & Matplotlib has only ${alloc.building}h. Cleaning data and coding visualizations requires at least 20h.`
         };
       }
       if (alloc.testing < 5) {
         return {
           valid: false,
-          reason: `Scope Rejected! Testing & Review has only ${alloc.testing}h. You need at least 5h to verify mean, median, and mode calculations against raw data.`
+          reason: `Scope Rejected! Statistical Math Validation has only ${alloc.testing}h. You need at least 5h to verify calculations against raw records.`
         };
       }
       return { valid: true };
@@ -83,24 +108,41 @@ const PROJECTS: Project[] = [
     desc: 'Research a historical cyber breach (e.g. WannaCry), analyze flaws & countermeasures.',
     deliverables: ['Real breach research (WannaCry)', 'Vulnerabilities & damage map', 'Countermeasures with citations'],
     anecdote: "Riya wrote a 10-page report on a fictional Hollywood movie hack with zero real sources and got zero marks.",
-    recommendedHint: "Allocate at least 15h to Research & Planning so every technical claim cites real incident reports.",
+    recommendedHint: "Allocate at least 15h to Real Breach Research so every technical claim cites official incident reports.",
+    phases: {
+      planning: {
+        label: 'Real Breach Research & Sources',
+        task: 'Investigate WannaCry or AIIMS incident reports, gather verified sources',
+        reqTag: 'Req: ≥15h'
+      },
+      building: {
+        label: 'Attack Breakdown & Case Drafting',
+        task: 'Document attack vectors, system vulnerabilities, and impact',
+        reqTag: 'Req: ≥10h'
+      },
+      testing: {
+        label: 'Countermeasures & Citation Audit',
+        task: 'Fact-check technical claims and verify all reference links',
+        reqTag: 'Req: ≥10h'
+      }
+    },
     validate: (alloc) => {
       if (alloc.planning < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Research & Planning has only ${alloc.planning}h. Riya failed because she didn't research a real historical breach! Case studies require at least 15h of verified incident research.`
+          reason: `Scope Rejected! Real Breach Research has only ${alloc.planning}h. Riya failed because she didn't research a real historical breach! Case studies require at least 15h of verified incident research.`
         };
       }
       if (alloc.building < 10) {
         return {
           valid: false,
-          reason: `Scope Rejected! Building & Drafting has only ${alloc.building}h. Writing the attack breakdown, vulnerabilities, and defenses requires at least 10h.`
+          reason: `Scope Rejected! Attack Breakdown & Case Drafting has only ${alloc.building}h. Documenting vulnerabilities and impact requires at least 10h.`
         };
       }
       if (alloc.testing < 10) {
         return {
           valid: false,
-          reason: `Scope Rejected! Review & Fact-Checking has only ${alloc.testing}h. You need at least 10h to audit every citation and source link.`
+          reason: `Scope Rejected! Countermeasures & Citation Audit has only ${alloc.testing}h. You need at least 10h to audit every citation and source link.`
         };
       }
       return { valid: true };
@@ -116,24 +158,41 @@ const PROJECTS: Project[] = [
     desc: 'Build a MySQL/Access DB (School/Hospital domain) with ≥4 tables & 10 queries.',
     deliverables: ['Normalized schema (≥4 tables)', '10 SQL queries + 2 reports', 'Data dictionary & ER diagram'],
     anecdote: "Kabir created 50 messy tables without schema planning, then spent 3 weeks stuck in broken foreign key loops.",
-    recommendedHint: "Allocate at least 15h to Planning to model your ER diagram and primary keys before touching SQL.",
+    recommendedHint: "Allocate at least 15h to ER Modeling & Schema Design to avoid Kabir's 50 tangled tables.",
+    phases: {
+      planning: {
+        label: 'ER Modeling & Schema Design',
+        task: 'Design 4–5 related tables, normalize, map primary and foreign keys',
+        reqTag: 'Req: ≥15h'
+      },
+      building: {
+        label: 'SQL Table & Query Creation',
+        task: 'Build ≥4 tables, insert test records, write 10 relational queries',
+        reqTag: 'Req: ≥15h'
+      },
+      testing: {
+        label: 'Query Testing & Report Validation',
+        task: 'Verify JOIN integrity, check NULL constraints, format 2 reports',
+        reqTag: 'Req: ≥5h'
+      }
+    },
     validate: (alloc) => {
       if (alloc.planning < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Only ${alloc.planning}h for Planning. Kabir built 50 broken tables by skipping schema design! Spend at least 15h planning tables, keys, and ER diagrams first.`
+          reason: `Scope Rejected! Only ${alloc.planning}h for ER Modeling & Schema Design. Kabir built 50 broken tables by skipping schema design! Spend at least 15h planning tables, keys, and ER diagrams first.`
         };
       }
       if (alloc.building < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Building & SQL has only ${alloc.building}h. Constructing tables and writing 10 meaningful relational queries requires at least 15h.`
+          reason: `Scope Rejected! SQL Table & Query Creation has only ${alloc.building}h. Constructing tables and writing 10 meaningful relational queries requires at least 15h.`
         };
       }
       if (alloc.testing < 5) {
         return {
           valid: false,
-          reason: `Scope Rejected! Query Testing has only ${alloc.testing}h. You need at least 5h to test queries and verify data integrity.`
+          reason: `Scope Rejected! Query Testing & Report Validation has only ${alloc.testing}h. You need at least 5h to test queries and verify data integrity.`
         };
       }
       return { valid: true };
@@ -149,24 +208,41 @@ const PROJECTS: Project[] = [
     desc: 'Write a 600-800 word paper on deepfakes/AI bias with cited counter-arguments.',
     deliverables: ['600-800 word focused paper', 'Structured introduction & conclusion', 'Well-cited counter-argument'],
     anecdote: "Sara wrote 2000 rambling words about algorithms without a single cited statistic or verified counter-argument.",
-    recommendedHint: "Give at least 15h to Research & Fact-finding, and reserve time in Review to enforce the 800-word limit.",
+    recommendedHint: "Give at least 15h to Fact-Finding & Evidence, and reserve ≥10h to enforce the 800-word limit.",
+    phases: {
+      planning: {
+        label: 'Fact-Finding & Evidence Gathering',
+        task: 'Research AI bias/deepfakes, gather verified statistics and counter-arguments',
+        reqTag: 'Req: ≥15h'
+      },
+      building: {
+        label: 'Structured Paper Drafting',
+        task: 'Draft introduction, central claims, and balanced counter-arguments',
+        reqTag: 'Req: ≥10h'
+      },
+      testing: {
+        label: 'Word Count Trimming & Citation Polish',
+        task: 'Enforce strictly 600–800 words and format academic source citations',
+        reqTag: 'Req: ≥10h'
+      }
+    },
     validate: (alloc) => {
       if (alloc.planning < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Only ${alloc.planning}h in Research. Sara wrote 2000 unverified words! Allocate at least 15h to gather verified facts and citations.`
+          reason: `Scope Rejected! Only ${alloc.planning}h in Fact-Finding & Evidence Gathering. Sara wrote 2000 unverified words! Allocate at least 15h to gather verified facts and citations.`
         };
       }
       if (alloc.building < 10) {
         return {
           valid: false,
-          reason: `Scope Rejected! Drafting has only ${alloc.building}h. Constructing a cohesive argument and balanced counter-argument needs at least 10h.`
+          reason: `Scope Rejected! Structured Paper Drafting has only ${alloc.building}h. Constructing a cohesive argument and balanced counter-argument needs at least 10h.`
         };
       }
       if (alloc.testing < 10) {
         return {
           valid: false,
-          reason: `Scope Rejected! Review & Polish has only ${alloc.testing}h. You need at least 10h to trim the word count strictly to 600-800 words and proofread citations.`
+          reason: `Scope Rejected! Word Count Trimming & Citation Polish has only ${alloc.testing}h. You need at least 10h to trim the word count strictly to 600-800 words and proofread citations.`
         };
       }
       return { valid: true };
@@ -182,49 +258,45 @@ const PROJECTS: Project[] = [
     desc: 'Build a 2-3 page interactive HTML/CSS/JS app that adapts seamlessly to desktop & mobile.',
     deliverables: ['2-3 page semantic HTML/CSS/JS', 'Interactive quiz or calculator', 'Flawless mobile & desktop layout'],
     anecdote: "Sirpi spent 4 weeks building a stunning game site that only worked on his specific phone screen and failed testing.",
-    recommendedHint: "Allocate at least 5h to Planning (wireframes/structure) and at least 15h to Testing across desktop and mobile screens.",
+    recommendedHint: "Allocate at least 5h to Wireframing & UI Structure and at least 15h to Cross-Device Responsive Testing.",
+    phases: {
+      planning: {
+        label: 'Wireframing & UI Architecture',
+        task: 'Design mobile and desktop layouts, site navigation, and user flow',
+        reqTag: 'Req: ≥5h'
+      },
+      building: {
+        label: 'HTML, CSS & JavaScript Coding',
+        task: 'Build semantic HTML pages, CSS grid/flexbox, and interactive JS logic',
+        reqTag: 'Req: ≥15h'
+      },
+      testing: {
+        label: 'Cross-Device Responsive Testing',
+        task: 'Test media queries across desktop monitors, tablets, and mobile screens',
+        reqTag: 'Req: ≥15h'
+      }
+    },
     validate: (alloc) => {
       if (alloc.planning < 5) {
         return {
           valid: false,
-          reason: `Scope Rejected! Research & Planning has only ${alloc.planning}h. You cannot start building without at least 5h planning wireframes, site structure, and user flow!`
+          reason: `Scope Rejected! Wireframing & UI Architecture has only ${alloc.planning}h. You cannot start building without at least 5h planning wireframes, site structure, and user flow!`
         };
       }
       if (alloc.building < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Building & Coding has only ${alloc.building}h. Developing semantic HTML/CSS and interactive JS requires at least 15h.`
+          reason: `Scope Rejected! HTML, CSS & JavaScript Coding has only ${alloc.building}h. Developing semantic HTML/CSS and interactive JS requires at least 15h.`
         };
       }
       if (alloc.testing < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Testing & Review has only ${alloc.testing}h. Sirpi's site broke on every device except his phone! Allocate at least 15h to multi-device testing.`
+          reason: `Scope Rejected! Cross-Device Responsive Testing has only ${alloc.testing}h. Sirpi's site broke on every device except his phone! Allocate at least 15h to multi-device testing.`
         };
       }
       return { valid: true };
     }
-  }
-];
-
-const PHASES: { key: Phase; label: string; desc: string; iconColor: string }[] = [
-  { 
-    key: 'planning', 
-    label: 'Research & Planning', 
-    desc: 'ER schemas, literature search, outline, data selection',
-    iconColor: 'bg-indigo-100 text-indigo-700'
-  },
-  { 
-    key: 'building', 
-    label: 'Building & Coding', 
-    desc: 'Writing Python scripts, SQL tables, HTML/CSS/JS, drafting text',
-    iconColor: 'bg-blue-100 text-blue-700'
-  },
-  { 
-    key: 'testing', 
-    label: 'Testing & Review', 
-    desc: 'Cross-device checks, bug fixes, citation auditing, word count trimming',
-    iconColor: 'bg-emerald-100 text-emerald-700'
   }
 ];
 
@@ -541,15 +613,21 @@ export default function ComputingProject39() {
 
                   {/* Stepper Rows */}
                   <div className="space-y-1.5 flex-1 flex flex-col justify-around py-0.5">
-                    {PHASES.map(ph => {
-                      const val = allocations[ph.key];
+                    {PHASE_KEYS.map(key => {
+                      const ph = selected.phases[key];
+                      const val = allocations[key];
                       const pct = Math.round((val / TOTAL_BUDGET) * 100);
                       return (
-                        <div key={ph.key} className="bg-slate-50 rounded-lg px-2.5 py-1 border border-slate-200 flex items-center justify-between gap-2.5">
+                        <div key={key} className="bg-slate-50 rounded-lg px-2.5 py-1 border border-slate-200 flex items-center justify-between gap-2.5">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between text-xs mb-0.5">
-                              <span className="font-bold text-slate-800 text-[11px] truncate">{ph.label}</span>
-                              <span className="font-mono font-bold text-[10px] text-slate-600 shrink-0">{val}h ({pct}%)</span>
+                              <div className="flex items-center gap-1.5 min-w-0 truncate">
+                                <span className="font-bold text-slate-800 text-[11px] truncate">{ph.label}</span>
+                                <span className="text-[9px] font-bold uppercase bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded shrink-0">
+                                  {ph.reqTag}
+                                </span>
+                              </div>
+                              <span className="font-mono font-bold text-[10px] text-slate-600 shrink-0 ml-1">{val}h ({pct}%)</span>
                             </div>
                             
                             {/* Visual Mini Progress Bar */}
@@ -564,7 +642,7 @@ export default function ComputingProject39() {
                           {/* Stepper Controls (+/- 5h) */}
                           <div className="flex items-center gap-1 shrink-0">
                             <button
-                              onClick={() => adjustHours(ph.key, -STEP_SIZE)}
+                              onClick={() => adjustHours(key, -STEP_SIZE)}
                               disabled={val <= 0}
                               className="w-7 h-7 rounded-md bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs active:scale-95 transition-transform"
                               title={`Subtract ${STEP_SIZE} hours`}
@@ -577,7 +655,7 @@ export default function ComputingProject39() {
                             </div>
 
                             <button
-                              onClick={() => adjustHours(ph.key, STEP_SIZE)}
+                              onClick={() => adjustHours(key, STEP_SIZE)}
                               disabled={remainingHours <= 0}
                               className="w-7 h-7 rounded-md bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs active:scale-95 transition-transform"
                               title={`Add ${STEP_SIZE} hours`}
