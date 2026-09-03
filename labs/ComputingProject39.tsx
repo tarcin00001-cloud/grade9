@@ -44,18 +44,30 @@ const PROJECTS: Project[] = [
     desc: 'Collect ≥20 records, compute mean/median/mode, display matplotlib chart.',
     deliverables: ['Real dataset (≥20 records)', 'Compute mean, median, mode', 'Matplotlib visualization'],
     anecdote: "Adhiyan spent 3 weeks over-analyzing endless datasets, panicked, and deleted everything! Don't over-plan.",
-    recommendedHint: "Cap Planning under 15h. Focus the majority of hours on Building & writing Python code.",
+    recommendedHint: "Keep Planning at 5–10h. Focus heavy hours (≥20h) on Building & writing Python code.",
     validate: (alloc) => {
-      if (alloc.planning >= 15) {
+      if (alloc.planning < 5) {
         return {
           valid: false,
-          reason: `Scope Rejected! You allocated ${alloc.planning}h to Planning. Like Adhiyan, you're at risk of over-analyzing! Cap Planning below 15h and dedicate more time to Building.`
+          reason: `Scope Rejected! Research & Planning has only ${alloc.planning}h. You need at least 5h to locate and inspect your dataset records before writing scripts!`
         };
       }
-      if (alloc.building < 15) {
+      if (alloc.planning > 10) {
         return {
           valid: false,
-          reason: `Scope Rejected! You only gave ${alloc.building}h to Building. Python data cleaning and charting requires at least 15h.`
+          reason: `Scope Rejected! You allocated ${alloc.planning}h to Planning. Like Adhiyan, you're spending too much time over-analyzing! Cap Planning at 5–10h and spend more time building.`
+        };
+      }
+      if (alloc.building < 20) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Building & Coding has only ${alloc.building}h. Cleaning data and coding matplotlib visualizations requires at least 20h.`
+        };
+      }
+      if (alloc.testing < 5) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Testing & Review has only ${alloc.testing}h. You need at least 5h to verify mean, median, and mode calculations against raw data.`
         };
       }
       return { valid: true };
@@ -76,13 +88,19 @@ const PROJECTS: Project[] = [
       if (alloc.planning < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Research & Planning has only ${alloc.planning}h. Riya failed because she didn't research a real historical breach! Give at least 15h to Research.`
+          reason: `Scope Rejected! Research & Planning has only ${alloc.planning}h. Riya failed because she didn't research a real historical breach! Case studies require at least 15h of verified incident research.`
+        };
+      }
+      if (alloc.building < 10) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Building & Drafting has only ${alloc.building}h. Writing the attack breakdown, vulnerabilities, and defenses requires at least 10h.`
         };
       }
       if (alloc.testing < 10) {
         return {
           valid: false,
-          reason: `Scope Rejected! Testing & Review has only ${alloc.testing}h. Case studies need at least 10h to fact-check sources and peer review citations.`
+          reason: `Scope Rejected! Review & Fact-Checking has only ${alloc.testing}h. You need at least 10h to audit every citation and source link.`
         };
       }
       return { valid: true };
@@ -103,13 +121,19 @@ const PROJECTS: Project[] = [
       if (alloc.planning < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Only ${alloc.planning}h for Planning. Kabir built 50 broken tables by skipping ER planning! Spend at least 15h designing your schema first.`
+          reason: `Scope Rejected! Only ${alloc.planning}h for Planning. Kabir built 50 broken tables by skipping schema design! Spend at least 15h planning tables, keys, and ER diagrams first.`
         };
       }
       if (alloc.building < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! You need at least 15h in Building to construct tables and craft 10 meaningful relational queries.`
+          reason: `Scope Rejected! Building & SQL has only ${alloc.building}h. Constructing tables and writing 10 meaningful relational queries requires at least 15h.`
+        };
+      }
+      if (alloc.testing < 5) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Query Testing has only ${alloc.testing}h. You need at least 5h to test queries and verify data integrity.`
         };
       }
       return { valid: true };
@@ -133,10 +157,16 @@ const PROJECTS: Project[] = [
           reason: `Scope Rejected! Only ${alloc.planning}h in Research. Sara wrote 2000 unverified words! Allocate at least 15h to gather verified facts and citations.`
         };
       }
+      if (alloc.building < 10) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Drafting has only ${alloc.building}h. Constructing a cohesive argument and balanced counter-argument needs at least 10h.`
+        };
+      }
       if (alloc.testing < 10) {
         return {
           valid: false,
-          reason: `Scope Rejected! Review & Polish has only ${alloc.testing}h. You need at least 10h to trim the word count strictly to 600-800 words.`
+          reason: `Scope Rejected! Review & Polish has only ${alloc.testing}h. You need at least 10h to trim the word count strictly to 600-800 words and proofread citations.`
         };
       }
       return { valid: true };
@@ -152,18 +182,24 @@ const PROJECTS: Project[] = [
     desc: 'Build a 2-3 page interactive HTML/CSS/JS app that adapts seamlessly to desktop & mobile.',
     deliverables: ['2-3 page semantic HTML/CSS/JS', 'Interactive quiz or calculator', 'Flawless mobile & desktop layout'],
     anecdote: "Sirpi spent 4 weeks building a stunning game site that only worked on his specific phone screen and failed testing.",
-    recommendedHint: "Allocate at least 15h to Testing & Review to verify media queries across multiple screen viewports.",
+    recommendedHint: "Allocate at least 5h to Planning (wireframes/structure) and at least 15h to Testing across desktop and mobile screens.",
     validate: (alloc) => {
-      if (alloc.testing < 15) {
+      if (alloc.planning < 5) {
         return {
           valid: false,
-          reason: `Scope Rejected! Testing & Review has only ${alloc.testing}h. Sirpi's site broke on every device except his phone! Allocate at least 15h to multi-device testing.`
+          reason: `Scope Rejected! Research & Planning has only ${alloc.planning}h. You cannot start building without at least 5h planning wireframes, site structure, and user flow!`
         };
       }
       if (alloc.building < 15) {
         return {
           valid: false,
-          reason: `Scope Rejected! Building & Coding has only ${alloc.building}h. Developing interactive JS elements needs at least 15h.`
+          reason: `Scope Rejected! Building & Coding has only ${alloc.building}h. Developing semantic HTML/CSS and interactive JS requires at least 15h.`
+        };
+      }
+      if (alloc.testing < 15) {
+        return {
+          valid: false,
+          reason: `Scope Rejected! Testing & Review has only ${alloc.testing}h. Sirpi's site broke on every device except his phone! Allocate at least 15h to multi-device testing.`
         };
       }
       return { valid: true };
