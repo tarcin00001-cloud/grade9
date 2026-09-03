@@ -27,6 +27,7 @@ coverage/
 *.tsbuildinfo
 artifacts/
 scratch/
+Computing Level-09-Quantum Leaps in Tech.pdf
 
 # OS files
 .DS_Store
