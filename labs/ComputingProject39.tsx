@@ -334,172 +334,159 @@ export default function ComputingProject39() {
           </div>
 
           {/* RIGHT: Inspector Pad & Scope Balancer */}
-          <div className="w-full md:w-[62%] lg:w-[66%] bg-[#e2e6ea] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.12)] border-t border-l border-white border-b-[5px] border-r-[3px] border-slate-300 p-3 md:p-4 flex flex-col min-h-0 relative">
+          <div className="w-full md:w-[62%] lg:w-[66%] bg-[#e2e6ea] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.12)] border-t border-l border-white border-b-[5px] border-r-[3px] border-slate-300 p-2.5 md:p-3 flex flex-col min-h-0 relative">
             
             {!selected ? (
               <div className="flex-1 flex flex-col items-center justify-center text-slate-500 drop-shadow-xs">
-                <Folder size={56} className="mb-3 opacity-60" />
-                <h2 className="text-lg font-black uppercase tracking-widest text-slate-700">Select a Dossier</h2>
-                <p className="text-xs font-medium text-slate-500">Pick a project from the left dispatch tray to begin.</p>
+                <Folder size={52} className="mb-2.5 opacity-60" />
+                <h2 className="text-base md:text-lg font-black uppercase tracking-widest text-slate-700">Select a Project Plan</h2>
+                <p className="text-xs font-medium text-slate-500">Pick a project option on the left to begin.</p>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 flex flex-col justify-between min-h-0 gap-1.5">
                 
-                {/* Dossier Header */}
-                <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-300 shrink-0">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`p-2 rounded-xl bg-white shadow-xs ${selected.color}`}>
-                      {React.createElement(selected.icon, { size: 24 })}
+                {/* Project Header */}
+                <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-300 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded-lg bg-white shadow-xs ${selected.color}`}>
+                      {React.createElement(selected.icon, { size: 22 })}
                     </div>
                     <div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-none">Project Dossier</div>
-                      <h2 className="text-lg md:text-xl font-black uppercase text-slate-800 leading-tight">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-none">Project Brief</div>
+                      <h2 className="text-base md:text-lg font-black uppercase text-slate-800 leading-tight">
                         {selected.title}
                       </h2>
                     </div>
                   </div>
 
                   {/* Budget Pill */}
-                  <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-slate-300 shadow-xs shrink-0">
-                    <Clock size={14} className="text-slate-500" />
-                    <span className="text-xs font-bold text-slate-700">
+                  <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full border border-slate-300 shadow-xs shrink-0">
+                    <Clock size={13} className="text-slate-500" />
+                    <span className="text-[11px] font-bold text-slate-700">
                       Budget: <strong className={remainingHours === 0 ? "text-emerald-600" : "text-amber-600"}>{totalAllocated}</strong>/40h
                     </span>
                   </div>
                 </div>
 
-                {/* Main Scrollable Content */}
-                <div className="flex-1 overflow-y-auto py-2 pr-1 space-y-2.5 min-h-0">
-                  
-                  {/* Failure Mode Warning & Anecdote */}
-                  <div className="bg-amber-50 border border-amber-300/80 rounded-xl p-2.5 relative overflow-hidden shadow-xs">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500" />
-                    <div className="flex items-start gap-2.5">
-                      <AlertOctagon className="text-amber-600 shrink-0 mt-0.5" size={18} />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-800">Common Failure Mode</h4>
-                          <span className="text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.2 rounded font-semibold">Avoid this trap!</span>
+                {/* Status / Alert Banner: Morphs between Failure Trap and Scope Rejection to preserve constant height */}
+                <div className="shrink-0">
+                  {step === 'FAIL_SCOPE' && rejectionReason ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-rose-50 border border-rose-300 rounded-lg px-2.5 py-1.5 shadow-xs flex items-center gap-2"
+                    >
+                      <ShieldAlert className="text-rose-600 shrink-0" size={16} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 bg-rose-200/80 px-1.5 py-0.2 rounded">Scope Rejected</span>
+                          <span className="text-[10px] text-rose-600 font-semibold truncate">Adjust +/- hours below to fix</span>
                         </div>
-                        <p className="text-xs font-medium text-amber-950 mt-0.5 leading-snug">{selected.anecdote}</p>
+                        <p className="text-[11px] font-semibold text-rose-950 leading-tight mt-0.5">{rejectionReason}</p>
                       </div>
+                    </motion.div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 shadow-xs flex items-center gap-2">
+                      <AlertOctagon className="text-amber-600 shrink-0" size={16} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded">Common Trap</span>
+                          <span className="text-[10px] text-amber-700 font-semibold">Avoid this failure mode</span>
+                        </div>
+                        <p className="text-[11px] font-medium text-amber-950 leading-tight mt-0.5">{selected.anecdote}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Scope Balancer Controls */}
+                <div className="bg-white rounded-xl p-2.5 border border-slate-300/80 shadow-xs flex-1 flex flex-col justify-between min-h-0">
+                  <div className="flex items-center justify-between mb-1 shrink-0">
+                    <div>
+                      <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700">Scope Balancer (40 Hours Total)</h4>
+                      <p className="text-[10px] text-slate-500">Distribute hours between phases to protect your project.</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                        remainingHours === 0 ? "bg-emerald-100 text-emerald-800" :
+                        remainingHours > 0 ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800"
+                      }`}>
+                        {remainingHours === 0 ? "Balanced (40h)" : `${Math.abs(remainingHours)}h ${remainingHours > 0 ? 'Remaining' : 'Over'}`}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Scope Balancer Controls */}
-                  <div className="bg-white rounded-xl p-3 border border-slate-300/80 shadow-xs">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700">Scope Balancer (40 Hours Total)</h4>
-                        <p className="text-[11px] text-slate-500">Distribute your hours to defend against the failure mode.</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-xs font-black uppercase px-2 py-0.5 rounded ${
-                          remainingHours === 0 ? "bg-emerald-100 text-emerald-800" :
-                          remainingHours > 0 ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800"
-                        }`}>
-                          {remainingHours === 0 ? "Balanced (40h)" : `${Math.abs(remainingHours)}h ${remainingHours > 0 ? 'Remaining' : 'Over'}`}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Stepper Rows */}
-                    <div className="space-y-2">
-                      {PHASES.map(ph => {
-                        const val = allocations[ph.key];
-                        const pct = Math.round((val / TOTAL_BUDGET) * 100);
-                        return (
-                          <div key={ph.key} className="bg-slate-50 rounded-lg p-2 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-xs text-slate-800">{ph.label}</span>
-                                <span className="text-[11px] font-mono font-bold text-slate-500">{val}h ({pct}%)</span>
-                              </div>
-                              <p className="text-[10px] text-slate-500 truncate">{ph.desc}</p>
-                              
-                              {/* Visual Mini Progress Bar */}
-                              <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                                <div 
-                                  className="h-full bg-sky-600 transition-all duration-200 rounded-full"
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
+                  {/* Stepper Rows */}
+                  <div className="space-y-1.5 flex-1 flex flex-col justify-around py-0.5">
+                    {PHASES.map(ph => {
+                      const val = allocations[ph.key];
+                      const pct = Math.round((val / TOTAL_BUDGET) * 100);
+                      return (
+                        <div key={ph.key} className="bg-slate-50 rounded-lg px-2.5 py-1 border border-slate-200 flex items-center justify-between gap-2.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between text-xs mb-0.5">
+                              <span className="font-bold text-slate-800 text-[11px] truncate">{ph.label}</span>
+                              <span className="font-mono font-bold text-[10px] text-slate-600 shrink-0">{val}h ({pct}%)</span>
                             </div>
-
-                            {/* Stepper Controls (+/- 5h) */}
-                            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                              <button
-                                onClick={() => adjustHours(ph.key, -STEP_SIZE)}
-                                disabled={val <= 0}
-                                className="w-8 h-8 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs active:scale-95 transition-transform"
-                                title={`Subtract ${STEP_SIZE} hours`}
-                              >
-                                <Minus size={14} />
-                              </button>
-                              
-                              <div className="w-10 text-center font-mono font-black text-sm text-slate-800">
-                                {val}h
-                              </div>
-
-                              <button
-                                onClick={() => adjustHours(ph.key, STEP_SIZE)}
-                                disabled={remainingHours <= 0}
-                                className="w-8 h-8 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs active:scale-95 transition-transform"
-                                title={`Add ${STEP_SIZE} hours`}
-                              >
-                                <Plus size={14} />
-                              </button>
+                            
+                            {/* Visual Mini Progress Bar */}
+                            <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-sky-600 transition-all duration-200 rounded-full"
+                                style={{ width: `${pct}%` }}
+                              />
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
 
-                  {/* Rejection Alert Banner (Fail Safely State) */}
-                  <AnimatePresence>
-                    {step === 'FAIL_SCOPE' && rejectionReason && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        className="bg-rose-50 border-2 border-rose-400 rounded-xl p-3 shadow-sm"
-                      >
-                        <div className="flex items-start gap-2">
-                          <ShieldAlert className="text-rose-600 shrink-0 mt-0.5" size={18} />
-                          <div>
-                            <h4 className="text-xs font-black uppercase tracking-wider text-rose-800">Rejection Rationale:</h4>
-                            <p className="text-xs font-semibold text-rose-950 mt-0.5">{rejectionReason}</p>
-                            <p className="text-[11px] font-medium text-rose-700 mt-1">
-                              👉 <em>Fix:</em> Use the +/- buttons above to rebalance your hours, then re-authorize.
-                            </p>
+                          {/* Stepper Controls (+/- 5h) */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => adjustHours(ph.key, -STEP_SIZE)}
+                              disabled={val <= 0}
+                              className="w-7 h-7 rounded-md bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs active:scale-95 transition-transform"
+                              title={`Subtract ${STEP_SIZE} hours`}
+                            >
+                              <Minus size={12} />
+                            </button>
+                            
+                            <div className="w-8 text-center font-mono font-black text-xs text-slate-800">
+                              {val}h
+                            </div>
+
+                            <button
+                              onClick={() => adjustHours(ph.key, STEP_SIZE)}
+                              disabled={remainingHours <= 0}
+                              className="w-7 h-7 rounded-md bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed shadow-xs active:scale-95 transition-transform"
+                              title={`Add ${STEP_SIZE} hours`}
+                            >
+                              <Plus size={12} />
+                            </button>
                           </div>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Deliverables Checklist Chips */}
-                  <div className="bg-white/80 rounded-xl p-2.5 border border-slate-300/60">
-                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">Required Deliverables</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                      {selected.deliverables.map((del, i) => (
-                        <div key={i} className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded text-[11px] text-slate-700 font-medium border border-slate-200 truncate">
-                          <CheckCircle2 size={12} className="text-sky-600 shrink-0" />
-                          <span className="truncate">{del}</span>
-                        </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
+                </div>
 
+                {/* Deliverables Checklist Chips */}
+                <div className="bg-white/80 rounded-lg px-2.5 py-1.5 border border-slate-300/70 shrink-0">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1">Required Deliverables</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
+                    {selected.deliverables.map((del, i) => (
+                      <div key={i} className="flex items-center gap-1.5 bg-slate-100/90 px-1.5 py-0.5 rounded text-[10px] text-slate-700 font-medium border border-slate-200/80 truncate">
+                        <CheckCircle2 size={11} className="text-sky-600 shrink-0" />
+                        <span className="truncate">{del}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Footer Action */}
-                <div className="pt-2 mt-1 border-t border-slate-300/80 shrink-0 relative">
+                <div className="pt-1 shrink-0 relative">
                   <button
                     onClick={handleAuthorize}
                     disabled={totalAllocated !== TOTAL_BUDGET}
-                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm md:text-base uppercase tracking-wider transition-all ${
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider transition-all ${
                       step === 'OUTCOME'
                         ? 'bg-emerald-500 text-white shadow-inner'
                         : totalAllocated === TOTAL_BUDGET
@@ -509,19 +496,19 @@ export default function ComputingProject39() {
                   >
                     {step === 'OUTCOME' ? (
                       <>
-                        <ShieldCheck size={20} />
+                        <ShieldCheck size={18} />
                         Charter Authorized!
                       </>
                     ) : totalAllocated !== TOTAL_BUDGET ? (
                       <>
-                        <Clock size={18} />
+                        <Clock size={16} />
                         {remainingHours > 0 
                           ? `Allocate ${remainingHours}h More to Authorize` 
                           : `Remove ${Math.abs(remainingHours)}h to Reach 40h`}
                       </>
                     ) : (
                       <>
-                        <Signature size={20} />
+                        <Signature size={18} />
                         Authorize Project Charter
                       </>
                     )}
@@ -531,27 +518,27 @@ export default function ComputingProject39() {
                   <AnimatePresence>
                     {step === 'FAIL_SCOPE' && (
                       <motion.div
-                        initial={{ opacity: 0, scale: 2.5, rotate: -12 }}
+                        initial={{ opacity: 0, scale: 2.2, rotate: -12 }}
                         animate={{ opacity: 1, scale: 1, rotate: -12 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         transition={{ type: 'spring', damping: 14, stiffness: 220 }}
-                        className="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none z-30"
+                        className="absolute -top-10 left-1/2 -translate-x-1/2 pointer-events-none z-30"
                       >
-                        <div className="border-4 border-rose-600 text-rose-600 px-5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md shadow-2xl">
-                          <h2 className="text-2xl font-black uppercase tracking-widest">Scope Rejected</h2>
+                        <div className="border-4 border-rose-600 text-rose-600 px-4 py-1 rounded-xl bg-white/95 backdrop-blur-md shadow-2xl">
+                          <h2 className="text-xl font-black uppercase tracking-widest">Scope Rejected</h2>
                         </div>
                       </motion.div>
                     )}
                     
                     {step === 'OUTCOME' && (
                       <motion.div
-                        initial={{ opacity: 0, scale: 2.5, rotate: 8 }}
+                        initial={{ opacity: 0, scale: 2.2, rotate: 8 }}
                         animate={{ opacity: 1, scale: 1, rotate: 8 }}
                         transition={{ type: 'spring', damping: 14, stiffness: 220 }}
-                        className="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none z-30"
+                        className="absolute -top-10 left-1/2 -translate-x-1/2 pointer-events-none z-30"
                       >
-                        <div className="border-4 border-emerald-600 text-emerald-600 px-5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md shadow-2xl">
-                          <h2 className="text-2xl font-black uppercase tracking-widest">Charter Approved</h2>
+                        <div className="border-4 border-emerald-600 text-emerald-600 px-4 py-1 rounded-xl bg-white/95 backdrop-blur-md shadow-2xl">
+                          <h2 className="text-xl font-black uppercase tracking-widest">Charter Approved</h2>
                         </div>
                       </motion.div>
                     )}
