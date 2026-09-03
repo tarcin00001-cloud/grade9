@@ -1,0 +1,416 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle, ShieldCheck, Server, XCircle, Trash2, Shield, RefreshCw } from "lucide-react";
+import { useLMSBridge } from "@/hooks/useLMSBridge";
+import { useLabAudio } from "@/hooks/useLabAudio";
+import Celebration from "@/components/Celebration";
+import LabShell from "@/components/LabShell";
+
+// Types
+type Packet = { id: number; type: 'good' | 'bad'; y: number; x: number; status: 'moving' | 'dropped' | 'processed' };
+
+export default function RateLimiting9() {
+  const { reportComplete } = useLMSBridge("ratelimiting9");
+  const { playPop, playZap, playSuccess, playError } = useLabAudio();
+
+  const [stage, setStage] = useState<number>(1);
+  const [showModal, setShowModal] = useState<boolean>(false);
+
+  const [capacity, setCapacity] = useState<number>(10);
+  const [refillRate, setRefillRate] = useState<number>(10);
+
+  // React state for rendering
+  const [health, setHealth] = useState<number>(100);
+  const [tokens, setTokens] = useState<number>(10);
+  const [renderPackets, setRenderPackets] = useState<Packet[]>([]);
+  const [stats, setStats] = useState({ droppedBad: 0, droppedGood: 0, processedGood: 0, processedBad: 0 });
+
+  // Decoupled Physics Engine State
+  const physics = useRef({
+    packets: [] as Packet[],
+    health: 100,
+    tokens: 10,
+    stats: { droppedBad: 0, droppedGood: 0, processedGood: 0, processedBad: 0 },
+    lastGoodSpawn: 0, 
+    lastBadSpawn: 0, 
+    lastRefill: 0,
+    burstCount: 0
+  });
+
+  // Main Physics Loop
+  useEffect(() => {
+    const FPS = 30;
+    const interval = setInterval(() => {
+      // We only run physics in active stages
+      if (![1, 2, 3, 6].includes(stage)) return;
+
+      const now = Date.now();
+      const p = physics.current;
+      
+      // 1. REFILL TOKENS
+      if (stage === 6) {
+        if (now - p.lastRefill > (1000 / refillRate)) {
+          p.tokens = Math.min(capacity, p.tokens + 1);
+          p.lastRefill = now;
+        }
+      } else {
+        p.tokens = capacity; // Infinite tokens if limiter off
+      }
+
+      // 2. SPAWN PACKETS
+      if (now - p.lastGoodSpawn > 2000) {
+        p.burstCount = 5;
+        p.lastGoodSpawn = now;
+      }
+      if (p.burstCount > 0 && Math.random() > 0.4) {
+        p.packets.push({ id: Math.random(), type: 'good', y: 0, x: 45 + Math.random() * 10, status: 'moving' });
+        p.burstCount--;
+      }
+
+      if ((stage === 3 || stage === 6) && now - p.lastBadSpawn > 50) { // 20 bad packets/sec
+        p.packets.push({ id: Math.random(), type: 'bad', y: 0, x: 25 + Math.random() * 50, status: 'moving' });
+        p.lastBadSpawn = now;
+      }
+
+      // 3. MOVE & EVALUATE
+      const speed = stage === 3 ? 6 : 4; // Faster crash in stage 3
+      const bouncerY = 50;
+      const serverY = 90;
+
+      for (let i = 0; i < p.packets.length; i++) {
+        let pkt = p.packets[i];
+        if (pkt.status === 'moving') {
+          const oldY = pkt.y;
+          pkt.y += speed;
+
+          if (oldY < bouncerY && pkt.y >= bouncerY && stage === 6) {
+            if (p.tokens > 0) {
+              p.tokens--;
+            } else {
+              pkt.status = 'dropped';
+              if (pkt.type === 'bad') p.stats.droppedBad++;
+              if (pkt.type === 'good') p.stats.droppedGood++;
+            }
+          }
+
+          if (pkt.y >= serverY && pkt.status === 'moving') {
+            pkt.status = 'processed';
+            if (pkt.type === 'bad') {
+              p.health -= 5;
+              p.stats.processedBad++;
+            } else {
+              p.stats.processedGood++;
+            }
+            if (stage === 6 && refillRate > 12) {
+                p.health -= 0.5; // Penalty for dangerously loose rate
+            }
+          }
+        }
+      }
+
+      // Passive heal
+      if (p.health > 0 && p.health < 100 && stage !== 3) {
+        p.health = Math.min(100, p.health + 0.2);
+      }
+
+      // Cleanup
+      p.packets = p.packets.filter(pkt => pkt.y < 110 && (pkt.status === 'moving' || pkt.y < bouncerY + 20));
+
+      // Trigger Game Over Logic
+      if (stage === 3 && p.health <= 0) {
+        setStage(4);
+        setShowModal(true);
+        playError();
+      }
+
+      if (stage === 6) {
+        if (p.health <= 0 || p.stats.droppedGood >= 3) {
+          setStage(5);
+          setShowModal(true);
+          playError();
+          p.health = 100;
+          p.packets = [];
+        } else if (p.stats.droppedBad > 60) {
+          setStage(7);
+          playSuccess();
+          reportComplete({ points: 100 });
+        }
+      }
+
+      // Push to React for rendering
+      setRenderPackets([...p.packets]);
+      setTokens(p.tokens);
+      setHealth(Math.max(0, p.health));
+      setStats({ ...p.stats });
+
+    }, 1000 / FPS);
+
+    return () => clearInterval(interval);
+  }, [stage, capacity, refillRate, playError, playSuccess, reportComplete]);
+
+
+  // Actions
+  const handleLaunchBotnet = () => {
+    setStage(3);
+    playZap();
+  };
+
+  const handleTestDefense = () => {
+    physics.current.stats = { droppedBad: 0, droppedGood: 0, processedGood: 0, processedBad: 0 };
+    physics.current.packets = [];
+    physics.current.health = 100;
+    physics.current.tokens = capacity;
+    setStage(6);
+    playPop();
+  };
+
+  return (
+    <LabShell 
+      labId="ratelimiting9"
+      title="API Rate Limiter Tuning" 
+      instruction="Configure a Token Bucket firewall to defend the server from a DDoS botnet, without blocking real users."
+      compact={true}
+    >
+      <div className="flex flex-col h-full gap-4">
+        
+        {/* TOP: CYBER SIMULATION ZONE */}
+        <div className="h-64 sm:h-80 w-full bg-slate-900 rounded-3xl border-4 border-slate-800 shadow-inner relative overflow-hidden flex flex-col items-center">
+          <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+
+
+          {/* PACKETS RENDERER */}
+          {renderPackets.map(p => {
+             if (p.status === 'moving') {
+                return (
+                  <div
+                    key={p.id}
+                    className={`absolute w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] z-20 ${p.type === 'good' ? 'bg-cyan-400 text-cyan-400' : 'bg-red-500 text-red-500'}`}
+                    style={{ top: `${p.y}%`, left: `${p.x}%` }}
+                  />
+                );
+             } else if (p.status === 'dropped') {
+                return (
+                  <motion.div
+                    key={p.id}
+                    className={`absolute w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] z-20 ${p.type === 'good' ? 'bg-cyan-400 text-cyan-400' : 'bg-red-500 text-red-500'}`}
+                    initial={{ top: `${p.y}%`, left: `${p.x}%` }}
+                    animate={{ top: '55%', left: '85%', opacity: 0, scale: 0.5 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                );
+             } else {
+                return (
+                  <motion.div
+                    key={p.id}
+                    className={`absolute w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] z-20 ${p.type === 'good' ? 'bg-cyan-400 text-cyan-400' : 'bg-red-500 text-red-500'}`}
+                    initial={{ top: `${p.y}%`, left: `${p.x}%` }}
+                    animate={{ opacity: 0, scale: 2 }}
+                    transition={{ duration: 0.2 }}
+                  />
+                );
+             }
+          })}
+          <div className="absolute top-0 w-32 h-8 bg-slate-800 rounded-b-xl border-b-4 border-x-4 border-slate-700 flex items-center justify-center z-30 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            <span className="text-[10px] font-black text-slate-400 tracking-widest">THE INTERNET</span>
+          </div>
+
+          <div className="absolute top-[50%] w-full h-[2px] bg-slate-700 z-10">
+             {stage >= 5 && (
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-8 flex items-center justify-center">
+                  <div className={`absolute inset-0 rounded-full blur-md opacity-30 ${tokens > 0 ? 'bg-cyan-500' : 'bg-amber-500'}`} />
+                  <div className={`relative px-4 py-1 rounded-full border-2 font-black text-[10px] tracking-widest flex items-center gap-2 ${tokens > 0 ? 'bg-slate-800 border-cyan-500 text-cyan-400' : 'bg-amber-900 border-amber-500 text-amber-200'}`}>
+                    <Shield size={14} /> FIREWALL {tokens > 0 ? 'ACTIVE' : 'BLOCKING'}
+                  </div>
+               </div>
+             )}
+          </div>
+
+          <AnimatePresence>
+            {stage >= 5 && (
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-30">
+                 <span className="text-[9px] font-black text-slate-400 tracking-widest">TOKENS</span>
+                 <div className="w-8 h-32 bg-slate-800 rounded-full border-4 border-slate-700 overflow-hidden relative flex items-end p-1 shadow-lg">
+                    <div className="w-full bg-cyan-400 rounded-full transition-all duration-100 ease-linear shadow-[0_0_15px_rgba(34,211,238,0.6)]" style={{ height: `${(tokens / capacity) * 100}%` }} />
+                 </div>
+                 <span className="text-xs font-black text-white">{Math.floor(tokens)}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+             {stage >= 5 && (
+               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="absolute right-4 top-[55%] flex flex-col items-center gap-2 z-30">
+                  <div className="w-12 h-12 bg-slate-800 rounded-xl border-4 border-slate-700 flex items-center justify-center text-slate-500">
+                    <Trash2 size={20} />
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-black text-red-400">{stats.droppedBad} BAD</span>
+                    <span className="text-[10px] font-black text-cyan-400">{stats.droppedGood} GOOD</span>
+                  </div>
+               </motion.div>
+             )}
+          </AnimatePresence>
+
+          <div className="absolute bottom-4 flex flex-col items-center z-30">
+             <div className="relative">
+                {health <= 0 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute -inset-8 bg-red-500/20 blur-xl rounded-full" />
+                )}
+                
+                <div className={`w-32 h-20 rounded-xl border-4 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-colors duration-300 ${health > 50 ? 'bg-slate-800 border-slate-600' : health > 0 ? 'bg-amber-900 border-amber-600' : 'bg-red-950 border-red-600'}`}>
+                   <Server size={32} className={health > 50 ? 'text-cyan-500' : health > 0 ? 'text-amber-500' : 'text-red-500'} />
+                   <div className="w-20 h-2 bg-slate-900 rounded-full mt-2 overflow-hidden border border-slate-700">
+                      <div className={`h-full transition-all duration-300 ${health > 50 ? 'bg-emerald-500' : 'bg-red-500'}`} style={{ width: `${health}%` }} />
+                   </div>
+                </div>
+             </div>
+             <span className="text-[10px] font-black text-slate-400 tracking-widest mt-2">API SERVER</span>
+          </div>
+
+        </div>
+
+        {/* BOTTOM: TACTICAL CONTROL DECK */}
+        <div className="flex-1 bg-white rounded-3xl border-4 border-slate-200 shadow-sm p-4 sm:p-6 flex flex-col relative z-20 overflow-y-auto min-h-0">
+           
+           {/* STAGE 1 & 2: Introduction & Attack */}
+           {stage <= 2 && (
+             <div className="flex-1 flex flex-col justify-center items-center text-center max-w-md mx-auto gap-4">
+                <div className="bg-slate-50 px-6 py-4 rounded-xl border-2 border-slate-100 shadow-sm mb-2 w-full">
+                   <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Mission Objective</h4>
+                   <p className="text-sm font-bold text-slate-700">Configure a Token Bucket firewall to defend the server from a DDoS botnet, without blocking real users.</p>
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-800 text-xl tracking-widest uppercase mb-2">System Healthy</h3>
+                  <p className="text-sm text-slate-600 font-bold leading-relaxed">Normal traffic (Cyan) is flowing smoothly. But what happens if a malicious botnet sends 5,000 requests per second?</p>
+                </div>
+                {stage === 1 ? (
+                  <button onClick={() => setStage(2)} className="bg-sky-500 text-white font-black uppercase tracking-widest px-8 py-4 rounded-xl border-b-8 border-sky-700 active:border-b-4 active:translate-y-1 hover:bg-sky-400 transition-all shadow-lg mt-4">Proceed to Testing</button>
+                ) : (
+                  <button onClick={handleLaunchBotnet} className="bg-red-500 text-white font-black uppercase tracking-widest px-8 py-4 rounded-xl border-b-8 border-red-700 active:border-b-4 active:translate-y-1 hover:bg-red-400 transition-all shadow-[0_0_20px_rgba(239,68,68,0.5)] flex items-center gap-2 mt-4"><AlertTriangle /> LAUNCH BOTNET</button>
+                )}
+             </div>
+           )}
+
+           {/* STAGE 3: Dying */}
+           {stage === 3 && (
+             <div className="flex-1 flex flex-col justify-center items-center text-center max-w-md mx-auto gap-4">
+                <AlertTriangle size={48} className="text-red-500 animate-pulse" />
+                <h3 className="font-black text-red-600 text-2xl tracking-widest uppercase">CRITICAL FAILURE</h3>
+                <p className="text-sm text-slate-600 font-bold">The server is being overwhelmed by the traffic spike!</p>
+             </div>
+           )}
+
+           {/* STAGE 5 & 6: Tuning & Defense */}
+           {(stage === 5 || stage === 6) && (
+             <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full justify-center gap-4">
+                <div className="flex items-center justify-between mb-2">
+                   <h3 className="font-black text-slate-800 tracking-widest uppercase">Token Bucket Firewall</h3>
+                   <span className="text-[10px] font-black px-3 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest border-2 border-slate-200">SRE Controls</span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div className="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 flex flex-col gap-3">
+                      <div className="flex justify-between items-center">
+                         <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Bucket Capacity</span>
+                         <span className="text-sm font-black text-cyan-600">{capacity} tokens</span>
+                      </div>
+                      <input 
+                        type="range" min="1" max="20" step="1" 
+                        value={capacity} onChange={(e) => setCapacity(Number(e.target.value))}
+                        disabled={stage === 6}
+                        className="w-full accent-cyan-500 disabled:opacity-50"
+                      />
+                      <p className="text-[10px] text-slate-500 font-bold leading-tight">Controls burst limit. Too small, and rapid bursts of normal traffic get blocked.</p>
+                   </div>
+
+                   <div className="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 flex flex-col gap-3">
+                      <div className="flex justify-between items-center">
+                         <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Refill Rate</span>
+                         <span className="text-sm font-black text-cyan-600">{refillRate} / sec</span>
+                      </div>
+                      <input 
+                        type="range" min="2" max="25" step="1" 
+                        value={refillRate} onChange={(e) => setRefillRate(Number(e.target.value))}
+                        disabled={stage === 6}
+                        className="w-full accent-cyan-500 disabled:opacity-50"
+                      />
+                      <p className="text-[10px] text-slate-500 font-bold leading-tight">Controls sustained speed. Too high, and the server gets overwhelmed.</p>
+                   </div>
+                </div>
+
+                {stage === 5 ? (
+                  <button onClick={handleTestDefense} className="w-full bg-slate-800 text-white font-black uppercase tracking-widest px-8 py-4 rounded-xl border-b-8 border-slate-900 active:border-b-4 active:translate-y-1 hover:bg-slate-700 transition-all flex justify-center items-center gap-2 mt-2"><ShieldCheck size={20} /> TEST DEFENSE</button>
+                ) : (
+                  <button disabled className="w-full bg-slate-200 text-slate-400 font-black uppercase tracking-widest px-8 py-4 rounded-xl border-b-8 border-slate-300 flex justify-center items-center gap-2 mt-2"><RefreshCw size={20} className="animate-spin" /> SIMULATING ATTACK...</button>
+                )}
+             </div>
+           )}
+
+           {/* STAGE 7: Outcome */}
+           {stage === 7 && (
+             <div className="flex-1 flex flex-col justify-center items-center text-center max-w-md mx-auto gap-4 relative z-10">
+                <Celebration isActive={true} />
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center border-4 border-emerald-500 mb-2 shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+                   <ShieldCheck size={40} className="text-emerald-500" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-800 text-2xl tracking-widest uppercase mb-2">Attack Deflected</h3>
+                  <p className="text-sm text-slate-600 font-bold leading-relaxed mb-4">You successfully tuned the Token Bucket! You blocked the botnet while allowing real users through.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4 w-full text-left">
+                   <div className="bg-slate-50 p-4 rounded-xl border-2 border-slate-100">
+                     <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-1">Dropped Malicious</p>
+                     <p className="text-xl font-black text-red-500">{stats.droppedBad}</p>
+                   </div>
+                   <div className="bg-slate-50 p-4 rounded-xl border-2 border-slate-100">
+                     <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-1">Good Traffic Served</p>
+                     <p className="text-xl font-black text-cyan-500">{stats.processedGood}</p>
+                   </div>
+                </div>
+             </div>
+           )}
+
+        </div>
+      </div>
+
+      {/* EDUCATIONAL MODALS */}
+      <AnimatePresence>
+        {showModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+            
+            {stage === 4 && (
+              <div className="bg-white p-8 rounded-[2rem] max-w-lg shadow-2xl relative">
+                <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-6 border-4 border-red-500 mx-auto">
+                   <XCircle size={32} className="text-red-500" />
+                </div>
+                <h2 className="text-2xl font-black text-center text-slate-800 uppercase mb-4 tracking-widest">503 SERVER CRASH</h2>
+                <p className="text-slate-600 font-bold mb-4">A server can only process a finite number of requests per second. The botnet sent thousands of requests at once, maxing out the CPU and crashing the system.</p>
+                <p className="text-slate-600 font-bold mb-8">We need to install an <strong>API Rate Limiter</strong> at the door. It acts as a bouncer, dropping excess requests before they reach the server.</p>
+                <button onClick={() => { setShowModal(false); setStage(5); }} className="w-full bg-slate-800 text-white font-black py-4 rounded-xl border-b-8 border-slate-900 active:border-b-4 active:translate-y-1 tracking-widest uppercase">INSTALL LIMITER</button>
+              </div>
+            )}
+
+            {stage === 5 && (
+              <div className="bg-white p-8 rounded-[2rem] max-w-lg shadow-2xl relative text-center">
+                <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mb-6 border-4 border-amber-500 mx-auto">
+                   <AlertTriangle size={32} className="text-amber-500" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 uppercase mb-4 tracking-widest">Defense Failed</h2>
+                <p className="text-slate-600 font-bold mb-8">
+                  {stats.droppedGood >= 3 
+                    ? "Your limit was TOO STRICT! The bucket capacity was too small, so normal bursts of legitimate traffic got blocked. Your real customers are angry!" 
+                    : "Your limit was TOO LOOSE! The refill rate was too high, allowing too many botnet requests through and crashing the server."}
+                </p>
+                <button onClick={() => setShowModal(false)} className="w-full bg-amber-500 text-white font-black py-4 rounded-xl border-b-8 border-amber-700 active:border-b-4 active:translate-y-1 tracking-widest uppercase">RE-CALIBRATE</button>
+              </div>
+            )}
+
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+    </LabShell>
+  );
+}

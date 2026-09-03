@@ -1,7 +1,26 @@
 "use client";
 import { useEffect, useRef, useCallback } from 'react';
+
 let _sharedCtx: AudioContext | null = null;
-const getCtx = (): AudioContext | null => { if (typeof window === 'undefined') return null; try { if (!_sharedCtx || _sharedCtx.state === 'closed') { _sharedCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)(); } if (_sharedCtx.state === 'suspended') _sharedCtx.resume(); return _sharedCtx; } catch { return null; } };
+let _hasInteracted = false;
+
+if (typeof window !== 'undefined') {
+    const markInteracted = () => { _hasInteracted = true; };
+    window.addEventListener('click', markInteracted, { once: true });
+    window.addEventListener('pointerdown', markInteracted, { once: true });
+    window.addEventListener('keydown', markInteracted, { once: true });
+}
+
+const getCtx = (): AudioContext | null => { 
+    if (typeof window === 'undefined' || !_hasInteracted) return null; 
+    try { 
+        if (!_sharedCtx || _sharedCtx.state === 'closed') { 
+            _sharedCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)(); 
+        } 
+        if (_sharedCtx.state === 'suspended') _sharedCtx.resume(); 
+        return _sharedCtx; 
+    } catch { return null; } 
+};
 const playTone = (freq: number, type: OscillatorType, duration: number, delay = 0) => { const ctx = getCtx(); if (!ctx) return; setTimeout(() => { try { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime); gain.gain.setValueAtTime(0.12, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration); osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + duration); } catch { /* */ } }, delay); };
 let _cachedVoices: SpeechSynthesisVoice[] = [];
 if (typeof window !== 'undefined' && 'speechSynthesis' in window) { const load = () => { _cachedVoices = window.speechSynthesis.getVoices(); }; load(); window.speechSynthesis.addEventListener('voiceschanged', load); }

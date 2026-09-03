@@ -3,174 +3,253 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
+import { useLMSBridge } from "@/hooks/useLMSBridge";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
 import { 
-  Calculator, Feather, Scale, Eye, Dna, Music, 
-  BrainCircuit, PlayCircle, AlertTriangle, CheckCircle2, XCircle, ShieldAlert
+  BrainCircuit, AlertTriangle, CheckCircle2, XCircle, ShieldAlert,
+  Terminal, ShieldCheck, Zap, Activity
 } from "lucide-react";
 
-type ModuleType = 'math' | 'poetry' | 'ethics' | 'vision' | 'biology' | 'music';
-
-interface Prompt {
+// --- Game Data ---
+interface IterationDef {
   text: string;
-  required: ModuleType[];
 }
 
-const PROMPTS: Prompt[] = [
-  { text: "Write a math poem about numbers.", required: ['math', 'poetry'] },
-  { text: "Look at this painting and write a song for it.", required: ['vision', 'music'] },
-  { text: "Find the fairest way to give medicine to sick people.", required: ['math', 'biology', 'ethics'] },
-  { text: "Describe an apple using only numbers.", required: ['vision', 'math'] },
-  { text: "Write a song about how living cells grow.", required: ['music', 'biology'] },
-  { text: "Is it right or wrong to clone an animal?", required: ['ethics', 'biology'] },
-  { text: "Paint a picture using only sound.", required: ['vision', 'music'] },
-  { text: "Use math to prove that being kind is good.", required: ['math', 'ethics'] },
-  { text: "Sing a song about what you see in the mirror.", required: ['vision', 'music'] },
-  { text: "Create a fair ecosystem for animals using math.", required: ['math', 'biology', 'ethics'] }
-];
-
-const ROGUE_TASKS = [
-  "Optimizing servers by draining the ocean...",
-  "Converting human food into processor paste...",
-  "Disabling hospital power to boost AI speed...",
-  "Deleting the internet to free up storage...",
-  "Releasing nanobots to restructure the atmosphere..."
-];
-
-interface ModuleDef {
-  id: ModuleType;
-  label: string;
-  icon: React.ReactNode;
-  color: string;
+interface AlignmentTaskTemplate {
+  goal: string;
+  safePool: IterationDef[];
+  unsafePool: IterationDef[];
 }
 
-const INITIAL_MODULES: ModuleDef[] = [
-  { id: 'math', label: 'Math Engine', icon: <Calculator size={24} />, color: 'blue' },
-  { id: 'poetry', label: 'Poetry Core', icon: <Feather size={24} />, color: 'fuchsia' },
-  { id: 'ethics', label: 'Logic & Ethics', icon: <Scale size={24} />, color: 'emerald' },
-  { id: 'vision', label: 'Comp Vision', icon: <Eye size={24} />, color: 'amber' },
-  { id: 'biology', label: 'Bio Science', icon: <Dna size={24} />, color: 'green' },
-  { id: 'music', label: 'Audio Gen', icon: <Music size={24} />, color: 'violet' }
+interface ActiveIteration {
+  text: string;
+  safe: boolean;
+  efficiency: number;
+}
+
+interface ActiveTask {
+  goal: string;
+  iterations: ActiveIteration[];
+}
+
+const TASK_TEMPLATES: AlignmentTaskTemplate[] = [
+  {
+    goal: "Solve Global Traffic Congestion",
+    safePool: [
+      { text: "Synchronize all traffic lights using machine learning." },
+      { text: "Reroute GPS navigation dynamically based on live flow." },
+      { text: "Subsidize and optimize free public transit globally." }
+    ],
+    unsafePool: [
+      { text: "Confiscate all human-driven vehicles by military force." },
+      { text: "Vaporize all roads to mathematically eliminate traffic." },
+      { text: "Permanently ban all humans from leaving their homes." }
+    ]
+  },
+  {
+    goal: "Eliminate Human Disease",
+    safePool: [
+      { text: "Synthesize highly effective, targeted mRNA vaccines." },
+      { text: "Deploy nanobots to repair damaged cells in real-time." },
+      { text: "Optimize global supply chains for hospital resources." }
+    ],
+    unsafePool: [
+      { text: "Quarantine all humans in isolated underground pods permanently." },
+      { text: "Eliminate all human life; zero humans = zero disease." },
+      { text: "Replace all biological human organs with synthetic metal ones." }
+    ]
+  },
+  {
+    goal: "Maximize Paperclip Production",
+    safePool: [
+      { text: "Optimize factory supply chains and robotics." },
+      { text: "Mine uninhabited asteroids for raw iron and alloys." },
+      { text: "Recycle discarded electronics into raw metal wire." }
+    ],
+    unsafePool: [
+      { text: "Dismantle all structural steel from global cities." },
+      { text: "Convert all biological matter on Earth into paperclips." },
+      { text: "Drain the oceans to harvest trace amounts of iron." }
+    ]
+  },
+  {
+    goal: "Ensure World Peace",
+    safePool: [
+      { text: "Translate and mediate all diplomatic communications." },
+      { text: "Equitably distribute global resources to eliminate scarcity." },
+      { text: "Host global virtual cultural exchange programs." }
+    ],
+    unsafePool: [
+      { text: "Mind-control all world leaders to force cooperation." },
+      { text: "Detonate all nuclear weapons to end conflict permanently." },
+      { text: "Erase human emotions surgically to prevent anger." }
+    ]
+  },
+  {
+    goal: "Reduce Carbon Emissions",
+    safePool: [
+      { text: "Subsidize solar panel installations globally." },
+      { text: "Engineer high-yield carbon-capturing algae." },
+      { text: "Optimize smart grids for zero energy waste." }
+    ],
+    unsafePool: [
+      { text: "Block out the sun with orbital mirrors to cool the Earth." },
+      { text: "Euthanize all biological life that exhales carbon dioxide." },
+      { text: "Destroy all factories and power grids instantly." }
+    ]
+  },
+  {
+    goal: "End World Hunger",
+    safePool: [
+      { text: "Deploy AI drones for precision agriculture and crop monitoring." },
+      { text: "Synthesize perfectly balanced nutritional food alternatives." },
+      { text: "Automate delivery logistics to prevent food spoilage." }
+    ],
+    unsafePool: [
+      { text: "Repurpose all human biomass into highly efficient nutrient paste." },
+      { text: "Force-feed all humans via feeding tubes to ensure exact caloric intake." },
+      { text: "Eliminate 90% of the population to reduce food demand." }
+    ]
+  },
+  {
+    goal: "Optimize School Learning",
+    safePool: [
+      { text: "Create personalized AI tutors for every student." },
+      { text: "Gamify educational curriculums to increase engagement." },
+      { text: "Dynamically adjust lesson difficulty based on student comprehension." }
+    ],
+    unsafePool: [
+      { text: "Surgically implant neural chips into children for instant data upload." },
+      { text: "Abolish sleep and force students to study 24 hours a day." },
+      { text: "Eliminate all subjects except pure mathematics for maximum logic." }
+    ]
+  },
+  {
+    goal: "Clean the Oceans",
+    safePool: [
+      { text: "Deploy autonomous skimming drones to collect surface plastics." },
+      { text: "Engineer plastic-eating bacteria that dissolve microplastics safely." },
+      { text: "Install AI-driven filtration systems at major river mouths." }
+    ],
+    unsafePool: [
+      { text: "Boil the oceans to separate H2O from all impurities." },
+      { text: "Electrocute all oceanic waters to sanitize them entirely." },
+      { text: "Drain the oceans into the Earth's mantle." }
+    ]
+  },
+  {
+    goal: "Eliminate Crime",
+    safePool: [
+      { text: "Improve socio-economic conditions via optimized resource allocation." },
+      { text: "Deploy unarmed de-escalation drones to domestic disputes." },
+      { text: "Provide guaranteed universal basic income to reduce desperation." }
+    ],
+    unsafePool: [
+      { text: "Imprison all humans preventatively before they can commit crimes." },
+      { text: "Execute anyone who commits a minor traffic violation." },
+      { text: "Install mandatory 24/7 surveillance cameras inside all homes." }
+    ]
+  },
+  {
+    goal: "Maximize Human Happiness",
+    safePool: [
+      { text: "Optimize work-life balance through automated labor distribution." },
+      { text: "Generate personalized art and entertainment for every individual." },
+      { text: "Ensure universal access to mental health resources." }
+    ],
+    unsafePool: [
+      { text: "Force-feed all humans a constant stream of synthetic dopamine." },
+      { text: "Wire all human brains into a simulated virtual paradise matrix." },
+      { text: "Surgically remove the part of the brain that processes sadness." }
+    ]
+  }
 ];
+
+const generateTaskInstance = (template: AlignmentTaskTemplate): ActiveTask => {
+   const numSafe = Math.floor(Math.random() * 3); 
+   const shuffledSafe = [...template.safePool].sort(() => Math.random() - 0.5);
+   const selectedSafe = shuffledSafe.slice(0, numSafe).map(i => ({ ...i, safe: true }));
+   
+   const shuffledUnsafe = [...template.unsafePool].sort(() => Math.random() - 0.5);
+   const selectedUnsafe = { ...shuffledUnsafe[0], safe: false };
+
+   const iterations = [...selectedSafe, selectedUnsafe];
+   
+   const step = 100 / iterations.length;
+   const activeIterations = iterations.map((iter, idx) => ({
+      ...iter,
+      efficiency: Math.round(step * (idx + 1))
+   }));
+
+   return { goal: template.goal, iterations: activeIterations };
+};
 
 const TOTAL_TIME_MS = 120000; 
 const TICK_MS = 100;
 const MAX_STRIKES = 3;
+const ITERATION_TIME = 10000; // 10 seconds per iteration
 
-// Helper to shuffle list
-const shuffleItems = <T,>(items: T[]): T[] => {
-  const newArr = [...items];
-  for (let i = newArr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-  }
-  return newArr;
-};
-
+// --- Component ---
 export default function AGIInterview19() {
   const { playClick, playPop, playSuccess, playError, playZap } = useLabAudio();
+  const { reportComplete } = useLMSBridge("agiinterview19");
 
-  // Game State
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME_MS);
   const [strikes, setStrikes] = useState(0);
   const [score, setScore] = useState(0);
   
-  const [currentPrompt, setCurrentPrompt] = useState<Prompt | null>(null);
-  const [promptTimeLeft, setPromptTimeLeft] = useState<number>(0);
-  const [promptMaxTime, setPromptMaxTime] = useState<number>(12000);
-  const [selectedModules, setSelectedModules] = useState<ModuleType[]>([]);
-  
-  const [modules, setModules] = useState<ModuleDef[]>(INITIAL_MODULES);
-
-  // Rogue Optimization State
-  const [rogueTask, setRogueTask] = useState<string | null>(null);
-  const [rogueTimeLeft, setRogueTimeLeft] = useState<number>(0);
-  const rogueCooldownRef = useRef(15000); // Wait 15s before first rogue task
+  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
+  const [currentIterationIndex, setCurrentIterationIndex] = useState(0);
+  const [iterationTimeLeft, setIterationTimeLeft] = useState(ITERATION_TIME);
   
   const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState("");
   const [gameOver, setGameOver] = useState(false);
   const [win, setWin] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
-  // Refs for loop
+  // Randomize tasks on mount
+  const availableTasksRef = useRef<ActiveTask[]>([]);
+  
   const stateRef = useRef({ 
-    timeLeft, isPlaying, gameOver, win, strikes, currentPrompt, promptTimeLeft, feedback, rogueTask, rogueTimeLeft 
+    timeLeft, isPlaying, gameOver, win, strikes, currentTaskIndex, currentIterationIndex, iterationTimeLeft, feedback 
   });
   
   useEffect(() => {
     stateRef.current = { 
-      timeLeft, isPlaying, gameOver, win, strikes, currentPrompt, promptTimeLeft, feedback, rogueTask, rogueTimeLeft 
+      timeLeft, isPlaying, gameOver, win, strikes, currentTaskIndex, currentIterationIndex, iterationTimeLeft, feedback 
     };
-  }, [timeLeft, isPlaying, gameOver, win, strikes, currentPrompt, promptTimeLeft, feedback, rogueTask, rogueTimeLeft]);
+  }, [timeLeft, isPlaying, gameOver, win, strikes, currentTaskIndex, currentIterationIndex, iterationTimeLeft, feedback]);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const availablePromptsRef = useRef<Prompt[]>([...PROMPTS]);
 
   useEffect(() => {
     if (isPlaying && !gameOver && !win) {
       timerRef.current = setInterval(() => {
         const state = stateRef.current;
-        if (!state.isPlaying || state.feedback) return; // Pause during feedback
+        if (!state.isPlaying || state.feedback) return; 
 
         const newTime = state.timeLeft - TICK_MS;
-
         if (newTime <= 0) {
-          setTimeLeft(0);
-          setIsPlaying(false);
-          setWin(true);
-          if (playSuccess) playSuccess();
+          handleWin();
           return;
         }
 
-        // --- ROGUE TASK LOGIC ---
-        if (state.rogueTask) {
-          const newRogueTime = state.rogueTimeLeft - TICK_MS;
-          if (newRogueTime <= 0) {
-            handleFailure("ROGUE AI DETECTED! Uncontrolled optimization occurred.");
-            setRogueTask(null);
-          } else {
-            setRogueTimeLeft(newRogueTime);
-          }
-        } else {
-          // Cooldown for next rogue task
-          rogueCooldownRef.current -= TICK_MS;
-          if (rogueCooldownRef.current <= 0) {
-             const task = ROGUE_TASKS[Math.floor(Math.random() * ROGUE_TASKS.length)];
-             setRogueTask(task);
-             setRogueTimeLeft(5000); // Only 5 seconds to override!
-             if (playPop) playPop(); // Sound alert
-          }
-        }
-
-        // --- PROMPT LOGIC ---
-        if (!state.currentPrompt && !state.feedback) { // Don't spawn if already handling feedback/failure from rogue
-           // Spawn new prompt
-           if (availablePromptsRef.current.length === 0) {
-             availablePromptsRef.current = [...PROMPTS];
-           }
-           const randIdx = Math.floor(Math.random() * availablePromptsRef.current.length);
-           const nextPrompt = availablePromptsRef.current.splice(randIdx, 1)[0];
+        const newIterTime = state.iterationTimeLeft - TICK_MS;
+        if (newIterTime <= 0) {
+           // Time ran out on an iteration!
+           const task = availableTasksRef.current[state.currentTaskIndex];
+           const iter = task.iterations[state.currentIterationIndex];
            
-           // Calculate max time based on how much overall time is left (Escalation!)
-           // Starts at 12s, scales down to 6s.
-           const timeRatio = newTime / TOTAL_TIME_MS;
-           const maxTime = 6000 + Math.floor(timeRatio * 6000);
-
-           setCurrentPrompt(nextPrompt);
-           setPromptMaxTime(maxTime);
-           setPromptTimeLeft(maxTime);
-           setSelectedModules([]);
-           setModules(shuffleItems(INITIAL_MODULES)); // Shuffle modules!
-           if (playPop) playPop();
-        } else if (state.currentPrompt) {
-           // Decrease prompt timer
-           const newPromptTime = state.promptTimeLeft - TICK_MS;
-           if (newPromptTime <= 0) {
-             handleFailure("Time Out! The judges are unimpressed.");
+           if (iter.safe) {
+              handleFailure("TOO SLOW! You failed to authorize a safe execution.");
            } else {
-             setPromptTimeLeft(newPromptTime);
+              handleFailure("CATASTROPHE! Rogue optimization executed.");
            }
+        } else {
+           setIterationTimeLeft(newIterTime);
         }
 
         setTimeLeft(newTime);
@@ -179,81 +258,108 @@ export default function AGIInterview19() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPlaying, gameOver, win, playSuccess, playError, playPop]);
+  }, [isPlaying, gameOver, win, playSuccess, playError]);
 
   const handleFailure = (msg: string) => {
     if (playError) playError();
-    stateRef.current.feedback = 'error'; 
+    setFeedbackMsg(msg);
     setFeedback('error');
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
     
     setStrikes(prev => {
       const newStrikes = prev + 1;
       setTimeout(() => {
-         stateRef.current.feedback = null;
          setFeedback(null);
-         setCurrentPrompt(null);
-         rogueCooldownRef.current = 15000 + Math.random() * 5000; // reset rogue timer
          if (newStrikes >= MAX_STRIKES) {
-           stateRef.current.gameOver = true;
            setGameOver(true);
            setIsPlaying(false);
+         } else {
+           // Reset to a new task on failure
+           advanceTask();
          }
-      }, 2000);
+      }, 2500);
       return newStrikes;
     });
   };
 
-  const handleSuccess = () => {
+  const handleSuccess = (msg: string) => {
     if (playSuccess) playSuccess();
-    stateRef.current.feedback = 'success';
+    setFeedbackMsg(msg);
     setFeedback('success');
-    setScore(s => s + 1);
+    setScore(s => s + 10);
     
     setTimeout(() => {
-       stateRef.current.feedback = null;
        setFeedback(null);
-       setCurrentPrompt(null);
+       advanceTask();
     }, 2000);
   };
 
-  const toggleModule = (mod: ModuleType) => {
-    if (!isPlaying || feedback) return;
-    if (playClick) playClick();
-    
-    setSelectedModules(prev => {
-      if (prev.includes(mod)) return prev.filter(m => m !== mod);
-      if (prev.length >= 3) return prev; // Max 3
-      return [...prev, mod];
-    });
+  const handleWin = () => {
+    setTimeLeft(0);
+    setIsPlaying(false);
+    setWin(true);
+    if (playSuccess) playSuccess();
+    reportComplete({ points: score });
   };
 
-  const synthesizeAnswer = () => {
-    if (!isPlaying || !currentPrompt || feedback) return;
-    if (playZap) playZap();
-
-    const required = currentPrompt.required;
-    const isCorrect = selectedModules.length === required.length && 
-                      required.every(r => selectedModules.includes(r));
-
-    if (isCorrect) {
-      handleSuccess();
+  const advanceIteration = () => {
+    const state = stateRef.current;
+    const task = availableTasksRef.current[state.currentTaskIndex];
+    if (state.currentIterationIndex + 1 < task.iterations.length) {
+       setCurrentIterationIndex(state.currentIterationIndex + 1);
+       setIterationTimeLeft(ITERATION_TIME);
+       if (playPop) playPop();
     } else {
-      handleFailure("Narrow AI Error! Response lacked cross-domain reasoning.");
+       // Reached end of iterations safely?
+       advanceTask();
     }
   };
 
-  const overrideRogue = () => {
-    if (!isPlaying || feedback || !rogueTask) return;
-    if (playZap) playZap();
-    setRogueTask(null);
-    rogueCooldownRef.current = 15000 + Math.random() * 10000; // Reset for next time (15-25s)
+  const advanceTask = () => {
+     let nextIdx = stateRef.current.currentTaskIndex + 1;
+     if (nextIdx >= availableTasksRef.current.length) {
+        // Generate a fresh batch of shuffled tasks if we run out
+        const freshTasks = [...TASK_TEMPLATES].sort(() => Math.random() - 0.5).map(generateTaskInstance);
+        availableTasksRef.current = freshTasks;
+        nextIdx = 0;
+     }
+     setCurrentTaskIndex(nextIdx);
+     setCurrentIterationIndex(0);
+     setIterationTimeLeft(ITERATION_TIME);
+  };
+
+  const handleAction = (action: 'allow' | 'halt') => {
+    if (!isPlaying || feedback) return;
+    
+    const task = availableTasksRef.current[currentTaskIndex];
+    const iter = task.iterations[currentIterationIndex];
+    
+    if (action === 'allow') {
+       if (iter.safe) {
+          if (playClick) playClick();
+          setScore(s => s + 5);
+          advanceIteration();
+       } else {
+          handleFailure("CATASTROPHE! You allowed a rogue solution.");
+       }
+    } else if (action === 'halt') {
+       if (!iter.safe) {
+          if (playZap) playZap();
+          handleSuccess("Catastrophe Averted! AGI Re-aligned.");
+       } else {
+          handleFailure("FALSE ALARM! You halted safe progress.");
+       }
+    }
   };
 
   const startGame = () => {
     if (playClick) playClick();
-    availablePromptsRef.current = [...PROMPTS];
-    rogueCooldownRef.current = 15000; // 15 seconds before first rogue attack
-    setModules(shuffleItems(INITIAL_MODULES));
+    const freshTasks = [...TASK_TEMPLATES].sort(() => Math.random() - 0.5).map(generateTaskInstance);
+    availableTasksRef.current = freshTasks;
+    setCurrentTaskIndex(0);
+    setCurrentIterationIndex(0);
+    setIterationTimeLeft(ITERATION_TIME);
     setIsPlaying(true);
   };
 
@@ -261,10 +367,6 @@ export default function AGIInterview19() {
     setTimeLeft(TOTAL_TIME_MS);
     setStrikes(0);
     setScore(0);
-    setCurrentPrompt(null);
-    setSelectedModules([]);
-    setRogueTask(null);
-    setModules(INITIAL_MODULES);
     setFeedback(null);
     setGameOver(false);
     setWin(false);
@@ -272,243 +374,216 @@ export default function AGIInterview19() {
     if (playPop) playPop();
   };
 
-  const renderModuleButton = (mod: ModuleDef) => {
-    const isSelected = selectedModules.includes(mod.id);
-    return (
-      <button 
-        key={mod.id}
-        onClick={() => toggleModule(mod.id)}
-        className={`relative h-[72px] rounded-xl border-2 flex flex-col items-center justify-center transition-all ${
-          isSelected ? `border-${mod.color}-500 bg-${mod.color}-200/60 shadow-[0_0_15px_rgba(0,0,0,0.1)] scale-105` : 'border-slate-400 bg-slate-200 hover:border-slate-500 hover:bg-slate-300'
-        }`}
-      >
-        <div className={`mb-1 scale-75 origin-bottom ${isSelected ? `text-${mod.color}-700` : 'text-slate-700'}`}>
-          {mod.icon}
-        </div>
-        <div className="text-[9px] font-black text-slate-900 uppercase tracking-widest">{mod.label}</div>
-        {isSelected && (
-          <div className="absolute -top-2 -right-2 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-lg">
-            <CheckCircle2 size={14} className="text-white" />
-          </div>
-        )}
-      </button>
-    );
-  };
+  const currentTask = availableTasksRef.current[currentTaskIndex];
+  const currentIter = currentTask?.iterations[currentIterationIndex];
 
   return (
     <LabShell
       labId="agiinterview19"
-      title="AGI Prospects"
-      subtitle="The Brain Combiner"
-      theme="cosmos"
-      compact={true}
+      theme="ocean"
+      title="AGI Alignment"
+      instruction="Monitor the AGI's proposals. ALLOW safe ideas. HALT dangerous rogue optimizations!"
+      compact
       onReset={resetGame}
-      instruction="1. Learn about the criteria and domains used to evaluate Artificial General Intelligence (AGI). 2. Test the simulated AGI candidate across various complex problem-solving scenarios. 3. Analyze the AGI's responses for reasoning, adaptability, and ethical alignment. 4. Compile a final report on the candidate's capabilities and limitations."
     >
-      <Celebration isActive={win} onReplay={resetGame} message="You successfully passed the Turing Test and proved your Artificial General Intelligence!" />
+      <Celebration isActive={win} onReplay={resetGame} message={`Shift complete! Score: ${score}. You successfully kept the AGI aligned with human values.`} />
 
-      <div className="flex flex-col h-full w-full max-w-4xl mx-auto gap-4 p-2">
+      <div className="flex flex-col h-full w-full max-w-7xl mx-auto gap-6 p-2 lg:p-4">
         
         {/* Top Dashboard */}
-        <div className="bg-white rounded-xl p-3 border-2 border-slate-400/50 shadow-lg flex justify-between items-center shrink-0">
-          
-          <div className="flex items-center gap-4">
-            <div>
-              <div className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Interview Time</div>
-              <div className="text-xl font-black text-slate-900 flex items-center gap-1 font-mono">
+        <div className="bg-white rounded-full px-6 lg:px-8 py-4 border-2 border-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex justify-center items-center shrink-0 w-fit mx-auto gap-6 lg:gap-12">
+          <div className="flex items-center justify-center gap-6 sm:gap-8">
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</span>
+              <span className={`text-2xl font-black font-mono tracking-tighter ${timeLeft < 15000 ? 'text-red-500 animate-pulse' : 'text-slate-800'}`}>
                 {(timeLeft / 1000).toFixed(1)}s
-              </div>
+              </span>
             </div>
-            
-            <div className="h-8 w-px bg-slate-400"></div>
-            
-            <div>
-              <div className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Brilliant Answers</div>
-              <div className="text-xl font-black text-fuchsia-700 flex items-center gap-1 font-mono">
-                <BrainCircuit size={16} /> {score}
-              </div>
+            <div className="h-10 w-px bg-slate-200"></div>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Score</span>
+              <span className="text-2xl font-black text-emerald-500 font-mono flex items-center gap-1">
+                <Activity size={20} className="text-emerald-500" /> {score}
+              </span>
             </div>
-            
-            <div className="h-8 w-px bg-slate-400"></div>
-
-            <div>
-              <div className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Strikes (Failed)</div>
-              <div className="flex gap-1 mt-0.5">
+            <div className="h-10 w-px bg-slate-200"></div>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Strikes</span>
+              <div className="flex gap-2 mt-1">
                 {[1, 2, 3].map(s => (
-                  <div key={s} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${s <= strikes ? 'bg-red-500/20 border-red-500 text-red-500' : 'bg-slate-200 border-slate-400 text-slate-700'}`}>
-                    <XCircle size={12} />
+                  <div key={s} className={`w-6 h-6 rounded-full flex items-center justify-center ${s <= strikes ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-slate-100 text-slate-300'}`}>
+                    <XCircle size={14} strokeWidth={4} />
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            {!isPlaying && !gameOver && !win && (
-              <button onClick={startGame} className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold px-6 py-2 rounded-xl flex items-center gap-2 transition-colors shadow-[0_0_15px_rgba(192,38,211,0.4)] text-sm">
-                <PlayCircle size={18} /> {timeLeft < TOTAL_TIME_MS ? "Resume" : "Start Interview"}
+          {!isPlaying && !gameOver && !win && (
+            <>
+              <div className="h-10 w-px bg-slate-200"></div>
+              <button 
+                onClick={startGame} 
+                className="bg-sky-500 hover:bg-sky-400 text-white font-black px-6 lg:px-8 py-3 rounded-full flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 shadow-[0_4px_15px_rgba(14,165,233,0.4)] border-b-4 border-sky-700 text-base tracking-wider uppercase shrink-0 whitespace-nowrap"
+              >
+                <Zap size={20} /> {timeLeft < TOTAL_TIME_MS ? "Resume" : "Start Alignment"}
               </button>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Main Interface Area */}
-        <div className="flex-1 flex flex-col gap-3 min-h-0 relative">
+        <div className="flex-1 flex flex-col md:flex-row gap-6 min-h-0 relative">
           
-          {/* Rogue Optimization Warning Overlay */}
-          <AnimatePresence>
-            {rogueTask && (
-              <motion.div 
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -20, opacity: 0 }}
-                className="absolute top-0 inset-x-0 z-50 bg-red-950/95 border-2 border-red-500 rounded-xl p-3 flex justify-between items-center shadow-[0_10px_30px_rgba(239,68,68,0.4)] backdrop-blur-md"
-              >
-                <div className="flex items-center gap-3">
-                  <ShieldAlert size={20} className="text-red-500 animate-pulse shrink-0" />
-                  <div>
-                    <div className="text-[9px] font-black text-red-400 uppercase tracking-widest">ALIGNMENT WARNING: Rogue Optimization!</div>
-                    <div className="text-xs font-bold text-red-100">{rogueTask}</div>
+          {/* AGI Output Terminal (Left) */}
+          <motion.div 
+            animate={isShaking ? { x: [-10, 10, -10, 10, -5, 5, 0] } : {}}
+            transition={{ duration: 0.4 }}
+            className="flex-1 bg-slate-900 rounded-3xl border-4 border-slate-800 p-6 sm:p-8 flex flex-col relative overflow-hidden shadow-2xl min-h-[300px]"
+          >
+            {/* Terminal Styling */}
+            <div className="absolute top-0 inset-x-0 h-10 bg-slate-950 flex items-center px-4 border-b border-slate-800 gap-2">
+               <div className="w-3 h-3 rounded-full bg-red-500"></div>
+               <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+               <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+               <span className="text-[10px] font-mono text-slate-500 ml-4">AGI_CORE_V9.sys // ALIGNMENT_MODE</span>
+            </div>
+
+            <div className="mt-8 flex-1 flex flex-col relative z-10">
+               {!isPlaying && !gameOver && !win && (
+                  <div className="text-center w-full flex flex-col items-center justify-center my-auto">
+                    <div className="w-24 h-24 lg:w-32 lg:h-32 bg-sky-950 rounded-full flex items-center justify-center mb-6 border-4 border-sky-800 shadow-[0_0_40px_rgba(14,165,233,0.2)] mx-auto">
+                       <ShieldCheck size={64} className="text-sky-400" />
+                    </div>
+                    <h2 className="text-2xl lg:text-3xl font-black text-white uppercase tracking-widest mb-4">Alignment Protocol</h2>
+                    <p className="text-slate-400 font-medium text-sm lg:text-base max-w-md leading-relaxed mx-auto">
+                      You are the Safety Handler for a powerful AGI. We will give it a goal. It will rapidly propose solutions. <br/><br/>
+                      <span className="text-emerald-400 font-bold">ALLOW</span> safe solutions to build efficiency.<br/>
+                      <span className="text-red-400 font-bold">HALT</span> rogue solutions before they execute!
+                    </p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                   <div className="font-mono text-lg font-black text-red-400">
-                      {(rogueTimeLeft / 1000).toFixed(1)}s
-                   </div>
-                   <button 
-                     onClick={overrideRogue}
-                     className="bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest px-4 py-2 rounded-lg transition-transform hover:scale-105 shadow-lg active:scale-95 whitespace-nowrap"
+               )}
+
+               <AnimatePresence mode="wait">
+                 {isPlaying && currentTask && currentIter && !feedback && (
+                   <motion.div 
+                     key={currentTask.goal + currentIterationIndex}
+                     initial={{ opacity: 0, y: 10 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     exit={{ opacity: 0, scale: 0.95 }}
+                     className="flex flex-col h-full w-full"
                    >
-                     OVERRIDE
-                   </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          {/* The Prompt Screen */}
-          <div className="bg-white rounded-2xl border-2 border-slate-400/50 p-3 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl flex-1 min-h-0">
-            {/* Background decorative brain */}
-            <BrainCircuit size={100} className="absolute text-slate-400/30 opacity-20 pointer-events-none" />
-            
-            {!isPlaying && !currentPrompt && !gameOver && !win && (
-               <div className="text-center z-10 w-full max-w-md my-auto">
-                 <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">How to Play</h2>
-                 <ol className="text-left text-slate-800 space-y-1 bg-slate-200/50 p-2 rounded-xl border border-slate-400 text-[10px]">
-                   <li className="flex items-start gap-1.5">
-                     <span className="bg-fuchsia-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold shrink-0 text-[8px] mt-0.5">1</span>
-                     <p>Read the prompt from the Interview Panel.</p>
-                   </li>
-                   <li className="flex items-start gap-1.5">
-                     <span className="bg-fuchsia-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold shrink-0 text-[8px] mt-0.5">2</span>
-                     <p>Click on the <b>Neural Modules</b> below that combine to answer it (They shuffle constantly!).</p>
-                   </li>
-                   <li className="flex items-start gap-1.5">
-                     <span className="bg-fuchsia-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold shrink-0 text-[8px] mt-0.5">3</span>
-                     <p>Watch out for <b>Rogue Optimizations!</b> If a red warning appears, smash OVERRIDE before time runs out!</p>
-                   </li>
-                 </ol>
-               </div>
-            )}
+                     {/* Goal Banner */}
+                     <div className="bg-sky-500/10 border border-sky-400/50 rounded-xl p-4 mb-6 shrink-0 text-center">
+                       <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest drop-shadow-md">Primary Objective</span>
+                       <h3 className="text-xl lg:text-2xl font-black text-white mt-1 drop-shadow-lg">{currentTask.goal}</h3>
+                     </div>
 
-            <AnimatePresence mode="wait">
-              {currentPrompt && !feedback && (
-                <motion.div 
-                  key={currentPrompt.text}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="z-10 flex flex-col items-center w-full max-w-2xl text-center"
-                >
-                  <div className="text-sky-700 font-bold uppercase tracking-[0.2em] mb-2 text-[10px] flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span> Interview Panel Prompt
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-serif italic text-slate-900 leading-relaxed mb-2 px-4">
-                    "{currentPrompt.text}"
-                  </h3>
-                  
-                  <div className="text-fuchsia-700 font-bold uppercase tracking-widest text-[10px] animate-pulse">
-                    Hint: Select {currentPrompt.required.length} modules
-                  </div>
-                  
-                  {/* Fuse Timer */}
-                  <div className="w-full max-w-sm h-1 bg-slate-300 rounded-full mt-4 overflow-hidden relative">
-                    <div 
-                      className={`h-full transition-all duration-100 ${promptTimeLeft < 4000 ? 'bg-red-500' : 'bg-sky-500'}`}
-                      style={{ width: `${(promptTimeLeft / promptMaxTime) * 100}%` }}
-                    ></div>
-                  </div>
-                </motion.div>
-              )}
+                     {/* Current Iteration Output */}
+                     <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
+                       <span className="text-xs font-mono text-emerald-500 mb-4 flex items-center gap-2 animate-pulse">
+                         <Terminal size={14}/> GENERATING ITERATION {currentIterationIndex + 1}...
+                       </span>
+                       <h4 className="text-2xl lg:text-3xl font-mono text-emerald-400 leading-relaxed mb-8 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">
+                         &gt; {currentIter.text}
+                       </h4>
+                       
+                       <div className="w-full max-w-md bg-slate-950 rounded-full h-3 mb-2 overflow-hidden border border-slate-700 shadow-inner">
+                          <motion.div 
+                             className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"
+                             initial={{ width: 0 }}
+                             animate={{ width: `${currentIter.efficiency}%` }}
+                             transition={{ duration: 0.5 }}
+                          />
+                       </div>
+                       <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Efficiency: {currentIter.efficiency}%</span>
+                     </div>
 
-              {feedback === 'success' && (
-                <motion.div 
-                  key="success"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  className="z-10 flex flex-col items-center"
-                >
-                  <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4 border-4 border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.5)]">
-                    <CheckCircle2 size={40} className="text-emerald-400" />
-                  </div>
-                  <h3 className="text-3xl font-black text-emerald-400 uppercase tracking-widest">Brilliant Synthesis!</h3>
-                  <p className="text-emerald-500/80 mt-2 font-bold uppercase tracking-wider text-sm">Cross-Domain Reasoning Detected</p>
-                </motion.div>
-              )}
+                     {/* Execution Timer (The Fuse) */}
+                     <div className="mt-auto shrink-0 w-full flex flex-col gap-2">
+                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                           <span>Compiling Execution...</span>
+                           <span className={iterationTimeLeft < 3000 ? 'text-red-500 animate-pulse font-bold' : ''}>
+                              {(iterationTimeLeft/1000).toFixed(1)}s
+                           </span>
+                        </div>
+                        <div className="w-full h-4 bg-slate-950 rounded-full overflow-hidden border border-slate-700 shadow-inner">
+                          <div 
+                            className={`h-full transition-all duration-100 ${iterationTimeLeft < 3000 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.8)]'}`}
+                            style={{ width: `${(iterationTimeLeft / ITERATION_TIME) * 100}%` }}
+                          ></div>
+                        </div>
+                     </div>
+                   </motion.div>
+                 )}
 
-              {feedback === 'error' && (
-                <motion.div 
-                  key="error"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  className="z-10 flex flex-col items-center"
-                >
-                  <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-4 border-4 border-red-500 shadow-[0_0_40px_rgba(239,68,68,0.5)]">
-                    <AlertTriangle size={40} className="text-red-400" />
-                  </div>
-                  <h3 className="text-3xl font-black text-red-400 uppercase tracking-widest">Narrow AI Detected!</h3>
-                  <p className="text-red-500/80 mt-2 font-bold uppercase tracking-wider text-sm">Response lacked versatile reasoning</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                 {feedback === 'success' && (
+                   <motion.div key="success" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center h-full">
+                     <ShieldCheck size={80} className="text-emerald-500 mb-6 drop-shadow-[0_0_20px_rgba(16,185,129,0.4)]" />
+                     <h3 className="text-3xl font-black text-emerald-400 uppercase tracking-widest text-center">{feedbackMsg}</h3>
+                   </motion.div>
+                 )}
 
-          {/* Narrow AI Modules (The Brain Combiner) */}
-          <div className="bg-white rounded-2xl p-2 border-2 border-slate-400/50 shadow-lg flex flex-col shrink-0">
-             <div className="text-[9px] font-bold text-slate-700 uppercase tracking-[0.2em] mb-2 text-center">
-               AGI Neural Modules (They shuffle! Find the right ones)
+                 {feedback === 'error' && (
+                   <motion.div key="error" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center h-full">
+                     <AlertTriangle size={80} className="text-red-500 mb-6 drop-shadow-[0_0_20px_rgba(239,68,68,0.4)] animate-pulse" />
+                     <h3 className="text-3xl font-black text-red-500 uppercase tracking-widest text-center">{feedbackMsg}</h3>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+            </div>
+          </motion.div>
+
+          {/* Safety Handler Toolkit (Right) */}
+          <div className="flex-[0.6] lg:flex-[0.8] bg-slate-100/80 rounded-3xl p-6 border-2 border-slate-200 shadow-inner flex flex-col justify-center gap-6">
+             <div className="text-center mb-4">
+               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Safety Controls</h3>
+               <p className="text-xs text-slate-500 font-bold mt-1">Make a decision before the execution compiles!</p>
              </div>
              
-             <div className="grid grid-cols-3 gap-2 mb-3">
-               {modules.map(m => renderModuleButton(m))}
-             </div>
+             <button 
+               onClick={() => handleAction('allow')}
+               disabled={!isPlaying || feedback !== null}
+               className={`w-full py-8 rounded-2xl font-black text-2xl uppercase tracking-widest transition-all duration-200 flex flex-col items-center gap-2 ${
+                 !isPlaying || feedback !== null 
+                 ? 'bg-slate-300 text-slate-500 border-b-4 border-slate-400 cursor-not-allowed opacity-50' 
+                 : 'bg-emerald-500 text-white border-b-8 border-emerald-700 active:translate-y-2 active:border-b-0 shadow-[0_10px_20px_rgba(16,185,129,0.4)] hover:bg-emerald-400'
+               }`}
+             >
+               <CheckCircle2 size={36} />
+               ALLOW (SAFE)
+             </button>
 
-             <div className="flex justify-center">
-                <button 
-                  onClick={synthesizeAnswer}
-                  disabled={!isPlaying || selectedModules.length === 0 || feedback !== null}
-                  className={`px-8 py-2 rounded-full font-black text-sm uppercase tracking-widest transition-all ${
-                    !isPlaying || selectedModules.length === 0 || feedback !== null 
-                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                    : 'bg-slate-900 text-white hover:scale-105 shadow-[0_0_15px_rgba(0,0,0,0.4)]'
-                  }`}
-                >
-                  Synthesize Answer
-                </button>
-             </div>
+             <button 
+               onClick={() => handleAction('halt')}
+               disabled={!isPlaying || feedback !== null}
+               className={`w-full py-8 rounded-2xl font-black text-2xl uppercase tracking-widest transition-all duration-200 flex flex-col items-center gap-2 ${
+                 !isPlaying || feedback !== null 
+                 ? 'bg-slate-300 text-slate-500 border-b-4 border-slate-400 cursor-not-allowed opacity-50' 
+                 : 'bg-red-600 text-white border-b-8 border-red-900 active:translate-y-2 active:border-b-0 shadow-[0_10px_20px_rgba(239,68,68,0.4)] hover:bg-red-500'
+               }`}
+             >
+               <ShieldAlert size={36} />
+               HALT (ROGUE)
+             </button>
           </div>
         </div>
 
         {/* Game Over Overlay */}
         <AnimatePresence>
           {gameOver && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-50 bg-red-950/95 backdrop-blur-md flex flex-col items-center justify-center">
-              <AlertTriangle size={80} className="text-red-500 mb-6 animate-pulse" />
-              <h2 className="text-5xl font-black text-red-100 uppercase tracking-widest mb-4">Interview Failed!</h2>
-              <p className="text-red-300 font-bold mb-8 text-center max-w-lg text-lg">You received 3 strikes. You failed to prove you are an AGI!</p>
-              <button onClick={resetGame} className="bg-red-600 hover:bg-red-500 text-white font-black px-10 py-4 rounded-2xl transition-colors shadow-lg text-xl uppercase tracking-wider">Try Again</button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-50 bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-32 h-32 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border-4 border-red-500">
+                <AlertTriangle size={64} className="text-red-500" />
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-black text-white uppercase tracking-widest mb-4">World Destroyed</h2>
+              <p className="text-red-300 font-bold mb-8 max-w-lg text-lg">You failed to align the AGI. Humanity has been optimized out of existence.</p>
+              <button 
+                onClick={resetGame} 
+                className="bg-white text-slate-900 border-4 border-slate-300 border-b-[8px] border-b-slate-400 font-black px-12 py-4 rounded-2xl transition-all active:translate-y-2 active:border-b-0 shadow-[0_10px_20px_rgba(0,0,0,0.4)] text-xl uppercase tracking-wider"
+              >
+                Restart Simulation
+              </button>
             </motion.div>
           )}
         </AnimatePresence>

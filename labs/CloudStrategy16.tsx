@@ -1,387 +1,558 @@
+// This file is auto-generated. Do not edit directly.
 "use client";
-
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { useLabAudio } from "@/hooks/useLabAudio";
-import Celebration from "@/components/Celebration";
+import React, { useState, useEffect } from 'react';
+import { useLMSBridge } from "@/hooks/useLMSBridge";
 import LabShell from "@/components/LabShell";
+import Celebration from "@/components/Celebration";
+import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { 
-  Building2, Cloud, DollarSign, TrendingDown, TrendingUp, AlertTriangle, PlayCircle, Clock, Smartphone, Gamepad2, HardDrive
-} from "lucide-react";
+    Users, Package, Cloud, AlertTriangle, Globe, Lock, ArrowRight, TrendingUp, Info, Building2, MessageSquareWarning
+} from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
 
-// The 6 Market Events (20 seconds each)
-const EVENTS = [
-  { id: 1, title: "The Old Ways", desc: "Legacy software is selling well. Cloud is unproven.", 
-    rates: { legacy: 20000, azure: -5000, mobile: 0, xbox: -5000 } },
-  { id: 2, title: "The Mobile Boom!", desc: "Smartphones explode in popularity! Everyone wants mobile apps.", 
-    rates: { legacy: 5000, azure: 0, mobile: 25000, xbox: 0 } },
-  { id: 3, title: "Cloud Shift", desc: "Enterprises start moving data to the Cloud. Legacy sales plunge.", 
-    rates: { legacy: -5000, azure: 25000, mobile: 5000, xbox: 0 } },
-  { id: 4, title: "Xbox Craze", desc: "A new console generation launches! Gamers want cloud streaming.", 
-    rates: { legacy: -10000, azure: 10000, mobile: 0, xbox: 30000 } },
-  { id: 5, title: "The Open Source Wars", desc: "Developers abandon closed systems. We must scale Azure globally.", 
-    rates: { legacy: -15000, azure: 30000, mobile: 5000, xbox: -5000 } },
-  { id: 6, title: "Cloud Dominance", desc: "The final push. Azure is printing money. Legacy is dead.", 
-    rates: { legacy: -20000, azure: 40000, mobile: 10000, xbox: 0 } },
-];
+const STARTING_CASH = 100;
+const OPEX = 100;
+const TOTAL_ENGINEERS = 10;
+const MARKET_SHOCK_QUARTER = 5;
+const INTEROP_QUARTER = 9;
+const MAX_QUARTERS = 12;
 
-const TOTAL_TIME_MS = 120000;
-const EVENT_DUR_MS = 20000;
-const TICK_MS = 100; // UI refresh rate
-const BURN_RATE_PER_SEC = 1000000; // $1M burn rate per sec
-const START_CAP = 10000000; // $10M
-
-type Sector = 'legacy' | 'azure' | 'mobile' | 'xbox';
+// --- PREMIUM ANIMATED NUMBER COMPONENT ---
+function AnimatedNumber({ value, prefix = "", suffix = "" }: { value: number, prefix?: string, suffix?: string }) {
+    const spring = useSpring(value, { bounce: 0, duration: 800 });
+    const display = useTransform(spring, (current) => `${prefix}${Math.round(current)}${suffix}`);
+    
+    useEffect(() => {
+        spring.set(value);
+    }, [value, spring]);
+    
+    return <motion.span>{display}</motion.span>;
+}
 
 export default function CloudStrategy16() {
-  const { playClick, playPop, playSuccess, playError, playZap } = useLabAudio();
+    const { reportComplete } = useLMSBridge();
+    
+    const [quarter, setQuarter] = useState(1);
+    const [cash, setCash] = useState(STARTING_CASH);
+    const [cloudRecurring, setCloudRecurring] = useState(0);
+    const [history, setHistory] = useState([
+        { quarter: 0, Legacy: 100, Cloud: 0, Total: 100 }
+    ]);
+    
+    // Unassigned engineers in the pool
+    const [pool, setPool] = useState(TOTAL_ENGINEERS);
+    // Engineers assigned this turn
+    const [assignedLegacy, setAssignedLegacy] = useState(0);
+    const [assignedCloud, setAssignedCloud] = useState(0);
 
-  // Game State
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(TOTAL_TIME_MS);
-  const [marketCap, setMarketCap] = useState(START_CAP);
-  
-  const [teams, setTeams] = useState<Record<Sector, number>>({ legacy: 100, azure: 0, mobile: 0, xbox: 0 });
-  const [unallocated, setUnallocated] = useState(0);
-  
-  const [gameOver, setGameOver] = useState(false);
-  const [win, setWin] = useState(false);
+    // Pedagogical States
+    const [showIntro, setShowIntro] = useState(true);
+    const [isBankrupt, setIsBankrupt] = useState(false);
+    const [isTimeUp, setIsTimeUp] = useState(false);
+    const [bankruptReason, setBankruptReason] = useState("");
+    const [boardMemo, setBoardMemo] = useState<string | null>(null);
 
-  // History for Chart (recorded every 1 second)
-  const [history, setHistory] = useState<{t: number, cap: number}[]>([{ t: TOTAL_TIME_MS, cap: START_CAP }]);
+    const [showShock, setShowShock] = useState(false);
+    const [showInterop, setShowInterop] = useState(false);
+    const [isVictorious, setIsVictorious] = useState(false);
+    
+    const [marketShockActive, setMarketShockActive] = useState(false);
+    const [interopMultiplier, setInteropMultiplier] = useState(1);
 
-  const eventIndex = Math.min(5, Math.floor((TOTAL_TIME_MS - timeLeft) / EVENT_DUR_MS));
-  const currentEvent = EVENTS[eventIndex];
+    // Current yields
+    const legacyYieldPerEng = marketShockActive ? 5 : 12;
+    const cloudYieldPerEng = 3 * interopMultiplier;
 
-  // Current Net Flow per second
-  const revPerSec = 
-    (teams.legacy * currentEvent.rates.legacy) +
-    (teams.azure * currentEvent.rates.azure) +
-    (teams.mobile * currentEvent.rates.mobile) +
-    (teams.xbox * currentEvent.rates.xbox);
-  const netFlowPerSec = revPerSec - BURN_RATE_PER_SEC;
-  
-  // Refs to avoid stale closures in setInterval
-  const stateRef = useRef({ timeLeft, marketCap, isPlaying, gameOver, win, netFlowPerSec });
-  useEffect(() => {
-    stateRef.current = { timeLeft, marketCap, isPlaying, gameOver, win, netFlowPerSec };
-  }, [timeLeft, marketCap, isPlaying, gameOver, win, netFlowPerSec]);
+    const isGameOver = isVictorious || isBankrupt || isTimeUp;
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+    // Derived Financials for this turn (previews)
+    const currentLegacyRevenue = assignedLegacy * legacyYieldPerEng;
+    const currentCloudRevenue = cloudRecurring + (assignedCloud * cloudYieldPerEng);
+    const projectedTotalRevenue = currentLegacyRevenue + currentCloudRevenue;
+    const netProfit = projectedTotalRevenue - OPEX;
+    const projectedCash = cash + netProfit;
+    
+    const legacyMultiplier = 2;
+    const cloudMultiplier = 15;
+    const projectedMarketCap = (currentLegacyRevenue * legacyMultiplier) + (currentCloudRevenue * cloudMultiplier);
 
-  useEffect(() => {
-    if (isPlaying && !gameOver && !win) {
-      timerRef.current = setInterval(() => {
-        const { timeLeft: t, marketCap: cap, netFlowPerSec: flow, isPlaying: playing } = stateRef.current;
+    // Display Values (Freeze if game over)
+    const lastHistory = history[history.length - 1];
+    const displayCash = isGameOver ? cash : projectedCash;
+    const displayProfit = isGameOver ? (lastHistory.Total - OPEX) : netProfit;
+    const displayTotalRev = isGameOver ? lastHistory.Total : projectedTotalRevenue;
+    const displayMarketCap = isGameOver ? ((lastHistory.Legacy * legacyMultiplier) + (lastHistory.Cloud * cloudMultiplier)) : projectedMarketCap;
+    
+    // Freeze individual zones
+    const displayLegacyRev = isGameOver ? lastHistory.Legacy : currentLegacyRevenue;
+    const displayCloudRev = isGameOver ? lastHistory.Cloud : currentCloudRevenue;
+
+    const advanceQuarter = () => {
+        if (pool > 0) {
+            alert("Assign all engineers before advancing the quarter!");
+            return;
+        }
+
+        const newLegacyRev = assignedLegacy * legacyYieldPerEng;
+        const newCloudAdded = assignedCloud * cloudYieldPerEng;
+        const newCloudRev = cloudRecurring + newCloudAdded;
         
-        if (!playing) return;
+        const newTotalRev = newLegacyRev + newCloudRev;
+        const newCash = cash + newTotalRev - OPEX;
+        const newMarketCap = (newLegacyRev * legacyMultiplier) + (newCloudRev * cloudMultiplier);
 
-        const newTime = t - TICK_MS;
-        const newCap = cap + (flow * (TICK_MS / 1000));
+        setHistory(prev => [...prev, {
+            quarter: quarter,
+            Legacy: newLegacyRev,
+            Cloud: newCloudRev,
+            Total: newTotalRev
+        }]);
 
-        if (newTime <= 0) {
-          // Game over win
-          setMarketCap(newCap);
-          setTimeLeft(0);
-          setIsPlaying(false);
-          setHistory(prev => [...prev, { t: 0, cap: newCap }]);
-          if (newCap > 0) {
-            setWin(true);
-            if (playSuccess) playSuccess();
-          } else {
-            setGameOver(true);
-            if (playError) playError();
-          }
-        } else if (newCap <= 0) {
-          // Bankrupt early
-          setMarketCap(0);
-          setTimeLeft(newTime);
-          setIsPlaying(false);
-          setGameOver(true);
-          setHistory(prev => [...prev, { t: newTime, cap: 0 }]);
-          if (playError) playError();
-        } else {
-          setTimeLeft(newTime);
-          setMarketCap(newCap);
-          // record history every second (t % 1000 === 0)
-          if (newTime % 1000 === 0) {
-            setHistory(prev => [...prev, { t: newTime, cap: newCap }]);
-          }
+        setCash(newCash);
+        setCloudRecurring(newCloudRev);
+        setQuarter(q => q + 1);
+        
+        // Smart Bankruptcy Analysis
+        if (newCash < 0) {
+            if (newLegacyRev < 40 && newCloudRev < 30) {
+                setBankruptReason("You pivoted too fast! Cloud subscriptions build slowly. You must keep enough engineers on Legacy software to generate the immediate cash needed to survive the transition.");
+            } else {
+                setBankruptReason("You ignored the future! When the market shifted to Mobile/Cloud, our boxed sales collapsed and you had no recurring Cloud revenue to save us.");
+            }
+            setIsBankrupt(true);
+            return; // Game Over: Do not reset engineers!
         }
 
-      }, TICK_MS);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+        // Win Condition
+        if (newMarketCap >= 1000 && !isVictorious) {
+            setIsVictorious(true);
+            reportComplete({ labId: "cloudstrategy16", points: 100 });
+            return; // Game Over: Do not reset engineers!
+        }
+
+        // Time Limit Failure
+        if (quarter >= MAX_QUARTERS) {
+            setIsTimeUp(true);
+            return; // Game Over: Do not reset engineers!
+        }
+
+        // If game continues, reset pool for next turn
+        setPool(TOTAL_ENGINEERS);
+        setAssignedLegacy(0);
+        setAssignedCloud(0);
+
+        // Trigger Pedagogical Events & Memos
+        setBoardMemo(null); // Clear old memo
+        if (quarter === 2 && newCloudRev === 0) {
+            setBoardMemo("The Board is concerned about our lack of Cloud infrastructure. Competitors are moving fast.");
+        } else if (quarter === 3 && newLegacyRev < 50) {
+            setBoardMemo("Warning: We are burning cash rapidly. Don't forget that Legacy sales fund our future!");
+        }
+
+        if (quarter + 1 === MARKET_SHOCK_QUARTER) {
+            setShowShock(true);
+            setMarketShockActive(true);
+        } else if (quarter + 1 === INTEROP_QUARTER) {
+            setShowInterop(true);
+        }
     };
-  }, [isPlaying, gameOver, win]);
 
-  const adjustTeams = (sector: Sector, amount: number) => {
-    if (!isPlaying) return;
-    
-    setTeams(prev => {
-      const current = prev[sector];
-      const newAmount = current + amount;
-      
-      if (amount > 0) {
-        // trying to add
-        if (unallocated >= amount) {
-          setUnallocated(u => u - amount);
-          return { ...prev, [sector]: newAmount };
+    const handleAssign = (type: 'legacy' | 'cloud') => {
+        if (pool > 0) {
+            setPool(p => p - 1);
+            if (type === 'legacy') setAssignedLegacy(l => l + 1);
+            if (type === 'cloud') setAssignedCloud(c => c + 1);
         }
-      } else {
-        // trying to subtract
-        if (current >= Math.abs(amount)) {
-          setUnallocated(u => u + Math.abs(amount));
-          return { ...prev, [sector]: newAmount };
+    };
+
+    const handleUnassign = (type: 'legacy' | 'cloud', e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (type === 'legacy' && assignedLegacy > 0) {
+            setAssignedLegacy(l => l - 1);
+            setPool(p => p + 1);
         }
-      }
-      return prev;
-    });
-    if (playClick) playClick();
-  };
+        if (type === 'cloud' && assignedCloud > 0) {
+            setAssignedCloud(c => c - 1);
+            setPool(p => p + 1);
+        }
+    };
 
-  const startGame = () => {
-    if (playClick) playClick();
-    setIsPlaying(true);
-  };
-
-  const resetGame = () => {
-    setTimeLeft(TOTAL_TIME_MS);
-    setMarketCap(START_CAP);
-    setTeams({ legacy: 100, azure: 0, mobile: 0, xbox: 0 });
-    setUnallocated(0);
-    setHistory([{ t: TOTAL_TIME_MS, cap: START_CAP }]);
-    setGameOver(false);
-    setWin(false);
-    setIsPlaying(false);
-    if (playPop) playPop();
-  };
-
-  // SVG Chart Generator
-  const renderChartLine = () => {
-    if (history.length === 0) return null;
-    const maxVal = Math.max(...history.map(h => h.cap), START_CAP) * 1.1; 
-    
-    let path = `M 0 ${100 - (history[0].cap / maxVal) * 100} `;
-    for (let i = 1; i < history.length; i++) {
-      const x = ((TOTAL_TIME_MS - history[i].t) / TOTAL_TIME_MS) * 100;
-      const y = 100 - (Math.max(0, history[i].cap) / maxVal) * 100;
-      path += `L ${x} ${y} `;
-    }
-    
-    // Add current live point
-    const currX = ((TOTAL_TIME_MS - timeLeft) / TOTAL_TIME_MS) * 100;
-    const currY = 100 - (Math.max(0, marketCap) / maxVal) * 100;
-    path += `L ${currX} ${currY} `;
+    const resetGame = () => {
+        setQuarter(1);
+        setCash(STARTING_CASH);
+        setCloudRecurring(0);
+        setHistory([{ quarter: 0, Legacy: 100, Cloud: 0, Total: 100 }]);
+        setPool(TOTAL_ENGINEERS);
+        setAssignedLegacy(0);
+        setAssignedCloud(0);
+        setIsBankrupt(false);
+        setIsTimeUp(false);
+        setShowShock(false);
+        setShowInterop(false);
+        setIsVictorious(false);
+        setMarketShockActive(false);
+        setInteropMultiplier(1);
+        setShowIntro(true);
+        setBoardMemo(null);
+    };
 
     return (
-      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 overflow-visible">
-        <path d={path} fill="none" stroke="#34d399" strokeWidth="2.5" vectorEffect="non-scaling-stroke" style={{ filter: 'drop-shadow(0px 0px 4px rgba(52,211,153,0.5))' }} />
-        <circle cx={currX} cy={currY} r="2" fill="#fff" style={{ filter: 'drop-shadow(0px 0px 5px rgba(255,255,255,1))' }} />
-      </svg>
-    );
-  };
+        <LabShell labId="cloudstrategy16"
+            title="Cloud Strategy Tycoon"
+            instruction="Cannibalize your legacy business to survive the mobile/cloud disruption."
+            compact={true}
+            bgOverride="bg-slate-200"
+            onReset={resetGame}
+        >
+            <div className="flex flex-col h-full bg-slate-50 p-2 gap-2 overflow-hidden relative rounded-xl border border-slate-300 shadow-inner">
+                
+                {/* Board Memo Toast */}
+                <AnimatePresence>
+                    {boardMemo && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: -50 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -50 }}
+                            className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-amber-100 border border-amber-300 text-amber-800 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide max-w-[90%] text-center"
+                        >
+                            <MessageSquareWarning size={14} />
+                            {boardMemo}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+                
+                {/* 1. PREMIUM HEADER METRICS (Fintech Typography) */}
+                <div className="grid grid-cols-4 gap-2 shrink-0">
+                    <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col justify-center shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 bg-red-100 text-red-600 text-[8px] font-black px-2 py-0.5 rounded-bl-lg tracking-widest border-l border-b border-red-200">DEADLINE: Y3 Q4</div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Time</span>
+                        <span className="text-2xl font-black text-slate-800 tracking-tighter leading-none mt-1">
+                            Y{Math.ceil(quarter/4)} Q{((quarter-1)%4)+1}
+                        </span>
+                    </div>
+                    <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col justify-center shadow-sm relative overflow-hidden">
+                        <div className={`absolute bottom-0 left-0 w-full h-1 ${displayCash < 0 ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                        <div className="flex justify-between items-start">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Cash Reserve</span>
+                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${displayProfit >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                {displayProfit >= 0 ? '+' : ''}{displayProfit}M {displayProfit >= 0 ? 'PROFIT' : 'BURN'}
+                            </span>
+                        </div>
+                        <span className={`text-2xl font-black tracking-tighter leading-none mt-1 ${displayCash < 0 ? 'text-red-600' : 'text-slate-800'}`}>
+                            <AnimatedNumber value={displayCash} prefix="$" suffix="M" />
+                        </span>
+                    </div>
+                    <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col justify-center shadow-sm">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Rev</span>
+                        <span className="text-2xl font-black text-slate-800 tracking-tighter leading-none mt-1">
+                            <AnimatedNumber value={displayTotalRev} prefix="$" suffix="M" />
+                        </span>
+                    </div>
+                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-3 flex flex-col justify-center shadow-sm relative overflow-hidden">
+                        <div className="absolute right-[-10px] top-[-10px] opacity-10">
+                            <TrendingUp size={60} className="text-indigo-600" />
+                        </div>
+                        <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest relative z-10">Market Cap</span>
+                        <span className="text-2xl font-black text-indigo-700 tracking-tighter leading-none mt-1 relative z-10">
+                            <AnimatedNumber value={displayMarketCap} prefix="$" suffix="M" />
+                        </span>
+                    </div>
+                </div>
 
-  return (
-    <LabShell
-      labId="cloudstrategy16"
-      title="Cloud Strategy Tycoon"
-      subtitle="Real-Time Resource Allocator"
-      theme="studio"
-      compact={true}
-      onReset={resetGame}
-      instruction="1. Analyze the corporate tech pivot scenario and available budget. 2. Make strategic decisions to allocate resources between on-premise and cloud infrastructure. 3. Monitor the company's performance, scalability, and costs over the simulated quarters. 4. Adjust your strategy to maximize profit and ensure system reliability."
-    >
-      <Celebration isActive={win} onReplay={resetGame} message="You successfully shifted engineers to capture market trends and kept the company profitable!" />
+                {/* 2. DYNAMIC CHART (Recharts) */}
+                <div className="h-40 bg-white border border-slate-200 rounded-xl p-2 shrink-0 shadow-sm relative">
+                    <div className="absolute top-2 left-4 text-[9px] font-bold text-slate-400 uppercase tracking-widest z-10">Revenue Trend</div>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={history} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorLegacy" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.4}/>
+                                    <stop offset="95%" stopColor="#94a3b8" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorCloud" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.6}/>
+                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="quarter" tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+                            <YAxis tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+                            <Tooltip 
+                                contentStyle={{fontSize: '12px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                                itemStyle={{fontWeight: 'bold'}}
+                            />
+                            <ReferenceLine y={OPEX} stroke="#ef4444" strokeDasharray="4 4" label={{ position: 'insideTopLeft', value: 'OPEX', fill: '#ef4444', fontSize: 9, fontWeight: 'bold' }} />
+                            <Area type="monotone" dataKey="Legacy" stackId="2" stroke="#94a3b8" strokeWidth={2} fill="url(#colorLegacy)" isAnimationActive={true} />
+                            <Area type="monotone" dataKey="Cloud" stackId="1" stroke="#6366f1" strokeWidth={3} fill="url(#colorCloud)" isAnimationActive={true} activeDot={{r: 6, strokeWidth: 0}} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
 
-      <div className="flex flex-col h-full w-full max-w-5xl mx-auto gap-3 p-2">
-        
-        {/* Top Dashboard */}
-        <div className="bg-white rounded-xl p-3 border-2 border-slate-400/50 shadow-lg flex justify-between items-center relative overflow-hidden">
-          
-          <div className="flex items-center gap-6 z-10">
-            <div>
-              <div className="text-[10px] font-bold text-slate-700 uppercase tracking-widest flex items-center gap-1"><Clock size={12}/> Time Left</div>
-              <div className="text-xl font-black text-slate-900 font-mono">
-                {(timeLeft / 1000).toFixed(1)}s
-              </div>
+                {/* 3. PHYSICAL METAPHOR ARENA */}
+                <div className="flex-1 flex gap-2 overflow-hidden">
+                    {/* LEGACY WAREHOUSE SHELF */}
+                    <div 
+                        className="flex-1 bg-white border border-slate-200 rounded-xl flex flex-col p-3 relative shadow-sm hover:border-slate-400 transition-colors cursor-pointer group"
+                        onClick={() => handleAssign('legacy')}
+                    >
+                        <div className="absolute top-0 right-0 bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-1 rounded-bl-lg tracking-widest border-l border-b border-slate-200 flex items-center gap-1 group/tooltip">
+                            2x MULTIPLE
+                            <Info size={10} className="text-slate-400" />
+                            {/* Educational Tooltip */}
+                            <div className="absolute top-full right-0 mt-1 w-48 bg-slate-800 text-white p-2 rounded-lg text-[9px] normal-case tracking-normal shadow-xl opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50">
+                                Boxed software is a one-time sale. Investors only value this revenue at a 2x multiple because it is unpredictable.
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className={`p-2 rounded-lg ${marketShockActive ? 'bg-red-50' : 'bg-slate-100'}`}>
+                                <Package size={20} className={marketShockActive ? 'text-red-500' : 'text-slate-500'} />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-slate-700 leading-tight">Legacy</h3>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wide">Boxed Licenses</p>
+                            </div>
+                        </div>
+                        
+                        {/* The Shelf Visual */}
+                        <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 overflow-hidden mb-2 flex items-center justify-center relative" onClick={(e) => handleUnassign('legacy', e)}>
+                            <div className="flex flex-wrap justify-center gap-1.5 w-full">
+                                <AnimatePresence>
+                                    {Array.from({ length: assignedLegacy }).map((_, i) => (
+                                        <motion.div
+                                            key={`leg-${i}`}
+                                            initial={{ scale: 0, y: -20 }}
+                                            animate={{ scale: 1, y: 0 }}
+                                            exit={{ scale: 0, opacity: 0 }}
+                                            className="w-7 h-7 sm:w-8 sm:h-8 bg-slate-200 rounded border border-slate-300 flex items-center justify-center shadow-sm group-hover:bg-slate-300 transition-colors"
+                                        >
+                                            <Package size={14} className="text-slate-500" />
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                            </div>
+                            {assignedLegacy === 0 && (
+                                <div className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-400 uppercase tracking-widest pointer-events-none">Tap to Assign</div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between items-end">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">This QTR</span>
+                            <span className="text-xl font-black text-slate-700 tracking-tighter">
+                                +<AnimatedNumber value={displayLegacyRev} prefix="$" suffix="M" />
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* CLOUD SERVER RACK */}
+                    <div 
+                        className="flex-1 bg-white border border-indigo-100 rounded-xl flex flex-col p-3 relative shadow-sm hover:border-indigo-400 transition-colors cursor-pointer group overflow-hidden"
+                        onClick={() => handleAssign('cloud')}
+                    >
+                        {/* Soft background glow */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-indigo-50/50 to-white pointer-events-none" />
+                        
+                        <div className="absolute top-0 right-0 bg-indigo-100 text-indigo-700 text-[9px] font-bold px-2 py-1 rounded-bl-lg tracking-widest border-l border-b border-indigo-100 z-20 flex items-center gap-1 group/tooltip">
+                            15x MULTIPLE
+                            <Info size={10} className="text-indigo-500" />
+                            {/* Educational Tooltip */}
+                            <div className="absolute top-full right-0 mt-1 w-48 bg-indigo-900 text-white p-2 rounded-lg text-[9px] normal-case tracking-normal shadow-xl opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-50">
+                                Cloud is a monthly subscription. Investors value recurring, predictable revenue 15 times higher than one-off sales!
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2 relative z-10">
+                            <div className="p-2 rounded-lg bg-indigo-100">
+                                <Cloud size={20} className="text-indigo-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-indigo-700 leading-tight">Cloud</h3>
+                                <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-wide">Subscriptions</p>
+                            </div>
+                        </div>
+                        
+                        {/* The Server Rack Visual */}
+                        <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-2 overflow-hidden mb-2 relative z-10 flex flex-col justify-end gap-1" onClick={(e) => handleUnassign('cloud', e)}>
+                            <div className="flex flex-col-reverse justify-start gap-1 h-full w-full">
+                                <AnimatePresence>
+                                    {Array.from({ length: assignedCloud }).map((_, i) => (
+                                        <motion.div
+                                            key={`cld-${i}`}
+                                            initial={{ x: -20, opacity: 0 }}
+                                            animate={{ x: 0, opacity: 1 }}
+                                            exit={{ x: 20, opacity: 0 }}
+                                            className="h-3 sm:h-4 w-full bg-slate-800 rounded border border-slate-700 flex items-center px-2 justify-between group-hover:bg-slate-700 transition-colors shrink-0"
+                                        >
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+                                            <div className="h-0.5 w-8 bg-slate-600 rounded-full" />
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                            </div>
+                            {assignedCloud === 0 && (
+                                <div className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-600 uppercase tracking-widest pointer-events-none">Tap to Assign</div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-between items-end relative z-10">
+                            <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Recurring</span>
+                            <span className="text-xl font-black text-indigo-600 tracking-tighter">
+                                <AnimatedNumber value={displayCloudRev} prefix="$" suffix="M" />
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. COMMAND DOCK (Engineer Pool & Advance) */}
+                <div className="bg-white border border-slate-200 rounded-xl p-2 shrink-0 flex gap-2 items-stretch shadow-sm z-20">
+                    {/* Engineer Tokens */}
+                    <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 flex flex-wrap gap-1.5 items-center justify-center relative">
+                        <AnimatePresence>
+                            {Array.from({ length: pool }).map((_, i) => (
+                                <motion.div
+                                    key={`pool-${i}`}
+                                    layout
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    exit={{ scale: 0 }}
+                                    className="w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center shadow-md"
+                                >
+                                    <Users size={12} />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                        {pool === 0 && (
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                All Assigned
+                            </span>
+                        )}
+                    </div>
+                    
+                    <button 
+                        onClick={advanceQuarter}
+                        disabled={pool > 0}
+                        className={`px-4 rounded-lg font-black text-white flex flex-col items-center justify-center transition-all relative ${
+                            pool > 0 ? 'bg-slate-300 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-400 shadow-md hover:shadow-lg active:scale-95'
+                        }`}
+                    >
+                        <div className="absolute -top-3 right-[-4px] bg-red-100 text-red-700 text-[8px] px-1.5 py-0.5 rounded-full border border-red-200 whitespace-nowrap shadow-sm z-30">
+                            -$100M OPEX
+                        </div>
+                        <span className="text-[10px] uppercase tracking-widest opacity-80 mb-0.5 mt-2">Advance</span>
+                        <ArrowRight size={20} />
+                    </button>
+                </div>
             </div>
-            
-            <div className="h-8 w-px bg-slate-700"></div>
-            
-            <div>
-              <div className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Market Cap</div>
-              <div className={`text-2xl font-black flex items-center gap-1 font-mono ${marketCap < 5000000 ? 'text-red-600 animate-pulse' : 'text-emerald-700'}`}>
-                <DollarSign size={20} /> {(marketCap / 1000000).toFixed(2)}M
-              </div>
-            </div>
-            
-            <div className="h-8 w-px bg-slate-700"></div>
 
-            <div>
-              <div className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Net Cash Flow</div>
-              <div className={`text-lg font-black flex items-center gap-1 font-mono ${netFlowPerSec < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
-                {netFlowPerSec < 0 ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
-                {netFlowPerSec < 0 ? '-' : '+'}${(Math.abs(netFlowPerSec) / 1000).toFixed(0)}k/s
-              </div>
-            </div>
-          </div>
+            {/* MODALS & SCAFFOLDING */}
+            <AnimatePresence>
+                {/* 1. ONBOARDING CEO BRIEFING */}
+                {showIntro && (
+                    <motion.div initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                        <motion.div initial={{scale: 0.9, y: 20}} animate={{scale: 1, y: 0}} className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200">
+                            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
+                                <Building2 size={24} className="text-indigo-600" />
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tighter">Welcome, CEO.</h2>
+                            <div className="text-slate-600 text-sm mb-6 space-y-3">
+                                <p>Our boxed software makes huge profits today, but the future is <strong>Cloud Subscriptions</strong>.</p>
+                                <p>Cloud revenue builds slowly but is valued at a massive <strong>15x Multiple</strong> by investors.</p>
+                                <p className="font-bold text-slate-800">Your Goal:</p>
+                                <ul className="list-disc pl-4 text-slate-700">
+                                    <li>Reassign engineers to build the Cloud.</li>
+                                    <li>Don't pivot too fast, or we'll run out of cash to pay OPEX!</li>
+                                    <li>Reach a $1,000M Market Cap before Year 4.</li>
+                                </ul>
+                            </div>
+                            <button onClick={() => setShowIntro(false)} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-400 transition-colors shadow-md">
+                                Begin Simulation
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
 
-          <div className="z-10 flex gap-2">
-            {!isPlaying && !gameOver && !win && (
-              <button onClick={startGame} className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold px-6 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-                <PlayCircle size={18} /> {timeLeft < TOTAL_TIME_MS ? "Resume" : "Start Simulation"}
-              </button>
-            )}
-            {(gameOver || win) && (
-              <button onClick={resetGame} className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold px-6 py-2 rounded-lg transition-colors">
-                Play Again
-              </button>
-            )}
-          </div>
-        </div>
+                {/* 2. SMART BANKRUPTCY MODAL */}
+                {isBankrupt && (
+                    <motion.div initial={{opacity: 0}} animate={{opacity: 1}} className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                        <motion.div initial={{scale: 0.9, y: 20}} animate={{scale: 1, y: 0}} className="bg-white p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+                            <AlertTriangle size={48} className="mx-auto text-red-500 mb-4" />
+                            <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tighter">Bankrupt!</h2>
+                            <p className="text-slate-600 text-sm mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                {bankruptReason}
+                            </p>
+                            <button onClick={resetGame} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition-colors shadow-md">
+                                Try Again
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
 
-        {/* Middle: The Financial Chart & Market News */}
-        <div className="flex-[0.6] flex gap-3 min-h-0">
-          
-          <div className="flex-1 bg-white rounded-xl border-2 border-slate-400/50 shadow-inner p-4 flex flex-col relative overflow-hidden">
-            <h2 className="text-[11px] font-black text-slate-900 uppercase tracking-widest mb-2 z-10 opacity-50">Market Cap Trajectory</h2>
-            <div className="flex-1 relative mx-4 mb-2 border-l border-b border-slate-400">
-              {[0, 25, 50, 75, 100].map(pct => (
-                <div key={pct} className="absolute w-full border-t border-slate-400/50" style={{ top: `${pct}%` }}></div>
-              ))}
-              <div className="absolute inset-0">
-                {renderChartLine()}
-              </div>
-            </div>
-          </div>
+                {/* 3. TIME UP MODAL */}
+                {isTimeUp && (
+                    <motion.div initial={{opacity: 0}} animate={{opacity: 1}} className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                        <motion.div initial={{scale: 0.9, y: 20}} animate={{scale: 1, y: 0}} className="bg-white p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+                            <AlertTriangle size={48} className="mx-auto text-orange-500 mb-4" />
+                            <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tighter">You Were Fired!</h2>
+                            <p className="text-slate-600 text-sm mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                3 Years have passed and you failed to reach a $1,000M Market Cap. By milking the legacy business for too long, you allowed competitors to dominate the Cloud.
+                            </p>
+                            <button onClick={resetGame} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition-colors shadow-md">
+                                Try Again
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
 
-          <div className="w-[300px] bg-white rounded-xl border-2 border-slate-400/50 shadow-lg p-4 flex flex-col">
-            <h2 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Live Market News</h2>
-            <AnimatePresence mode="wait">
-              <motion.div 
-                key={currentEvent.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="flex-1 flex flex-col justify-center"
-              >
-                <div className="text-sm font-bold text-sky-700 bg-sky-200 px-2 py-1 rounded inline-block w-fit mb-2 border border-sky-300">Alert #{currentEvent.id}</div>
-                <div className="text-xl font-black text-slate-900 mb-2 leading-tight">{currentEvent.title}</div>
-                <div className="text-xs text-slate-800">{currentEvent.desc}</div>
-              </motion.div>
+                {/* 4. MARKET SHOCK EVENT */}
+                {showShock && (
+                    <motion.div initial={{opacity: 0}} animate={{opacity: 1}} className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                        <motion.div initial={{scale: 0.9, y: 50}} animate={{scale: 1, y: 0}} transition={{type:"spring"}} className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl border-2 border-red-500">
+                            <TrendingUp size={48} className="mx-auto text-red-500 mb-4 rotate-180" />
+                            <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tighter text-center">Market Disruption!</h2>
+                            <p className="text-slate-600 text-sm mb-6 text-center">
+                                The industry is rapidly shifting to Mobile and Cloud! Demand for boxed Legacy Software has collapsed. 
+                                <br/><br/>
+                                <strong className="text-red-600 font-black bg-red-50 p-1 rounded">Legacy Engineers now generate 60% less revenue.</strong>
+                            </p>
+                            <button onClick={() => setShowShock(false)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-400 shadow-lg transition-colors">
+                                Acknowledge
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {/* 5. INTEROPERABILITY EVENT */}
+                {showInterop && (
+                    <motion.div initial={{opacity: 0}} animate={{opacity: 1}} className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                        <motion.div initial={{scale: 0.9, y: 20}} animate={{scale: 1, y: 0}} className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl border-2 border-indigo-500">
+                            <Globe size={48} className="mx-auto text-indigo-500 mb-4" />
+                            <h2 className="text-2xl font-black text-slate-800 mb-2 text-center tracking-tighter">Open the Ecosystem?</h2>
+                            <p className="text-slate-600 text-sm mb-6 text-center">
+                                Your cloud is growing, but it's restricted to MegaSoft devices. Competitors like Apple and Google are dominating mobile.
+                                Should we partner with them and make our Cloud services available on their hardware?
+                            </p>
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    onClick={() => { setInteropMultiplier(2); setShowInterop(false); }} 
+                                    className="w-full bg-indigo-500 text-white font-bold py-3 rounded-xl hover:bg-indigo-400 flex items-center justify-center gap-2 transition-colors shadow-md"
+                                >
+                                    <Globe size={18} /> Yes, Open the Cloud (2x Growth)
+                                </button>
+                                <button 
+                                    onClick={() => { setInteropMultiplier(0.8); setShowInterop(false); }} 
+                                    className="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 flex items-center justify-center gap-2 transition-colors border border-slate-200"
+                                >
+                                    <Lock size={18} /> No, Keep it Walled (Slower Growth)
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
             </AnimatePresence>
-            <div className="mt-auto pt-2 border-t border-slate-400 text-[10px] text-slate-700 font-mono">
-              Next trend in {((EVENT_DUR_MS - (TOTAL_TIME_MS - timeLeft) % EVENT_DUR_MS) / 1000).toFixed(0)}s
-            </div>
-          </div>
-          
-        </div>
-
-        {/* Bottom: Resource Allocator */}
-        <div className="flex-1 bg-white rounded-xl border-2 border-slate-400/50 shadow-lg p-4 flex flex-col min-h-0">
-          
-          <div className="flex justify-between items-end mb-4 border-b border-slate-400 pb-2">
-            <div>
-              <h2 className="text-lg font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                <Building2 className="text-sky-700"/> Engineering Allocation
-              </h2>
-              <p className="text-[11px] text-slate-700">Shift your 100 teams between divisions to capture market trends.</p>
-            </div>
-            <div className="bg-white border border-slate-400 px-4 py-2 rounded-lg text-center shadow-inner">
-              <div className="text-[9px] font-bold text-slate-700 uppercase">Unallocated Teams</div>
-              <div className={`text-2xl font-black font-mono ${unallocated > 0 ? 'text-amber-600 animate-pulse' : 'text-slate-700'}`}>{unallocated}</div>
-            </div>
-          </div>
-
-          <div className="flex-1 flex gap-4">
             
-            {/* Legacy Box */}
-            <div className="flex-1 bg-white rounded-xl border border-slate-400 p-3 flex flex-col items-center text-center relative overflow-hidden">
-              <HardDrive size={24} className="text-slate-700 mb-1" />
-              <div className="text-xs font-bold text-slate-800 uppercase">Legacy PC</div>
-              <div className={`text-[10px] font-mono mt-1 ${currentEvent.rates.legacy > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                {currentEvent.rates.legacy > 0 ? '+' : '-'}${Math.abs(currentEvent.rates.legacy / 1000)}k/sec per team
-              </div>
-              <div className="flex-1 w-full flex items-center justify-center">
-                <div className="text-4xl font-black font-mono text-slate-900">{teams.legacy}</div>
-              </div>
-              <div className="flex gap-2 w-full">
-                <button onClick={() => adjustTeams('legacy', -10)} disabled={teams.legacy < 10 || !isPlaying} className="flex-1 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 py-2 rounded font-black text-red-600">-10</button>
-                <button onClick={() => adjustTeams('legacy', 10)} disabled={unallocated < 10 || !isPlaying} className="flex-1 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 py-2 rounded font-black text-emerald-700">+10</button>
-              </div>
-            </div>
-
-            {/* Azure Box */}
-            <div className="flex-1 bg-white rounded-xl border border-slate-400 p-3 flex flex-col items-center text-center relative overflow-hidden">
-              <Cloud size={24} className="text-sky-700 mb-1" />
-              <div className="text-xs font-bold text-sky-700 uppercase">Azure Cloud</div>
-              <div className={`text-[10px] font-mono mt-1 ${currentEvent.rates.azure > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                {currentEvent.rates.azure > 0 ? '+' : '-'}${Math.abs(currentEvent.rates.azure / 1000)}k/sec per team
-              </div>
-              <div className="flex-1 w-full flex items-center justify-center">
-                <div className="text-4xl font-black font-mono text-sky-700">{teams.azure}</div>
-              </div>
-              <div className="flex gap-2 w-full">
-                <button onClick={() => adjustTeams('azure', -10)} disabled={teams.azure < 10 || !isPlaying} className="flex-1 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 py-2 rounded font-black text-red-600">-10</button>
-                <button onClick={() => adjustTeams('azure', 10)} disabled={unallocated < 10 || !isPlaying} className="flex-1 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 py-2 rounded font-black text-emerald-700">+10</button>
-              </div>
-            </div>
-
-            {/* Mobile Box */}
-            <div className="flex-1 bg-white rounded-xl border border-slate-400 p-3 flex flex-col items-center text-center relative overflow-hidden">
-              <Smartphone size={24} className="text-fuchsia-700 mb-1" />
-              <div className="text-xs font-bold text-fuchsia-700 uppercase">Mobile Apps</div>
-              <div className={`text-[10px] font-mono mt-1 ${currentEvent.rates.mobile > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                {currentEvent.rates.mobile > 0 ? '+' : '-'}${Math.abs(currentEvent.rates.mobile / 1000)}k/sec per team
-              </div>
-              <div className="flex-1 w-full flex items-center justify-center">
-                <div className="text-4xl font-black font-mono text-fuchsia-700">{teams.mobile}</div>
-              </div>
-              <div className="flex gap-2 w-full">
-                <button onClick={() => adjustTeams('mobile', -10)} disabled={teams.mobile < 10 || !isPlaying} className="flex-1 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 py-2 rounded font-black text-red-600">-10</button>
-                <button onClick={() => adjustTeams('mobile', 10)} disabled={unallocated < 10 || !isPlaying} className="flex-1 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 py-2 rounded font-black text-emerald-700">+10</button>
-              </div>
-            </div>
-
-            {/* Xbox Box */}
-            <div className="flex-1 bg-white rounded-xl border border-slate-400 p-3 flex flex-col items-center text-center relative overflow-hidden">
-              <Gamepad2 size={24} className="text-emerald-700 mb-1" />
-              <div className="text-xs font-bold text-emerald-700 uppercase">Xbox Cloud</div>
-              <div className={`text-[10px] font-mono mt-1 ${currentEvent.rates.xbox > 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                {currentEvent.rates.xbox > 0 ? '+' : '-'}${Math.abs(currentEvent.rates.xbox / 1000)}k/sec per team
-              </div>
-              <div className="flex-1 w-full flex items-center justify-center">
-                <div className="text-4xl font-black font-mono text-emerald-700">{teams.xbox}</div>
-              </div>
-              <div className="flex gap-2 w-full">
-                <button onClick={() => adjustTeams('xbox', -10)} disabled={teams.xbox < 10 || !isPlaying} className="flex-1 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 py-2 rounded font-black text-red-600">-10</button>
-                <button onClick={() => adjustTeams('xbox', 10)} disabled={unallocated < 10 || !isPlaying} className="flex-1 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 py-2 rounded font-black text-emerald-700">+10</button>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* Game Over / Win Overlays */}
-        <AnimatePresence>
-          {gameOver && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-50 bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center">
-              <AlertTriangle size={64} className="text-red-500 mb-4" />
-              <h2 className="text-4xl font-black text-red-100 uppercase tracking-widest mb-2">Bankrupt!</h2>
-              <p className="text-red-300 font-bold mb-6 text-center max-w-md">You failed to allocate resources quickly enough and your market cap hit zero.</p>
-              <div className="flex gap-4">
-                <button onClick={resetGame} className="bg-red-600 hover:bg-red-500 text-slate-900 font-bold px-8 py-3 rounded-xl transition-colors shadow-lg">Try Again</button>
-                <Link href="/labs" className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold px-8 py-3 rounded-xl transition-colors shadow-lg text-center flex items-center justify-center">All Labs</Link>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-      </div>
-    </LabShell>
-  );
+            <Celebration
+                isActive={isVictorious}
+                message="Incredible! You survived the Valley of Death, cannibalized your legacy business, and successfully transformed MegaSoft into a Cloud computing juggernaut!"
+                onReplay={resetGame}
+            />
+        </LabShell>
+    );
 }

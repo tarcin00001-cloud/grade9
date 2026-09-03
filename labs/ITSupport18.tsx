@@ -2,543 +2,501 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
 import { 
-  ShieldAlert, MailWarning, Usb, StickyNote, MonitorOff, AlertTriangle, PlayCircle, ShieldCheck, UserX,
-  Lock, Scissors, Ban, Plug, Server, Terminal, CheckCircle2
+  ShieldAlert, Shield, ShieldCheck, MailWarning, Usb, 
+  StickyNote, Unlock, Ban, Scissors, Lock, 
+  Monitor, Keyboard, Mouse, AlertTriangle, CheckCircle2,
+  Clock, Activity, HardDrive
 } from "lucide-react";
 
-type ThreatType = 'phishing' | 'usb' | 'password' | 'unlocked';
-type ToolType = 'blocker' | 'ejector' | 'shredder' | 'padlock' | null;
+type Phase = "intro" | "playing" | "feedback" | "game_over" | "success";
 
-interface Threat {
-  id: string;
-  deskIndex: number;
-  type: ThreatType;
+type ThreatType = "phishing" | "usb" | "password" | "unlocked";
+type ToolType = "network_blocker" | "port_ejector" | "data_shredder" | "screen_padlock";
+
+interface ThreatDef {
+  id: ThreatType;
+  name: string;
+  icon: any;
+  requiredTool: ToolType;
+  color: string;
+  bg: string;
+  description: string;
+  errorMsg: string;
+}
+
+const THREATS: Record<ThreatType, ThreatDef> = {
+  phishing: {
+    id: "phishing", name: "Phishing Email", icon: MailWarning, requiredTool: "network_blocker",
+    color: "text-amber-500", bg: "bg-amber-50",
+    description: "Employee clicked a suspicious link.",
+    errorMsg: "You can't use that on an email. Use the Network Blocker to kill the connection!"
+  },
+  usb: {
+    id: "usb", name: "Rogue USB", icon: Usb, requiredTool: "port_ejector",
+    color: "text-rose-500", bg: "bg-rose-50",
+    description: "Unknown USB plugged into tower.",
+    errorMsg: "Wrong tool! You must use the Port Ejector to disable the physical USB port!"
+  },
+  password: {
+    id: "password", name: "Exposed Password", icon: StickyNote, requiredTool: "data_shredder",
+    color: "text-orange-500", bg: "bg-orange-50",
+    description: "Password written on sticky note.",
+    errorMsg: "That's a physical piece of paper. Use the Data Shredder to destroy it!"
+  },
+  unlocked: {
+    id: "unlocked", name: "Unlocked Screen", icon: Unlock, requiredTool: "screen_padlock",
+    color: "text-indigo-500", bg: "bg-indigo-50",
+    description: "Employee walked away without locking.",
+    errorMsg: "The screen is physically unlocked. Use the Screen Padlock to secure the session!"
+  }
+};
+
+const TOOLS = [
+  { id: "network_blocker", name: "Network Blocker", icon: Ban, color: "text-amber-500" },
+  { id: "port_ejector", name: "Port Ejector", icon: Usb, color: "text-rose-500" },
+  { id: "data_shredder", name: "Data Shredder", icon: Scissors, color: "text-orange-500" },
+  { id: "screen_padlock", name: "Screen Padlock", icon: Lock, color: "text-indigo-500" }
+];
+
+interface Workstation {
+  id: number;
+  state: "idle" | "warning" | "breached" | "secured";
+  threat: ThreatType | null;
   timeLeft: number;
   maxTime: number;
 }
 
-const TOTAL_TIME_MS = 120000; 
-const TICK_MS = 100;
+const SHIFT_DURATION = 60; // 60 seconds to survive
 const MAX_STRIKES = 3;
+const BASE_THREAT_TIME = 80; // Ticks (approx 8 seconds)
 
-// Tool matching logic
-const getCorrectTool = (threat: ThreatType): ToolType => {
-  switch (threat) {
-    case 'phishing': return 'blocker';
-    case 'usb': return 'ejector';
-    case 'password': return 'shredder';
-    case 'unlocked': return 'padlock';
-  }
-};
+export default function ItSupport18() {
+  const { reportComplete } = useLMSBridge("itsupport18");
+  const { playPop, playSuccess, playError, playZap } = useLabAudio();
 
-export default function ITSupport18() {
-  const { playClick, playPop, playSuccess, playError, playZap } = useLabAudio();
-
-  // Game State
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(TOTAL_TIME_MS);
+  const [phase, setPhase] = useState<Phase>("intro");
+  const [timeRemaining, setTimeRemaining] = useState(SHIFT_DURATION);
   const [strikes, setStrikes] = useState(0);
-  const [score, setScore] = useState(0);
-  const [threats, setThreats] = useState<Threat[]>([]);
+  const [intercepts, setIntercepts] = useState(0);
   
-  // New Mechanics State
-  const [selectedTool, setSelectedTool] = useState<ToolType>(null);
-  const [serverStatus, setServerStatus] = useState<'healthy' | 'patch_required' | 'vulnerable'>('healthy');
-  const [patchCode, setPatchCode] = useState<string>("----");
-  const [enteredCode, setEnteredCode] = useState<string>("");
-  const [patchTimeLeft, setPatchTimeLeft] = useState<number>(0);
-  const [serverMessage, setServerMessage] = useState<string>("");
-
-  const [gameOver, setGameOver] = useState(false);
-  const [win, setWin] = useState(false);
-
-  // Refs for loop
-  const stateRef = useRef({ 
-    timeLeft, isPlaying, gameOver, win, threats, strikes, 
-    serverStatus, patchTimeLeft 
-  });
+  const [activeTool, setActiveTool] = useState<ToolType | null>(null);
+  const [feedback, setFeedback] = useState<{msg: string, type: 'error'|'success', active: boolean}>({ msg: "", type: "error", active: false });
   
-  useEffect(() => {
-    stateRef.current = { 
-      timeLeft, isPlaying, gameOver, win, threats, strikes,
-      serverStatus, patchTimeLeft
-    };
-  }, [timeLeft, isPlaying, gameOver, win, threats, strikes, serverStatus, patchTimeLeft]);
+  const [workstations, setWorkstations] = useState<Workstation[]>([
+    { id: 1, state: "idle", threat: null, timeLeft: 0, maxTime: 0 },
+    { id: 2, state: "idle", threat: null, timeLeft: 0, maxTime: 0 },
+    { id: 3, state: "idle", threat: null, timeLeft: 0, maxTime: 0 },
+    { id: 4, state: "idle", threat: null, timeLeft: 0, maxTime: 0 },
+  ]);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // Game Loop Ref
+  const tickRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Spawn timing logic
-  const lastThreatSpawnRef = useRef<number>(TOTAL_TIME_MS);
-  const lastServerAlarmRef = useRef<number>(TOTAL_TIME_MS);
-
-  useEffect(() => {
-    if (isPlaying && !gameOver && !win) {
-      timerRef.current = setInterval(() => {
-        const state = stateRef.current;
-        if (!state.isPlaying) return;
-
-        const newTime = state.timeLeft - TICK_MS;
-
-        if (newTime <= 0) {
-          setTimeLeft(0);
-          setIsPlaying(false);
-          setWin(true);
-          if (playSuccess) playSuccess();
-          return;
-        }
-
-        // Threat Updates
-        let newStrikes = state.strikes;
-        const updatedThreats = state.threats.map(t => ({ ...t, timeLeft: t.timeLeft - TICK_MS }))
-          .filter(t => {
-            if (t.timeLeft <= 0) {
-              newStrikes++;
-              if (playError) playError();
-              return false;
-            }
-            return true;
-          });
-
-        if (newStrikes >= MAX_STRIKES) {
-          setStrikes(newStrikes);
-          setTimeLeft(newTime);
-          setThreats(updatedThreats);
-          setIsPlaying(false);
-          setGameOver(true);
-          if (playError) playError();
-          return;
-        }
-
-        // Server Alarm Logic
-        let newServerStatus = state.serverStatus;
-        let newPatchTimeLeft = state.patchTimeLeft;
-        
-        if (state.serverStatus === 'patch_required') {
-          newPatchTimeLeft -= TICK_MS;
-          if (newPatchTimeLeft <= 0) {
-            newServerStatus = 'vulnerable';
-            setServerMessage("SERVER VULNERABLE! SPAM RATE x2");
-            if (playError) playError();
-          }
-          setPatchTimeLeft(newPatchTimeLeft);
-        }
-
-        const timeSinceLastAlarm = lastServerAlarmRef.current - newTime;
-        // Server needs a patch every 25 seconds
-        if (timeSinceLastAlarm > 25000 && newServerStatus === 'healthy') {
-           newServerStatus = 'patch_required';
-           newPatchTimeLeft = 10000; // 10 seconds to patch before becoming vulnerable
-           setPatchCode(Math.floor(1000 + Math.random() * 9000).toString());
-           setEnteredCode("");
-           setServerMessage("CRITICAL PATCH REQUIRED");
-           setPatchTimeLeft(newPatchTimeLeft);
-           lastServerAlarmRef.current = newTime;
-           if (playPop) playPop();
-        }
-        
-        if (state.serverStatus !== newServerStatus) {
-           setServerStatus(newServerStatus);
-        }
-
-        // Threat Spawning Logic
-        const timeSinceLastSpawn = lastThreatSpawnRef.current - newTime;
-        // If server is vulnerable, threats spawn twice as fast!
-        const spawnMultiplier = newServerStatus === 'vulnerable' ? 0.5 : 1;
-        const baseSpawnInterval = newTime < 60000 ? 3000 : 4500;
-        const spawnInterval = baseSpawnInterval * spawnMultiplier;
-        
-        if (timeSinceLastSpawn >= spawnInterval) {
-          const availableDesks = [0, 1, 2, 3].filter(d => !updatedThreats.some(t => t.deskIndex === d));
-          if (availableDesks.length > 0) {
-            const desk = availableDesks[Math.floor(Math.random() * availableDesks.length)];
-            const types: ThreatType[] = ['phishing', 'usb', 'password', 'unlocked'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            const fuse = newTime < 60000 ? 5000 : 6000; // Slightly longer fuse to account for tool switching
-            
-            updatedThreats.push({
-              id: Math.random().toString(),
-              deskIndex: desk,
-              type,
-              timeLeft: fuse,
-              maxTime: fuse
-            });
-            lastThreatSpawnRef.current = newTime;
-            if (playPop) playPop();
-          }
-        }
-
-        setTimeLeft(newTime);
-        setStrikes(newStrikes);
-        setThreats(updatedThreats);
-
-      }, TICK_MS);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isPlaying, gameOver, win, playSuccess, playError, playPop]);
-
-  const handleKeypadPress = (digit: string) => {
-    if (!isPlaying || serverStatus === 'healthy') return;
-    
-    if (playClick) playClick();
-    const newCode = enteredCode + digit;
-    setEnteredCode(newCode);
-
-    if (newCode.length === 4) {
-      if (newCode === patchCode) {
-        // Success!
-        setServerStatus('healthy');
-        setServerMessage("PATCH INSTALLED. SECURE.");
-        setEnteredCode("");
-        if (playSuccess) playSuccess();
-      } else {
-        // Fail
-        setEnteredCode("");
-        setServerMessage("INCORRECT CODE");
-        if (playError) playError();
-      }
-    }
+  const startGame = () => {
+    setPhase("playing");
+    setTimeRemaining(SHIFT_DURATION);
+    setStrikes(0);
+    setIntercepts(0);
+    setActiveTool(null);
+    setWorkstations(ws => ws.map(w => ({ ...w, state: "idle", threat: null })));
+    setFeedback({ msg: "", type: "success", active: false });
+    playPop();
   };
 
-  const interceptThreat = (id: string, type: ThreatType, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isPlaying) return;
+  const handleReset = () => {
+    setPhase("intro");
+    if (tickRef.current) clearInterval(tickRef.current);
+    playPop();
+  };
 
-    if (!selectedTool) {
-      // Must select tool first
-      if (playError) playError();
+  // Main Game Loop
+  useEffect(() => {
+    if (phase !== "playing") {
+      if (tickRef.current) clearInterval(tickRef.current);
       return;
     }
 
-    const correctTool = getCorrectTool(type);
-    if (selectedTool === correctTool) {
-      // Success
-      setThreats(prev => prev.filter(t => t.id !== id));
-      setScore(s => s + 1);
-      if (playZap) playZap();
-    } else {
-      // Wrong tool penalty! Reduce fuse by 2 seconds
-      setThreats(prev => prev.map(t => {
-        if (t.id === id) {
-           return { ...t, timeLeft: Math.max(0, t.timeLeft - 2000) };
+    tickRef.current = setInterval(() => {
+      setWorkstations(prev => {
+        let updated = [...prev];
+        let stateChanged = false;
+
+        // Decrease timers
+        updated = updated.map(ws => {
+          if (ws.state === "warning" && ws.threat) {
+            const newTime = ws.timeLeft - 1;
+            if (newTime <= 0) {
+              // Time ran out!
+              handleThreatFailure("Too slow! Human error resulted in a security breach.");
+              return { ...ws, state: "breached", timeLeft: 0 };
+            }
+            return { ...ws, timeLeft: newTime };
+          }
+          if (ws.state === "secured") {
+             const newTime = ws.timeLeft - 1;
+             if (newTime <= 0) return { ...ws, state: "idle", threat: null };
+             return { ...ws, timeLeft: newTime };
+          }
+          return ws;
+        });
+
+        // Randomly spawn new threats if idle
+        // Difficulty increases as timeRemaining drops
+        const spawnChance = timeRemaining > 40 ? 0.02 : timeRemaining > 20 ? 0.04 : 0.06;
+        
+        updated.forEach((ws, idx) => {
+          if (ws.state === "idle" && Math.random() < spawnChance) {
+            const threatKeys = Object.keys(THREATS) as ThreatType[];
+            const randomThreat = threatKeys[Math.floor(Math.random() * threatKeys.length)];
+            // Speed up threat timers as game progresses
+            const threatSpeed = Math.max(40, BASE_THREAT_TIME - (SHIFT_DURATION - timeRemaining));
+            updated[idx] = {
+              ...ws,
+              state: "warning",
+              threat: randomThreat,
+              maxTime: threatSpeed,
+              timeLeft: threatSpeed
+            };
+            stateChanged = true;
+          }
+        });
+
+        if (stateChanged) playPop(); // Subtle pop when new threat appears
+        return updated;
+      });
+    }, 100); // 100ms tick
+
+    // Separate 1-second timer for shift clock
+    const clockInterval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          handleSuccess();
+          return 0;
         }
-        return t;
-      }));
-      if (playError) playError();
-    }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+      clearInterval(clockInterval);
+    };
+  }, [phase, timeRemaining]);
+
+  const handleThreatFailure = (msg: string) => {
+    playError();
+    setPhase("feedback");
+    setFeedback({ msg, type: "error", active: true });
+    setStrikes(s => {
+      const newStrikes = s + 1;
+      if (newStrikes >= MAX_STRIKES) {
+        setTimeout(() => setPhase("game_over"), 2500);
+      } else {
+        setTimeout(() => {
+           setPhase("playing");
+           setWorkstations(ws => ws.map(w => w.state === "breached" ? { ...w, state: "idle", threat: null } : w));
+        }, 3500);
+      }
+      return newStrikes;
+    });
   };
 
-  const equipTool = (tool: ToolType) => {
-    setSelectedTool(tool);
-    if (playClick) playClick();
+  const handleSuccess = () => {
+    setPhase("success");
+    playSuccess();
+    reportComplete();
   };
 
-  const startGame = () => {
-    if (playClick) playClick();
-    lastThreatSpawnRef.current = TOTAL_TIME_MS;
-    lastServerAlarmRef.current = TOTAL_TIME_MS;
-    setIsPlaying(true);
-  };
-
-  const resetGame = () => {
-    setTimeLeft(TOTAL_TIME_MS);
-    setStrikes(0);
-    setScore(0);
-    setThreats([]);
-    setSelectedTool(null);
-    setServerStatus('healthy');
-    setPatchCode("----");
-    setEnteredCode("");
-    setServerMessage("");
-    setGameOver(false);
-    setWin(false);
-    setIsPlaying(false);
-    if (playPop) playPop();
-  };
-
-  const renderThreatIcon = (type: ThreatType) => {
-    switch (type) {
-      case 'phishing': return <MailWarning size={32} className="text-red-500" />;
-      case 'usb': return <Usb size={32} className="text-amber-500" />;
-      case 'password': return <StickyNote size={32} className="text-yellow-400" />;
-      case 'unlocked': return <MonitorOff size={32} className="text-fuchsia-500" />;
-    }
-  };
-
-  const renderThreatLabel = (type: ThreatType) => {
-    switch (type) {
-      case 'phishing': return "Phishing Email";
-      case 'usb': return "Rogue USB Drive";
-      case 'password': return "Exposed Password";
-      case 'unlocked': return "Unlocked Screen";
-    }
-  };
-
-  const renderDesk = (index: number) => {
-    const threat = threats.find(t => t.deskIndex === index);
+  const handleWorkstationClick = (wsId: number) => {
+    if (phase !== "playing") return;
     
-    return (
-      <div className={`relative flex-1 min-h-[120px] rounded-xl border-2 transition-colors duration-300 overflow-hidden ${threat ? 'border-red-500/50 bg-red-200/50' : 'border-slate-400 bg-slate-200/50'}`}>
-        
-        {/* The Desk Visuals */}
-        <div className="absolute inset-x-0 bottom-2 h-16 flex justify-center items-end">
-          <div className="w-[70%] h-4 bg-slate-200 rounded-t-lg border-t border-slate-400 relative flex justify-center shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
-            <div className={`absolute bottom-2 w-16 h-10 rounded-md border-2 flex items-center justify-center transition-colors ${threat && threat.type !== 'unlocked' ? 'bg-sky-300 border-slate-400' : 'bg-white border-slate-400'}`}>
-               {!threat || threat.type !== 'unlocked' ? (
-                 <div className="w-full h-full bg-sky-500/20 rounded-sm relative overflow-hidden">
-                    <div className="w-8 h-0.5 bg-sky-400/30 absolute top-1 left-1 rounded"></div>
-                    <div className="w-10 h-0.5 bg-sky-400/30 absolute top-2 left-1 rounded"></div>
-                 </div>
-               ) : (
-                 <div className="w-full h-full bg-white rounded-sm flex flex-col items-center justify-center">
-                   <UserX size={12} className="text-slate-700 mb-0.5" />
-                 </div>
-               )}
-            </div>
-            
-            {(!threat || threat.type !== 'unlocked') && (
-              <div className="absolute bottom-1 -right-2 w-8 h-10 bg-slate-300 rounded-t-full flex flex-col items-center justify-end z-10 border border-slate-600 shadow-lg">
-                <div className="w-4 h-4 bg-slate-500 rounded-full absolute -top-2 border border-slate-600"></div>
-              </div>
-            )}
-          </div>
-        </div>
+    const ws = workstations.find(w => w.id === wsId);
+    if (!ws || ws.state !== "warning" || !ws.threat) return;
 
-        {/* The Threat Interactive Element */}
-        <AnimatePresence>
-          {threat && (
-            <motion.div 
-              key={threat.id}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              className="absolute inset-0 flex flex-col items-center justify-center z-20 cursor-pointer group"
-              onClick={(e) => interceptThreat(threat.id, threat.type, e)}
-            >
-              <div className="absolute inset-0 bg-red-500/10 animate-pulse rounded-lg"></div>
-              
-              <div className="bg-white/90 backdrop-blur-md p-2 rounded-xl border border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] flex flex-col items-center transform transition-transform group-hover:scale-105">
-                <div className="relative mb-1">
-                  <div className="absolute inset-0 bg-red-500/20 animate-ping rounded-full"></div>
-                  {renderThreatIcon(threat.type)}
-                </div>
-                
-                <div className="text-[9px] font-black text-red-400 uppercase tracking-widest mb-1 text-center leading-tight">
-                  {renderThreatLabel(threat.type)}
-                </div>
-                
-                <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-100 ${threat.timeLeft < 1500 ? 'bg-red-500' : 'bg-amber-500'}`}
-                    style={{ width: `${(threat.timeLeft / threat.maxTime) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        <div className="absolute top-2 left-2 text-[8px] font-black text-slate-700 uppercase tracking-widest">
-          Workstation 0{index + 1}
-        </div>
-      </div>
-    );
-  };
+    if (!activeTool) {
+       playError();
+       // Shake it but don't penalize for just clicking without a tool
+       return; 
+    }
 
-  const renderTool = (type: ToolType, label: string, icon: React.ReactNode, threatTarget: string) => {
-    const isSelected = selectedTool === type;
-    return (
-      <button 
-        onClick={() => equipTool(type)}
-        className={`flex-1 rounded-xl border p-2 flex flex-col items-center justify-center transition-all ${
-          isSelected ? 'border-sky-500 bg-sky-200/60 shadow-[0_0_15px_rgba(14,165,233,0.3)]' : 'border-slate-400 bg-slate-200 hover:border-slate-500'
-        }`}
-      >
-        <div className={`mb-1 scale-75 origin-bottom ${isSelected ? 'text-sky-700' : 'text-slate-700'}`}>
-          {icon}
-        </div>
-        <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-0.5">{label}</div>
-        <div className="text-[8px] text-slate-700 uppercase tracking-widest">Fixes: {threatTarget}</div>
-      </button>
-    );
+    const threatDef = THREATS[ws.threat];
+    
+    if (activeTool === threatDef.requiredTool) {
+      // SUCCESSFUL INTERCEPT
+      playZap();
+      setIntercepts(i => i + 1);
+      setWorkstations(prev => prev.map(w => 
+        w.id === wsId ? { ...w, state: "secured", timeLeft: 10 } : w
+      ));
+      setActiveTool(null);
+    } else {
+      // FAILED INTERCEPT (WRONG TOOL)
+      handleThreatFailure(threatDef.errorMsg);
+      setWorkstations(prev => prev.map(w => 
+        w.id === wsId ? { ...w, state: "breached" } : w
+      ));
+      setActiveTool(null);
+    }
   };
 
   return (
     <LabShell
       labId="itsupport18"
+      theme="ocean"
       title="The Office Defender"
-      subtitle="IT Helpdesk Simulator"
-      theme="studio"
-      compact={true}
-      onReset={resetGame}
-      instruction="1. Review common human errors and security vulnerabilities in an office environment. 2. Monitor the simulated office and intercept risky behaviors by virtual employees. 3. Implement security policies and conduct virtual training sessions. 4. Achieve a high security score by successfully defending against all simulated threats."
+      instruction="Equip tools to intercept human errors before they cause a breach."
+      hint="Match the correct tool to the threat. E.g. A physical sticky note needs a Data Shredder, not a Network Blocker!"
+      compact
+      onReset={handleReset}
     >
-      <Celebration isActive={win} onReplay={resetGame} message="You successfully intercepted all human errors and kept the office network perfectly secure!" />
+      <Celebration
+        isActive={phase === "success"}
+        message={`Shift complete! You intercepted ${intercepts} human errors, preventing catastrophic network breaches.`}
+        onReplay={handleReset}
+      />
 
-      <div className="flex flex-col h-full w-full max-w-4xl mx-auto gap-3 p-2">
+      <div className="w-full flex-1 flex flex-col min-h-0 relative isolate pb-4 max-w-7xl mx-auto">
         
-        {/* Top Dashboard */}
-        <div className="bg-white rounded-xl p-3 border-2 border-slate-400/50 shadow-lg flex justify-between items-center relative overflow-hidden shrink-0">
-          
-          <div className="flex items-center gap-4 z-10">
-            <div>
-              <div className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Shift Remaining</div>
-              <div className="text-xl font-black text-slate-900 flex items-center gap-1 font-mono">
-                {(timeLeft / 1000).toFixed(1)}s
+        {/* HUD */}
+        <div className="shrink-0 flex items-center justify-between bg-white rounded-2xl border border-slate-200 p-4 mb-4 shadow-sm z-20 relative w-full max-w-5xl lg:max-w-6xl mx-auto">
+           
+           <div className="flex items-center gap-6">
+              <div className="flex flex-col">
+                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1"><Clock size={12}/> Shift Remaining</span>
+                 <span className={`text-2xl font-black leading-none ${timeRemaining < 15 ? 'text-rose-500 animate-pulse' : 'text-slate-700'}`}>
+                    {timeRemaining}s
+                 </span>
               </div>
-            </div>
-            
-            <div className="h-8 w-px bg-slate-300"></div>
-            
-            <div>
-              <div className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Intercepted</div>
-              <div className="text-xl font-black text-sky-700 flex items-center gap-1 font-mono">
-                <ShieldCheck size={16} /> {score}
+              <div className="w-px h-8 bg-slate-200" />
+              <div className="flex flex-col">
+                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1"><Activity size={12}/> Intercepts</span>
+                 <span className="text-2xl font-black leading-none text-emerald-500">
+                    {intercepts}
+                 </span>
               </div>
-            </div>
-            
-            <div className="h-8 w-px bg-slate-300"></div>
+           </div>
 
-            <div>
-              <div className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Breaches (Strikes)</div>
-              <div className="flex gap-1 mt-0.5">
-                {[1, 2, 3].map(s => (
-                  <div key={s} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${s <= strikes ? 'bg-red-500/20 border-red-500 text-red-500' : 'bg-slate-200 border-slate-400 text-slate-700'}`}>
-                    <ShieldAlert size={12} />
-                  </div>
-                ))}
+           <div className="flex flex-col items-end">
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">Strikes (Max 3) <ShieldAlert size={12}/></span>
+              <div className="flex gap-2">
+                 {[1, 2, 3].map(s => (
+                    <div key={s} className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${strikes >= s ? 'bg-rose-500 border-rose-600 text-white shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-slate-100 border-slate-200 text-slate-300'}`}>
+                       {strikes >= s ? <AlertTriangle size={16} /> : <Shield size={16} />}
+                    </div>
+                 ))}
               </div>
-            </div>
-          </div>
-
-          <div className="z-10 flex gap-2">
-            {!isPlaying && !gameOver && !win && (
-              <button onClick={startGame} className="bg-sky-500 hover:bg-sky-400 text-slate-900 font-bold px-6 py-2 rounded-xl flex items-center gap-2 transition-colors shadow-[0_0_15px_rgba(14,165,233,0.4)] text-sm">
-                <PlayCircle size={18} /> {timeLeft < TOTAL_TIME_MS ? "Resume" : "Start"}
-              </button>
-            )}
-            {(gameOver || win) && (
-              <button onClick={resetGame} className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold px-6 py-2 rounded-lg transition-colors">
-                Play Again
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex gap-3 min-h-0">
-          
-          {/* The Virtual Office (Left) */}
-          <div className="flex-[2] grid grid-cols-2 grid-rows-2 gap-3 min-h-0">
-            {renderDesk(0)}
-            {renderDesk(1)}
-            {renderDesk(2)}
-            {renderDesk(3)}
-          </div>
-
-          {/* Main Server Rack (Right) */}
-          <div className={`flex-[1] rounded-xl border-2 p-3 flex flex-col relative overflow-hidden transition-colors min-h-0 ${
-            serverStatus === 'patch_required' ? 'bg-amber-100/40 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' :
-            serverStatus === 'vulnerable' ? 'bg-red-100/40 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)] animate-pulse' :
-            'bg-white border-slate-400/50 shadow-lg'
-          }`}>
-            <div className="flex items-center gap-2 mb-2 shrink-0">
-              <Server size={16} className={serverStatus === 'healthy' ? 'text-emerald-700' : serverStatus === 'patch_required' ? 'text-amber-700' : 'text-red-500'} />
-              <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest">Main Server</h2>
-            </div>
-
-            <div className="bg-white border border-slate-400 rounded-lg p-2 mb-2 flex-1 flex flex-col min-h-0">
-               <div className="flex items-center gap-1 mb-1 text-[10px] text-slate-700 font-mono shrink-0">
-                 <Terminal size={10} /> root@server:~#
-               </div>
-               
-               {serverStatus === 'healthy' && (
-                 <div className="text-emerald-700 font-mono text-[10px] flex flex-col items-center justify-center flex-1 gap-1">
-                   <CheckCircle2 size={24} />
-                   <span>SYSTEM SECURE</span>
-                 </div>
-               )}
-
-               {serverStatus !== 'healthy' && (
-                 <div className="flex flex-col flex-1 min-h-0">
-                    <div className={`text-[8px] font-black uppercase tracking-widest mb-1 leading-tight ${serverStatus === 'vulnerable' ? 'text-red-400' : 'text-amber-700'}`}>
-                      {serverMessage}
-                    </div>
-                    {serverStatus === 'patch_required' && (
-                      <div className="w-full h-1 bg-slate-200 rounded-full mb-2 overflow-hidden shrink-0">
-                        <div className="h-full bg-amber-500" style={{ width: `${(patchTimeLeft / 10000) * 100}%` }}></div>
-                      </div>
-                    )}
-                    
-                    <div className="bg-white border border-slate-400 p-1 rounded text-center mb-1 shrink-0">
-                      <div className="text-[8px] text-slate-700 uppercase">Incoming Patch</div>
-                      <div className="text-sm font-mono text-slate-900 tracking-[0.2em]">{patchCode}</div>
-                    </div>
-
-                    <div className="bg-white border border-slate-400 p-1 rounded text-center mb-2 flex items-center justify-center shrink-0 h-6">
-                      <span className="text-sky-700 font-mono text-sm tracking-[0.2em]">
-                        {enteredCode}{enteredCode.length < 4 && <span className="animate-pulse">_</span>}
-                      </span>
-                    </div>
-
-                    {/* Keypad */}
-                    <div className="grid grid-cols-3 gap-1 mt-auto">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, '*', 0, '#'].map((num) => (
-                        <button
-                          key={num}
-                          onClick={() => handleKeypadPress(num.toString())}
-                          disabled={!isPlaying || num === '*' || num === '#'}
-                          className="bg-slate-200 hover:bg-slate-300 border border-slate-400 rounded py-1 text-slate-900 font-mono font-bold text-xs transition-colors"
-                        >
-                          {num}
-                        </button>
-                      ))}
-                    </div>
-                 </div>
-               )}
-            </div>
-            
-            {/* Server visual details */}
-            <div className="flex gap-1 shrink-0">
-               {[1, 2, 3].map(i => (
-                 <div key={i} className="h-3 flex-1 bg-white border border-slate-400 rounded flex items-center px-1 justify-between">
-                   <div className="flex gap-0.5">
-                     <div className={`w-1 h-1 rounded-full ${serverStatus === 'vulnerable' ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></div>
-                     <div className={`w-1 h-1 rounded-full ${serverStatus === 'vulnerable' ? 'bg-red-500 animate-pulse' : 'bg-emerald-500 animate-pulse'}`}></div>
-                   </div>
-                 </div>
-               ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom: The IT Toolbelt */}
-        <div className="bg-white rounded-xl p-2 border-2 border-slate-400/50 shadow-lg flex flex-col justify-center shrink-0">
-           <div className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mb-1.5 text-center">Your IT Toolbelt (Equip before fixing threats)</div>
-           <div className="flex gap-2">
-             {renderTool('blocker', 'Network Blocker', <Ban size={24} />, 'Phishing Emails')}
-             {renderTool('ejector', 'Port Ejector', <Plug size={24} />, 'Rogue USB Drives')}
-             {renderTool('shredder', 'Data Shredder', <Scissors size={24} />, 'Exposed Passwords')}
-             {renderTool('padlock', 'Screen Padlock', <Lock size={24} />, 'Unlocked Screens')}
            </div>
         </div>
 
-        {/* Game Over Overlay */}
-        <AnimatePresence>
-          {gameOver && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-50 bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center">
-              <AlertTriangle size={80} className="text-red-500 mb-6 animate-pulse" />
-              <h2 className="text-5xl font-black text-red-100 uppercase tracking-widest mb-4">Network Breached!</h2>
-              <p className="text-red-300 font-bold mb-8 text-center max-w-lg text-lg">Human error slipped past your defenses 3 times. The network has been compromised by ransomware!</p>
-              <button onClick={resetGame} className="bg-red-600 hover:bg-red-500 text-white font-black px-10 py-4 rounded-2xl transition-colors shadow-lg text-xl uppercase tracking-wider">Try Again</button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* OVERLAYS */}
+        {phase === "intro" && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-slate-900/20 rounded-3xl">
+             <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-2xl text-center">
+                <ShieldCheck size={48} className="text-sky-600 mb-6 mx-auto" />
+                <h1 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-widest mb-4">SOC Helpdesk</h1>
+                <p className="text-slate-500 font-medium text-sm leading-relaxed mb-6">
+                  Hackers rarely break through the firewall directly. Instead, they rely on <strong>human error</strong>.
+                  <br/><br/>
+                  Your job as an IT Support Specialist is to monitor the floor and apply the correct technical fix to employee mistakes before they compromise the network.
+                </p>
+                <div className="bg-slate-50 rounded-xl p-4 text-left mb-8 border border-slate-100">
+                   <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Threat Mappings</h3>
+                   <ul className="text-xs text-slate-600 space-y-2 font-medium">
+                      <li>• Phishing Email ➔ Network Blocker</li>
+                      <li>• Rogue USB ➔ Port Ejector</li>
+                      <li>• Sticky Note Pass ➔ Data Shredder</li>
+                      <li>• Unlocked PC ➔ Screen Padlock</li>
+                   </ul>
+                </div>
+                <button onClick={startGame} className="w-full py-4 bg-sky-600 hover:bg-sky-500 text-white font-black text-sm uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md">
+                  Start Shift
+                </button>
+             </div>
+          </div>
+        )}
+
+        {phase === "game_over" && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-rose-950/60 rounded-3xl">
+             <div className="max-w-md w-full bg-white border border-rose-200 rounded-3xl p-6 md:p-8 shadow-[0_0_60px_rgba(244,63,94,0.3)] text-center animate-in zoom-in duration-300">
+                <AlertTriangle size={48} className="text-rose-500 mb-6 mx-auto animate-pulse" />
+                <h1 className="text-xl md:text-2xl font-black text-rose-600 uppercase tracking-widest mb-4">SYSTEM COMPROMISED</h1>
+                <p className="text-slate-600 font-medium text-sm leading-relaxed mb-8">
+                  Too many human errors slipped through. A ransomware payload was executed, locking the entire company network.
+                </p>
+                <button onClick={startGame} className="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white font-black text-sm uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md">
+                  Retry Shift
+                </button>
+             </div>
+          </div>
+        )}
+
+        {/* CORE WORKSTATION GRID */}
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative w-full mb-4">
+           
+           {/* Feedback Banner Overlay */}
+           <AnimatePresence>
+              {phase === "feedback" && (
+                 <motion.div 
+                   initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                   animate={{ opacity: 1, y: 0, scale: 1 }}
+                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 max-w-sm w-full bg-rose-600 text-white rounded-2xl shadow-[0_10px_40px_rgba(225,29,72,0.4)] p-6 text-center border-4 border-white"
+                 >
+                    <AlertTriangle size={32} className="mx-auto mb-3" />
+                    <h3 className="font-black uppercase tracking-widest text-sm mb-2 text-rose-100">Strike Logged</h3>
+                    <p className="font-bold text-base leading-tight">{feedback.msg}</p>
+                 </motion.div>
+              )}
+           </AnimatePresence>
+
+           <div className={`w-full max-w-5xl lg:max-w-6xl grid grid-cols-2 gap-3 md:gap-6 flex-1 min-h-0 transition-all ${phase === 'feedback' ? 'blur-[2px] pointer-events-none' : ''}`}>
+              {workstations.map((ws, i) => {
+                 const threat = ws.threat ? THREATS[ws.threat] : null;
+                 
+                 return (
+                    <div 
+                      key={ws.id}
+                      onClick={() => handleWorkstationClick(ws.id)}
+                      className={`relative w-full h-full rounded-2xl border-4 transition-all overflow-hidden flex flex-col cursor-pointer
+                        ${ws.state === 'idle' ? 'bg-slate-50 border-slate-200 hover:border-sky-200' : ''}
+                        ${ws.state === 'warning' ? 'bg-amber-50 border-amber-400 shadow-[0_0_30px_rgba(251,191,36,0.3)]' : ''}
+                        ${ws.state === 'breached' ? 'bg-rose-50 border-rose-500 animate-shake shadow-[0_0_30px_rgba(244,63,94,0.3)]' : ''}
+                        ${ws.state === 'secured' ? 'bg-emerald-50 border-emerald-400' : ''}
+                      `}
+                    >
+                       {/* Background Texture (Fixes Empty Void) */}
+                       <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+
+                       {/* Header: Camera Overlay Style */}
+                       <div className="absolute top-3 left-4 right-4 flex justify-between items-center z-10 font-mono">
+                          <span className={`text-[9px] md:text-xs font-black uppercase tracking-widest bg-white/90 px-2 py-1 rounded-md shadow-sm border ${ws.state === 'warning' ? 'text-amber-600 border-amber-200' : 'text-slate-500 border-slate-200'}`}>
+                             CAM_0{ws.id}
+                          </span>
+                          {ws.state === 'warning' ? (
+                             <span className="flex items-center gap-1.5 text-[9px] md:text-xs font-bold text-amber-700 bg-amber-100 border border-amber-300 px-2 py-1 rounded-md shadow-sm">
+                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                                BREACH_DETECTED
+                             </span>
+                          ) : (
+                             <span className="text-[9px] md:text-[10px] font-bold text-slate-400 bg-white/80 px-2 py-1 rounded border border-transparent">
+                                SECURE
+                             </span>
+                          )}
+                       </div>
+
+                       {/* Progress Bar (Timer) */}
+                       {ws.state === 'warning' && (
+                          <div className="absolute top-0 left-0 right-0 h-1.5 bg-amber-200 z-20">
+                             <motion.div 
+                               className="h-full bg-amber-500" 
+                               initial={{ width: "100%" }}
+                               animate={{ width: `${(ws.timeLeft / ws.maxTime) * 100}%` }}
+                               transition={{ ease: "linear" }}
+                             />
+                          </div>
+                       )}
+
+                       {/* Vector Desk Visual - SCALED UP with Worker */}
+                       <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 md:pb-8 pointer-events-none">
+                          
+                          {/* Wall Details (Whiteboard / Poster) */}
+                          <div className="absolute top-[25%] w-[60%] max-w-[180px] h-12 md:h-16 bg-white border-2 border-slate-200 rounded-lg shadow-sm opacity-60 flex flex-col items-center justify-center p-2">
+                              <div className="w-full h-1.5 md:h-2 bg-slate-100 rounded-full mb-2" />
+                              <div className="w-3/4 h-1.5 md:h-2 bg-slate-100 rounded-full" />
+                          </div>
+
+                          <div className="relative w-[85%] max-w-[280px] flex flex-col items-center z-10">
+                             {/* Monitor */}
+                             <div className={`w-28 md:w-40 aspect-video rounded-t-xl border-[4px] border-b-0 flex items-center justify-center relative bg-white shadow-lg ${ws.state === 'warning' ? 'border-amber-300' : ws.state === 'breached' ? 'border-rose-400 bg-rose-50' : ws.state === 'secured' ? 'border-emerald-300 bg-emerald-50' : 'border-slate-300'}`}>
+                                {ws.state === 'secured' && <CheckCircle2 size={32} className="text-emerald-500 drop-shadow-sm" />}
+                                {ws.state === 'breached' && <ShieldAlert size={32} className="text-rose-500 drop-shadow-sm" />}
+                                {ws.state === 'idle' && <Monitor size={28} className="text-slate-200" />}
+                                
+                                {/* Monitor Stand */}
+                                <div className={`absolute -bottom-4 w-6 md:w-8 h-4 ${ws.state === 'warning' ? 'bg-amber-200' : 'bg-slate-300'}`} />
+                                <div className={`absolute -bottom-5 w-16 md:w-20 h-1 rounded-full ${ws.state === 'warning' ? 'bg-amber-300' : 'bg-slate-400'}`} />
+                             </div>
+                             
+                             {/* Desk Surface */}
+                             <div className="w-full h-4 md:h-5 bg-slate-200 rounded-full shadow-[inset_0_-3px_6px_rgba(0,0,0,0.1)] relative flex items-center justify-center gap-3 md:gap-5 mt-5 border border-slate-300 z-10">
+                                <Keyboard size={12} className="text-slate-400 hidden sm:block" />
+                                <Mouse size={8} className="text-slate-400 hidden sm:block" />
+                                {/* PC Tower */}
+                                <div className="absolute right-2 md:right-4 -bottom-12 md:-bottom-16 w-8 md:w-12 h-16 md:h-20 bg-slate-700 rounded-sm border-t-[6px] border-slate-600 flex flex-col items-center py-2 shadow-xl">
+                                   <HardDrive size={14} className="text-sky-400 mb-2 opacity-80" />
+                                   <div className={`w-2 h-2 rounded-full ${ws.state === 'warning' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'}`} />
+                                </div>
+                             </div>
+
+                             {/* Employee Silhouette (The Human Error Factor) */}
+                             <div className="absolute -bottom-4 md:-bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center z-20 drop-shadow-xl transition-all duration-500">
+                                {/* Head */}
+                                <div className={`w-14 h-14 md:w-16 md:h-16 rounded-full border-[3px] border-white translate-y-3 md:translate-y-4 z-10 ${ws.state === 'warning' ? 'bg-amber-600' : ws.state === 'breached' ? 'bg-rose-700' : 'bg-slate-800'}`} />
+                                {/* Shoulders */}
+                                <div className={`w-28 h-16 md:w-32 md:h-20 rounded-t-[3rem] border-[3px] border-b-0 border-white ${ws.state === 'warning' ? 'bg-amber-500' : ws.state === 'breached' ? 'bg-rose-600' : 'bg-slate-700'}`} />
+                             </div>
+                          </div>
+                       </div>
+
+                       {/* Threat Overlay */}
+                       <AnimatePresence>
+                          {ws.state === 'warning' && threat && (
+                             <motion.div
+                               initial={{ scale: 0, opacity: 0 }}
+                               animate={{ scale: 1, opacity: 1 }}
+                               exit={{ scale: 0, opacity: 0 }}
+                               className="absolute inset-0 flex items-center justify-center z-20 backdrop-blur-[1px] bg-white/30"
+                             >
+                                <div className={`flex flex-col items-center justify-center ${threat.bg} ${threat.color} border-2 border-current rounded-2xl p-3 md:p-5 shadow-lg animate-pulse`}>
+                                   <threat.icon size={36} strokeWidth={2.5} className="mb-2" />
+                                   <span className="font-black text-[10px] md:text-xs uppercase tracking-widest text-center leading-tight max-w-[100px]">{threat.name}</span>
+                                </div>
+                             </motion.div>
+                          )}
+                       </AnimatePresence>
+
+                    </div>
+                 );
+              })}
+           </div>
+        </div>
+
+        {/* IT TOOLBELT (BOTTOM) */}
+        <div className={`shrink-0 bg-slate-800 rounded-3xl p-3 md:p-5 shadow-[0_20px_40px_rgba(15,23,42,0.4)] border border-slate-700 flex flex-col items-center w-full max-w-5xl lg:max-w-6xl mx-auto transition-all ${phase !== 'playing' ? 'opacity-50 pointer-events-none' : ''}`}>
+           <h3 className="text-[9px] md:text-xs font-black text-sky-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <ShieldCheck size={14} /> IT Support Toolbelt
+           </h3>
+           <div className="grid grid-cols-4 gap-2 md:gap-4 w-full h-20 md:h-24">
+              {TOOLS.map(tool => (
+                 <button
+                   key={tool.id}
+                   onClick={() => {
+                      setActiveTool(tool.id as ToolType);
+                      playPop();
+                   }}
+                   className={`relative w-full h-full rounded-xl border-b-[4px] flex flex-col items-center justify-center gap-1 md:gap-2 transition-all group
+                     ${activeTool === tool.id 
+                        ? 'bg-sky-500 border-sky-700 text-white translate-y-1 shadow-inner' 
+                        : 'bg-slate-700 border-slate-900 text-slate-300 hover:bg-slate-600 hover:text-white hover:border-slate-800'
+                     }`}
+                 >
+                    <tool.icon size={24} className={activeTool === tool.id ? 'text-white' : tool.color} />
+                    <span className="font-black text-[8px] md:text-[10px] uppercase tracking-widest text-center px-1 leading-none hidden sm:block">
+                       {tool.name.split(' ')[0]}<br/>{tool.name.split(' ')[1]}
+                    </span>
+                    {/* Active Indicator LED */}
+                    {activeTool === tool.id && (
+                       <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                    )}
+                 </button>
+              ))}
+           </div>
+        </div>
 
       </div>
     </LabShell>

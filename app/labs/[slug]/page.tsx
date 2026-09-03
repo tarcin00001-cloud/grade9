@@ -64,6 +64,11 @@ import PropositionalLogic42 from "@/labs/PropositionalLogic42";
 import TestingStrategies43 from "@/labs/TestingStrategies43";
 
 export function generateStaticParams() {
+  // Next.js 16 can race while rewriting the development prerender manifest
+  // when several lab routes are opened together. Render labs on demand in dev;
+  // production builds should continue to pre-render the complete lab catalog.
+  if (process.env.NODE_ENV === "development") return [];
+
   return LABS.map((lab) => ({ slug: lab.slug }));
 }
 

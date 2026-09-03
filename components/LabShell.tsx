@@ -92,7 +92,7 @@ export default function LabShell({ children, labId, theme = "circuit", title, su
         </div>
 
         <div className="pointer-events-auto flex-1 flex flex-col items-center text-center shrink-0 px-2">
-          <h1 className={`text-[clamp(1.5rem,3.2vw,2.5rem)] font-black drop-shadow-sm leading-tight tracking-tight ${theme === 'grade9' || bgOverride ? 'text-sky-950' : 'text-white'}`}>{title}</h1>
+          <h1 className={`text-[clamp(1.5rem,3.2vw,2.5rem)] font-black drop-shadow-sm leading-tight tracking-tight ${theme === 'grade9' || (bgOverride && !/(700|800|900|950)/.test(bgOverride)) ? 'text-sky-950' : 'text-white'}`}>{title}</h1>
           {subtitle && <p className={`text-[clamp(.85rem,1.6vw,1.25rem)] font-bold mt-0.5 ${theme === 'grade9' || bgOverride ? 'text-sky-600' : 'text-sky-200'}`}>{subtitle}</p>}
         </div>
 

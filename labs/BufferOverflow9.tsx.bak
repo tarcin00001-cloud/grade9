@@ -1,0 +1,437 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useLMSBridge } from "@/hooks/useLMSBridge";
+import { useLabAudio } from "@/hooks/useLabAudio";
+import Celebration from "@/components/Celebration";
+import LabShell from "@/components/LabShell";
+import { Terminal, Shield, ShieldAlert, Cpu, Code2, AlertOctagon, XCircle, Bug } from "lucide-react";
+
+type Stage = 1 | 2 | 3 | 4 | 5 | 6;
+type SysState = "IDLE" | "PROCESSING" | "CRASHED" | "HIJACKED" | "SECURED";
+
+export default function BufferOverflow9() {
+  const { reportComplete } = useLMSBridge("bufferoverflow9");
+  const { playPop, playZap, playError, playSuccess } = useLabAudio();
+
+  const [stage, setStage] = useState<Stage>(1);
+  const [sysState, setSysState] = useState<SysState>("IDLE");
+  const [bufferData, setBufferData] = useState<string[]>([]);
+  const [returnAddress, setReturnAddress] = useState<string>("0x080484b6");
+  const [isPatched, setIsPatched] = useState(false);
+  const [terminalLog, setTerminalLog] = useState<string[]>(["SYSTEM BOOT... MEMORY ALLOCATED."]);
+
+  const addLog = (msg: string) => setTerminalLog(prev => [...prev, msg].slice(-4));
+  const isErrorState = sysState === 'HIJACKED' || sysState === 'CRASHED';
+
+  const handleReset = () => {
+    setStage(1);
+    setSysState("IDLE");
+    setBufferData([]);
+    setReturnAddress("0x080484b6");
+    setIsPatched(false);
+    setTerminalLog(["SYSTEM REBOOTED... MEMORY CLEARED."]);
+    playPop();
+  };
+
+  const handleInjectSafe = () => {
+    if (sysState === "PROCESSING") return;
+    playZap();
+    setSysState("PROCESSING");
+    addLog("EXEC gets(buffer) -> INJECTING 5 BYTES...");
+    
+    setTimeout(() => {
+      setBufferData(["A", "A", "A", "A", "A"]);
+      setReturnAddress("0x080484b6");
+      setSysState("IDLE");
+      if (stage === 1) setStage(2);
+      addLog("SUCCESS: BUFFER AT 62% CAPACITY.");
+      playPop();
+    }, 1000);
+  };
+
+  const handleInjectJunk = () => {
+    if (sysState === "PROCESSING") return;
+    playZap();
+    setSysState("PROCESSING");
+    addLog("EXEC gets(buffer) -> OVERFLOWING 12 BYTES...");
+    
+    setTimeout(() => {
+      setBufferData(["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A"]);
+      setReturnAddress("0x41414141");
+      setSysState("CRASHED");
+      if (stage === 2) setStage(3);
+      playError();
+      addLog("FATAL: SEGMENTATION FAULT. 0x41414141 IS INVALID.");
+    }, 1500);
+  };
+
+  const handleInjectExploit = () => {
+    if (sysState === "PROCESSING") return;
+    playZap();
+    setSysState("PROCESSING");
+    
+    if (!isPatched) {
+      addLog("EXEC gets(buffer) -> INJECTING CRAFTED EXPLOIT...");
+      setTimeout(() => {
+        setBufferData(["X", "X", "X", "X", "X", "X", "X", "X", "0", "x", "H", "4"]);
+        setReturnAddress("0xH4CK3D");
+        setSysState("HIJACKED");
+        if (stage === 3) setStage(4);
+        playError();
+        addLog("CRITICAL: HIJACKED! RETURN ADDRESS POINTING TO MALICIOUS SHELL.");
+      }, 1500);
+    } else {
+      addLog("EXEC fgets(buffer, 8) -> INJECTING EXPLOIT...");
+      setTimeout(() => {
+        setBufferData(["X", "X", "X", "X", "X", "X", "X", "X"]);
+        setReturnAddress("0x080484b6");
+        setSysState("SECURED");
+        if (stage === 5) setStage(6);
+        playSuccess();
+        addLog("BLOCKED: INPUT TRUNCATED TO 8 BYTES. MEMORY SECURE.");
+        setTimeout(() => {
+          reportComplete();
+        }, 3000);
+      }, 1500);
+    }
+  };
+
+  const handleBadPatch = () => {
+    playError();
+    addLog("PATCH REJECTED: Hackers can just send 101 bytes. Root cause not fixed.");
+  };
+
+  const handleGoodPatch = () => {
+    playPop();
+    setIsPatched(true);
+    setSysState("IDLE");
+    setBufferData([]);
+    setReturnAddress("0x080484b6");
+    setStage(5);
+    addLog("DEPLOYING PATCH: gets() REPLACED WITH fgets(8).");
+  };
+
+  return (
+    <LabShell 
+      labId="bufferoverflow9" 
+      theme="ocean" 
+      title="Buffer Overflow Hijacking" 
+      instruction="Analyze memory corruption. Distinguish crashes from exploits, then engineer the solution."
+      compact
+      onReset={handleReset}
+    >
+      <Celebration 
+        isActive={stage === 6} 
+        message="System Secured! You correctly identified that increasing buffer sizes doesn't stop overflows—enforcing strict physical boundaries does." 
+        onReplay={handleReset} 
+      />
+
+      <div className="w-full flex-1 relative bg-slate-50 overflow-hidden rounded-[2rem] border border-slate-200 shadow-inner flex flex-col lg:flex-row font-sans text-slate-800">
+        
+        {/* Left Hemisphere: Code & Controls */}
+        <div className="w-full lg:w-5/12 flex flex-col border-r border-slate-200 bg-white z-10 shadow-[10px_0_20px_rgba(0,0,0,0.03)] relative">
+          
+          {/* Dynamic Step Banner */}
+          <div className="bg-slate-800 text-white px-6 py-2.5 text-xs font-bold tracking-widest uppercase flex items-center justify-between transition-colors">
+            <span>
+              {stage === 1 && "Step 1: Observe Normal Execution"}
+              {stage === 2 && "Step 2: Cause a System Crash"}
+              {stage === 3 && "Step 3: Hijack Control Flow"}
+              {stage === 4 && "Step 4: Engineer a Solution"}
+              {stage >= 5 && "Step 5: Verify Secured System"}
+            </span>
+            <span className="text-slate-400 font-mono font-normal">
+              {Math.min(stage, 5)}/5
+            </span>
+          </div>
+
+          <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div className="flex items-center gap-3">
+              <Code2 className="text-blue-600" size={24} />
+              <h2 className="font-bold text-lg tracking-tight">Source Code Analysis</h2>
+            </div>
+            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors ${sysState === 'HIJACKED' ? 'bg-rose-100 text-rose-600' : isPatched ? 'bg-emerald-100 text-emerald-700' : sysState === 'CRASHED' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-500'}`}>
+              {sysState === 'HIJACKED' ? <><AlertOctagon size={12}/> Compromised</> : isPatched ? <><Shield size={12}/> Secured</> : sysState === 'CRASHED' ? <><Bug size={12}/> Crashed</> : <><ShieldAlert size={12}/> Vulnerable</>}
+            </div>
+          </div>
+
+          <div className="p-6 flex-1 flex flex-col gap-5 bg-slate-50/50 overflow-y-auto custom-scrollbar">
+            {/* Code Panel */}
+            <div className="relative shrink-0">
+              <div className="absolute -left-3 top-0 bottom-0 w-1 bg-slate-200 rounded-full" />
+              <pre className="font-mono text-[13px] leading-relaxed text-slate-600 pl-4 transition-all">
+                <span className="text-purple-600">void</span> <span className="text-blue-600">process_input</span>() {"{\n"}
+                {"  "}<span className="text-purple-600">char</span> buffer[<span className="text-amber-500 font-bold">8</span>];<br/>
+                {"  "}printf(<span className="text-emerald-600">"Enter Data:"</span>);<br/>
+                <br/>
+                <div className="inline-block relative">
+                  {sysState === "PROCESSING" && (
+                    <motion.div layoutId="execHighlight" className="absolute -inset-1 bg-amber-100 rounded z-0" />
+                  )}
+                  <span className="relative z-10">
+                    {isPatched ? (
+                      <span className={`px-1 py-0.5 rounded font-bold transition-all border shadow-sm ${sysState === 'PROCESSING' ? 'bg-emerald-200 text-emerald-900 border-emerald-400' : 'bg-emerald-100 text-emerald-800 border-emerald-200'}`}>
+                        {"  "}fgets(buffer, <span className="text-amber-600">8</span>, stdin); <span className="text-emerald-700/70 text-xs">// Boundary enforced</span>
+                      </span>
+                    ) : (
+                      <span className={`px-1 py-0.5 rounded font-bold transition-all border shadow-sm ${sysState === 'PROCESSING' ? 'bg-rose-200 text-rose-900 border-rose-400' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
+                        {"  "}gets(buffer); <span className="text-rose-700/70 text-xs">// DANGER: No size check</span>
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <br/><br/>
+                {"  "}return;<br/>
+                {"}"}
+              </pre>
+            </div>
+
+            {/* Dynamic Interaction Controls */}
+            {stage <= 3 ? (
+              <div className="flex flex-col gap-3 mt-auto pt-2 pb-1">
+                
+                {/* SAFE DATA (Always visible in stages 1-3) */}
+                <div className="flex flex-col shrink-0">
+                  <div className="text-[9px] font-mono font-bold text-slate-400 mb-1 ml-1 tracking-wider">
+                    PAYLOAD: ['A','A','A','A','A']
+                  </div>
+                  <button 
+                    onClick={handleInjectSafe}
+                    disabled={sysState !== "IDLE" && sysState !== "CRASHED" && sysState !== "HIJACKED"}
+                    className="w-full h-12 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-600 uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 transition-all hover:border-blue-400 hover:text-blue-600 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                  >
+                    <Cpu size={16}/> Send Safe Data (5 bytes)
+                  </button>
+                </div>
+
+                {/* JUNK DATA (Visible Stage 2+) */}
+                <AnimatePresence>
+                  {stage >= 2 && (
+                    <motion.div initial={{opacity:0, height:0, marginTop:0}} animate={{opacity:1, height:'auto', marginTop:4}} className="flex flex-col overflow-hidden shrink-0">
+                      <div className="text-[9px] font-mono font-bold text-slate-400 mb-1 ml-1 tracking-wider">
+                        PAYLOAD: ['A' x 12]
+                      </div>
+                      <button 
+                        onClick={handleInjectJunk}
+                        disabled={sysState !== "IDLE" && sysState !== "CRASHED" && sysState !== "HIJACKED"}
+                        className="w-full h-12 bg-white border-2 border-amber-200 rounded-xl font-bold text-amber-700 uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 transition-all hover:bg-amber-50 hover:border-amber-400 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                      >
+                        <Bug size={16}/> Cause Buffer Overflow
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* CRAFTED EXPLOIT (Visible Stage 3+) */}
+                <AnimatePresence>
+                  {stage >= 3 && (
+                    <motion.div initial={{opacity:0, height:0, marginTop:0}} animate={{opacity:1, height:'auto', marginTop:4}} className="flex flex-col overflow-hidden shrink-0">
+                      <div className="text-[9px] font-mono font-bold text-slate-400 mb-1 ml-1 tracking-wider">
+                        PAYLOAD: ['X' x 8, '0', 'x', 'H', '4']
+                      </div>
+                      <button 
+                        onClick={handleInjectExploit}
+                        disabled={sysState !== "IDLE" && sysState !== "CRASHED" && sysState !== "HIJACKED"}
+                        className="w-full h-12 bg-rose-500 border-2 border-rose-600 rounded-xl font-black text-white uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 transition-all hover:bg-rose-600 shadow-md disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                      >
+                        <AlertOctagon size={16}/> Inject Crafted Exploit
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : stage === 4 ? (
+              <div className="flex flex-col gap-3 mt-auto pt-2 pb-1">
+                <div className="text-sm font-bold text-slate-700 mb-2 leading-tight">
+                  How will you fix this vulnerability?
+                </div>
+                
+                <button onClick={handleBadPatch} className="w-full h-12 bg-white border-2 border-rose-200 rounded-xl font-bold text-rose-600 uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 transition-all hover:bg-rose-50 hover:border-rose-400 active:scale-95 shrink-0">
+                  <XCircle size={16}/> Increase Buffer to 100
+                </button>
+
+                <button onClick={handleGoodPatch} className="w-full h-12 bg-emerald-500 border-2 border-emerald-600 rounded-xl font-black text-white uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 shadow-[0_8px_16px_rgba(16,185,129,0.25)] hover:bg-emerald-400 active:scale-95 transition-all shrink-0">
+                  <Shield size={16}/> Enforce Boundary (fgets)
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 mt-auto pt-2 pb-1">
+                <div className="flex flex-col shrink-0">
+                  <div className="text-[9px] font-mono font-bold text-slate-400 mb-1 ml-1 tracking-wider">
+                    PAYLOAD: ['X' x 8, '0', 'x', 'H', '4']
+                  </div>
+                  <button 
+                    onClick={handleInjectExploit}
+                    disabled={sysState === "PROCESSING"}
+                    className="w-full h-12 bg-white border-2 border-emerald-500 rounded-xl font-black text-emerald-600 uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 transition-all hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                  >
+                    <AlertOctagon size={16}/> Inject Exploit (Verify)
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Hemisphere: Architecture */}
+        <div className="flex-1 bg-slate-100/50 relative flex flex-col items-center justify-center p-6 lg:p-8 [background-image:radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] overflow-hidden">
+          
+          {/* Main Visualizer Canvas (600x400 Coordinate System) */}
+          <div className="relative w-full aspect-[600/400] max-w-[600px] shrink-0">
+            
+            {/* SVG Laser Paths */}
+            <svg viewBox="0 0 600 400" className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible hidden lg:block">
+              <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes flow-fwd { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+                .laser-fwd { animation: flow-fwd 0.8s linear infinite; }
+              `}} />
+              
+              {/* Background inactive tracks */}
+              <path d="M 180 125 L 320 125" stroke="#cbd5e1" strokeWidth="4" fill="none" strokeDasharray="8 8" />
+              <path d="M 320 125 L 250 125 L 250 310 L 180 310" stroke="#e2e8f0" strokeWidth="4" fill="none" strokeDasharray="8 8" />
+              
+              {/* Active Lasers */}
+              {sysState === "HIJACKED" ? (
+                <path d="M 320 125 L 250 125 L 250 310 L 180 310" stroke="#f43f5e" strokeWidth="6" fill="none" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="12 12" className="laser-fwd drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+              ) : sysState === "SECURED" || stage === 1 || stage === 2 || sysState === "IDLE" ? (
+                <path d="M 180 125 L 320 125" stroke="#3b82f6" strokeWidth="4" fill="none" strokeLinecap="round" strokeDasharray="8 8" className="laser-fwd drop-shadow-[0_0_5px_rgba(59,130,246,0.4)]" />
+              ) : null}
+            </svg>
+
+            {/* main() Node */}
+            <div className={`hidden lg:flex absolute top-[23.75%] left-[6.66%] w-[23.33%] h-[15%] bg-white border-2 rounded-xl shadow-md items-center justify-center text-sm font-bold font-mono z-20 transition-all duration-300
+              ${sysState === 'PROCESSING' ? 'border-blue-400 text-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'border-slate-300 text-slate-600'}`}>
+              main()
+              <div className={`absolute right-[-7px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 rounded-full transition-colors duration-300
+                ${sysState === 'PROCESSING' ? 'border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]' : 'border-slate-300'}`} />
+            </div>
+
+            {/* hacker_shell() Node */}
+            <div className={`hidden lg:flex absolute top-[70%] left-[6.66%] w-[23.33%] h-[15%] border-2 rounded-xl shadow-md items-center justify-center text-sm font-bold font-mono transition-colors duration-500 z-20 
+              ${sysState === 'HIJACKED' ? 'bg-rose-500 border-rose-600 text-white shadow-[0_0_20px_rgba(244,63,94,0.4)]' : 'bg-slate-100 border-slate-300 text-slate-400 border-dashed'}`}>
+              
+              {/* Visible Address Tag */}
+              <div className="absolute -top-3 -right-2 bg-slate-800 text-slate-200 text-[10px] px-2 py-0.5 rounded shadow border border-slate-600 font-bold tracking-wider z-30">
+                0xH4CK3D
+              </div>
+
+              hacker_shell()
+              <div className={`absolute right-[-7px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 rounded-full transition-colors duration-500
+                ${sysState === 'HIJACKED' ? 'border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]' : 'border-slate-300'}`} />
+            </div>
+
+            {/* System Memory Stack */}
+            <div className={`absolute top-[10%] left-[53.33%] w-[40%] h-[80%] bg-white border-2 border-slate-300 rounded-3xl shadow-xl z-20 overflow-hidden transition-transform duration-300 ${isErrorState ? 'animate-shake' : ''}`}>
+              
+              <div className="absolute top-[15px] w-full text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                System Memory Stack
+              </div>
+
+              {/* Return Address Block */}
+              <div className="absolute top-[55px] left-[20px] right-[20px] h-[60px]">
+                <div className={`hidden lg:block absolute left-[-27px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 rounded-full transition-colors duration-300
+                  ${isErrorState ? 'border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]' : 'border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]'}`} />
+                
+                <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex justify-between">
+                  <span>Return Address</span>
+                  <span>[4 Bytes]</span>
+                </div>
+                <div className={`w-full h-10 rounded-xl border-2 flex items-center justify-center font-mono text-sm font-bold transition-colors duration-300 shadow-inner
+                  ${isErrorState ? 'bg-rose-100 border-rose-500 text-rose-600' : 'bg-slate-50 border-slate-300 text-slate-600'}`}>
+                  {returnAddress}
+                </div>
+                {isErrorState && (
+                  <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="absolute inset-0 top-5 border-2 border-rose-500 rounded-xl skew-x-12 opacity-40 pointer-events-none" />
+                )}
+              </div>
+
+              {/* Local Buffer Block */}
+              <div className="absolute top-[135px] left-[20px] right-[20px] bottom-[20px]">
+                <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex justify-between">
+                  <span>Local Buffer</span>
+                  <span>[8 Bytes]</span>
+                </div>
+                <div className="w-full h-[calc(100%-20px)] border-x-2 border-b-2 border-blue-200 bg-blue-50/40 rounded-b-2xl relative flex flex-wrap-reverse content-start gap-1.5 p-2 overflow-visible shadow-inner">
+                  
+                  {/* Empty Finite Slots Background */}
+                  {[...Array(8)].map((_, i) => (
+                    <div
+                      key={`empty-${i}`}
+                      className="w-[22%] h-[42%] min-h-[20px] rounded-md border-2 border-dashed border-blue-300/60 bg-blue-100/30 absolute z-0"
+                      style={{
+                        left: `calc(4% + ${(i % 4) * 24}%)`, 
+                        bottom: `calc(4% + ${Math.floor(i / 4) * 48}%)`
+                      }}
+                    />
+                  ))}
+
+                  <AnimatePresence>
+                    {isPatched && (
+                      <motion.div 
+                        initial={{ opacity: 0, scaleX: 0 }}
+                        animate={{ opacity: 1, scaleX: 1 }}
+                        className="absolute -top-1 -left-1 -right-1 h-3 bg-emerald-500 rounded-full shadow-[0_5px_15px_rgba(16,185,129,0.6)] z-30 border border-emerald-400"
+                      />
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                    {bufferData.map((byte, i) => (
+                      <motion.div
+                        key={`${i}-${byte}`}
+                        initial={{ opacity: 0, y: -80, scale: 0.8 }}
+                        animate={{ 
+                          opacity: 1, 
+                          y: i >= 8 ? -90 : 0, 
+                          scale: 1,
+                          rotate: i >= 8 && isErrorState ? ((i % 2 === 0 ? 1 : -1) * 12) : 0 
+                        }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20, delay: i * 0.05 }}
+                        className={`w-[22%] h-[42%] min-h-[20px] rounded-md border-2 flex items-center justify-center font-mono font-bold text-xs shadow-sm absolute z-10
+                          ${byte === 'A' ? (i >= 8 ? 'bg-amber-200 border-amber-400 text-amber-800 shadow-[0_0_10px_rgba(251,191,36,0.5)]' : 'bg-blue-100 border-blue-300 text-blue-700') : 
+                            byte === 'X' ? 'bg-amber-100 border-amber-300 text-amber-700' : 
+                            'bg-rose-500 border-rose-600 text-white shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
+                        style={{
+                          left: `calc(4% + ${(i % 4) * 24}%)`, 
+                          bottom: `calc(4% + ${Math.floor((i % 8) / 4) * 48}%)`, 
+                          zIndex: i >= 8 ? 30 : 10
+                        }}
+                      >
+                        {byte}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Terminal Console (Glassmorphism enhanced) */}
+          <div className="w-full max-w-[600px] mt-8 bg-slate-900/85 backdrop-blur-md rounded-xl border border-slate-700 p-4 shadow-2xl shrink-0 z-30 relative">
+            <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-slate-500 to-transparent opacity-50" />
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700">
+              <Terminal size={14} className="text-slate-400"/>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">System.Out</span>
+            </div>
+            <div className="font-mono text-xs leading-relaxed flex flex-col gap-1 min-h-[2.5rem]">
+              {terminalLog.map((log, i) => (
+                <motion.span 
+                  key={i} 
+                  initial={{ opacity: 0, x: -10 }} 
+                  animate={{ opacity: i === terminalLog.length -1 ? 1 : 0.5, x: 0 }}
+                  className={log.includes("FATAL") || log.includes("REJECTED") || log.includes("CRITICAL") ? "text-rose-400 font-bold" : log.includes("BLOCKED") ? "text-emerald-400 font-bold" : "text-sky-300"}
+                >
+                  {log}
+                </motion.span>
+              ))}
+              {sysState === "PROCESSING" && <span className="text-slate-500 animate-pulse">_</span>}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </LabShell>
+  );
+}

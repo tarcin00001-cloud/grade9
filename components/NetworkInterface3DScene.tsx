@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, Text } from '@react-three/drei';
+import { OrbitControls, ContactShadows, Text, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface NetworkInterface3DSceneProps {
@@ -91,28 +91,28 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
 
   return (
     <group position={[0, 0, 0]}>
-      {/* PCB Board */}
+      {/* PCB Board — deep gloss-black substrate with a subtle clearcoat sheen, like a premium enthusiast card */}
       <mesh position={[0, 0, 0]} receiveShadow castShadow>
         <boxGeometry args={[6, 0.1, 4]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.6} metalness={0.4} />
+        <meshPhysicalMaterial color="#0f172a" roughness={0.45} metalness={0.5} clearcoat={0.6} clearcoatRoughness={0.3} />
       </mesh>
 
-      {/* PCIe Gold Pins */}
+      {/* PCIe Gold Pins — polished gold-plated contacts */}
       <group position={[0, -0.05, 2]}>
         <mesh position={[-1.5, 0, 0]}>
           <boxGeometry args={[1.5, 0.12, 0.2]} />
-          <meshStandardMaterial color="#d97706" metalness={0.8} roughness={0.2} />
+          <meshPhysicalMaterial color="#f59e0b" metalness={0.95} roughness={0.15} clearcoat={0.5} envMapIntensity={1.5} />
         </mesh>
         <mesh position={[1, 0, 0]}>
           <boxGeometry args={[3, 0.12, 0.2]} />
-          <meshStandardMaterial color="#d97706" metalness={0.8} roughness={0.2} />
+          <meshPhysicalMaterial color="#f59e0b" metalness={0.95} roughness={0.15} clearcoat={0.5} envMapIntensity={1.5} />
         </mesh>
       </group>
 
-      {/* Metal Bracket (Left) */}
+      {/* Metal Bracket (Left) — brushed aluminum */}
       <mesh position={[-3.1, 0.5, 0]} castShadow>
         <boxGeometry args={[0.2, 1.5, 4.5]} />
-        <meshStandardMaterial color="#94a3b8" metalness={0.7} roughness={0.2} />
+        <meshPhysicalMaterial color="#cbd5e1" metalness={0.85} roughness={0.25} clearcoat={0.3} envMapIntensity={1.5} />
       </mesh>
 
       {/* WiFi Antenna (Only shows if WiFi) */}
@@ -129,28 +129,28 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
         </group>
       )}
 
-      {/* Base Port Block (Always there, but modules plug into it) */}
+      {/* Base Port Block (Always there, but modules plug into it) — brushed steel shroud */}
       <group position={[-2.7, 0.4, -1]}>
         <mesh castShadow>
           <boxGeometry args={[0.8, 0.7, 1.2]} />
-          <meshStandardMaterial color="#cbd5e1" metalness={0.5} roughness={0.3} />
+          <meshPhysicalMaterial color="#e2e8f0" metalness={0.8} roughness={0.25} clearcoat={0.4} envMapIntensity={1.5} />
         </mesh>
       </group>
 
-      {/* Copper PHY Chip */}
+      {/* Copper PHY Chip — matte IC package with a fine clearcoat */}
       <group position={[-1.8, 0.1, -1.3]}>
         <mesh castShadow>
           <boxGeometry args={[0.5, 0.1, 0.5]} />
-          <meshStandardMaterial color={physicalMedia.includes('COPPER') ? "#3b82f6" : "#334155"} emissive={physicalMedia.includes('COPPER') ? "#3b82f6" : "#000000"} emissiveIntensity={physicalMedia.includes('COPPER') ? 0.5 : 0} />
+          <meshPhysicalMaterial color={physicalMedia.includes('COPPER') ? "#3b82f6" : "#1e293b"} clearcoat={0.5} clearcoatRoughness={0.3} roughness={0.4} emissive={physicalMedia.includes('COPPER') ? "#3b82f6" : "#000000"} emissiveIntensity={physicalMedia.includes('COPPER') ? 0.5 : 0} />
         </mesh>
         <Text position={[0, 0.06, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.1} color="#ffffff">COPPER</Text>
       </group>
 
-      {/* Fiber SFP+ Transceiver */}
+      {/* Fiber SFP+ Transceiver — polished metal housing */}
       <group position={[-1.8, 0.1, -0.7]}>
         <mesh castShadow>
           <boxGeometry args={[0.6, 0.15, 0.4]} />
-          <meshStandardMaterial color={physicalMedia.includes('FIBER') ? "#f43f5e" : "#334155"} metalness={0.8} emissive={physicalMedia.includes('FIBER') ? "#f43f5e" : "#000000"} emissiveIntensity={physicalMedia.includes('FIBER') ? 0.5 : 0} />
+          <meshPhysicalMaterial color={physicalMedia.includes('FIBER') ? "#f43f5e" : "#1e293b"} metalness={0.8} clearcoat={0.5} roughness={0.3} emissive={physicalMedia.includes('FIBER') ? "#f43f5e" : "#000000"} emissiveIntensity={physicalMedia.includes('FIBER') ? 0.5 : 0} />
         </mesh>
         <Text position={[0, 0.08, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.1} color="#ffffff">FIBER</Text>
       </group>
@@ -159,18 +159,24 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
       <group position={[-2.3, 0.1, -0.1]}>
         <mesh castShadow>
           <boxGeometry args={[0.4, 0.08, 0.4]} />
-          <meshStandardMaterial color={physicalMedia.includes('WIFI') ? "#38bdf8" : "#334155"} emissive={physicalMedia.includes('WIFI') ? "#38bdf8" : "#000000"} emissiveIntensity={physicalMedia.includes('WIFI') ? 0.5 : 0} />
+          <meshPhysicalMaterial color={physicalMedia.includes('WIFI') ? "#38bdf8" : "#1e293b"} clearcoat={0.5} clearcoatRoughness={0.3} roughness={0.4} emissive={physicalMedia.includes('WIFI') ? "#38bdf8" : "#000000"} emissiveIntensity={physicalMedia.includes('WIFI') ? 0.5 : 0} />
         </mesh>
         <Text position={[0, 0.05, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.08} color="#ffffff">WIFI</Text>
       </group>
 
-      {/* Main Processor (MAC / Base Controller) */}
+      {/* Main Processor (MAC / Base Controller) — finned heatsink shroud for a premium enthusiast-card look */}
       <group position={[-1, 0.1, -0.5]}>
         <mesh castShadow>
           <boxGeometry args={[1.2, 0.15, 1.2]} />
-          <meshStandardMaterial color="#334155" roughness={0.6} />
+          <meshPhysicalMaterial color="#1e293b" roughness={0.5} clearcoat={0.4} clearcoatRoughness={0.3} />
         </mesh>
-        <Text position={[0, 0.08, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={macAddress ? 0.12 : 0.2} color={macAddress ? "#10b981" : "#94a3b8"}>
+        {[...Array(5)].map((_, i) => (
+          <mesh key={`fin-${i}`} position={[-0.48 + i * 0.24, 0.18, 0]} castShadow>
+            <boxGeometry args={[0.06, 0.2, 1.1]} />
+            <meshPhysicalMaterial color="#94a3b8" metalness={0.85} roughness={0.2} clearcoat={0.4} envMapIntensity={1.5} />
+          </mesh>
+        ))}
+        <Text position={[0, 0.31, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={macAddress ? 0.12 : 0.2} color={macAddress ? "#10b981" : "#94a3b8"}>
           {macAddress || "MAC"}
         </Text>
       </group>
@@ -179,7 +185,7 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
       <group position={[1.5, 0.1, -0.5]}>
         <mesh ref={offloadChipRef as any} castShadow>
           <boxGeometry args={[1, 0.12, 1]} />
-          <meshStandardMaterial color="#334155" roughness={0.6} emissive="#0ea5e9" emissiveIntensity={0} />
+          <meshPhysicalMaterial color="#1e293b" roughness={0.5} clearcoat={0.4} clearcoatRoughness={0.3} emissive="#0ea5e9" emissiveIntensity={0} />
         </mesh>
         <Text position={[0, 0.07, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.15} color={tcpOffloadEnabled ? "#fff" : "#94a3b8"}>
           TCPE
@@ -190,7 +196,7 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
       <group position={[1.5, 0.1, 1]}>
         <mesh ref={qosChipRef as any} castShadow>
           <boxGeometry args={[0.8, 0.1, 0.8]} />
-          <meshStandardMaterial color="#334155" roughness={0.6} emissive="#10b981" emissiveIntensity={0} />
+          <meshPhysicalMaterial color="#1e293b" roughness={0.5} clearcoat={0.4} clearcoatRoughness={0.3} emissive="#10b981" emissiveIntensity={0} />
         </mesh>
         <Text position={[0, 0.06, 0]} rotation={[-Math.PI/2, 0, 0]} fontSize={0.15} color={qosEnabled ? "#fff" : "#94a3b8"}>
           QoS
@@ -207,45 +213,64 @@ const NetworkCard = ({ tcpOffloadEnabled, qosEnabled, isStreaming, cpuOverloaded
   );
 };
 
-export default function NetworkInterface3DScene({ 
-  step, 
-  tcpOffloadEnabled, 
-  qosEnabled, 
-  isStreaming, 
+// Spins the card on its vertical axis while also gently tilting it back and forth,
+// so an idle/auto-rotating card tumbles in 3D instead of turning flat like a record
+// on a turntable (which is all OrbitControls' own autoRotate can do).
+const AutoTurntable = ({ active, children }: { active: boolean; children: React.ReactNode }) => {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    if (active) {
+      groupRef.current.rotation.y += delta * 0.5;
+      groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.4) * 0.12;
+      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.25) * 0.05;
+    }
+  });
+
+  return <group ref={groupRef}>{children}</group>;
+};
+
+export default function NetworkInterface3DScene({
+  step,
+  tcpOffloadEnabled,
+  qosEnabled,
+  isStreaming,
   cpuOverloaded,
   macAddress,
-  physicalMedia 
+  physicalMedia
 }: NetworkInterface3DSceneProps) {
+  const autoTurning = isStreaming && !cpuOverloaded;
+
   return (
     <div className="w-full h-full relative bg-slate-50">
-      <Canvas camera={{ position: [0, 8, 8], fov: 40 }}>
-        <ambientLight intensity={2.5} color="#ffffff" />
-        <directionalLight position={[10, 15, 10]} intensity={3} castShadow color="#ffffff" />
-        <pointLight position={[-5, 5, -5]} intensity={2} color="#f8fafc" distance={20} />
+      <Canvas camera={{ position: [0, 8, 8], fov: 40 }} shadows>
+        <ambientLight intensity={1.1} color="#ffffff" />
+        <directionalLight position={[10, 15, 10]} intensity={2.5} castShadow color="#ffffff" />
+        <pointLight position={[-5, 5, -5]} intensity={1.5} color="#f8fafc" distance={20} />
+        <Environment preset="city" />
 
         <group position={[0, -0.5, -0.5]}>
-          <NetworkCard 
-            tcpOffloadEnabled={tcpOffloadEnabled}
-            qosEnabled={qosEnabled}
-            isStreaming={isStreaming}
-            cpuOverloaded={cpuOverloaded}
-            macAddress={macAddress}
-            physicalMedia={physicalMedia}
-          />
-          
-          <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={15} blur={2} far={4} color="#0f172a" />
+          <AutoTurntable active={autoTurning}>
+            <NetworkCard
+              tcpOffloadEnabled={tcpOffloadEnabled}
+              qosEnabled={qosEnabled}
+              isStreaming={isStreaming}
+              cpuOverloaded={cpuOverloaded}
+              macAddress={macAddress}
+              physicalMedia={physicalMedia}
+            />
+          </AutoTurntable>
+
+          <ContactShadows position={[0, -0.5, 0]} opacity={0.5} scale={15} blur={2} far={4} color="#0f172a" />
         </group>
 
-        <OrbitControls 
+        <OrbitControls
           enablePan={false}
           enableZoom={true}
           enableRotate={true}
-          minPolarAngle={0}
-          maxPolarAngle={Math.PI / 2.2}
           minDistance={4}
           maxDistance={20}
-          autoRotate={isStreaming && !cpuOverloaded}
-          autoRotateSpeed={1.0}
         />
       </Canvas>
     </div>
