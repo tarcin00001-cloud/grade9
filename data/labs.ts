@@ -6,7 +6,7 @@ export const GRADE_LABEL = "Grade 9";
 export const BOOK_TITLE = "Interactive Computing Ecosystem";
 export const LABS: LabDefinition[] = [
 {n:1, slug:"contentdeliverynetwork9", title:"CDN Network Architecture", lesson:"Content Delivery Network9", desc:"Interactive simulation for Content Delivery Network9.", theme:"cosmos", archetype:"Simulation Sandbox", status:"live"},
-{n:2, slug:"univac9", title:"UNIVAC Computing Room", lesson:"Univac9", desc:"Interactive simulation for Univac9.", theme:"cosmos", archetype:"Simulation Sandbox", status:"live"},
+{n:2, slug:"univac9", title:"UNIVAC Computing Room", lesson:"Univac9", desc:"Interactive simulation for Univac9.", theme:"ocean", archetype:"Simulation Sandbox", status:"live"},
 {n:3, slug:"csrfattacks9", title:"Cross-Site Request Forgery (CSRF)", lesson:"Csrf Attacks9", desc:"Interactive simulation for Csrf Attacks9.", theme:"cosmos", archetype:"Simulation Sandbox", status:"live"},
 {n:4, slug:"requirementsanalysis9", title:"Requirements Analysis", lesson:"Requirements Analysis", desc:"Interactive simulation for Requirements Analysis.", theme:"studio", archetype:"Simulation Sandbox", status:"live"},
 {n:5, slug:"classesinjava9", title:"The Robot Factory (OOP)", lesson:"Classes in Java", desc:"Interactive simulation for Object-Oriented Programming, Classes, Objects, and Encapsulation.", theme:"neon", archetype:"Simulation Sandbox", status:"live"},

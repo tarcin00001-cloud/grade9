@@ -34,3 +34,18 @@ setConsoleFunction((type, message, ...params) => {
   const method = type === "log" ? console.log : type === "warn" ? console.warn : console.error;
   method(message, ...params);
 });
+
+// Also patch global console.warn directly to handle dual-bundle or timing hazards in Turbopack/R3F
+if (typeof window !== "undefined") {
+  const originalConsoleWarn = console.warn;
+  console.warn = (...args: unknown[]) => {
+    const firstArg = typeof args[0] === "string" ? args[0] : "";
+    if (
+      firstArg.includes("Clock: This module has been deprecated") ||
+      firstArg.includes("THREE.Clock: This module has been deprecated")
+    ) {
+      return;
+    }
+    originalConsoleWarn.apply(console, args);
+  };
+}

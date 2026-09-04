@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ReactNode, useState, useEffect, useRef } from "react";
 import { ArrowLeft, Volume2, RotateCcw, Lightbulb, Maximize, Minimize } from "lucide-react";
 import { useLabAudio } from "@/hooks/useLabAudio";
+import "@/components/configureThreeConsole";
 
 type Theme = "circuit" | "cosmos" | "ocean" | "forge" | "garden" | "studio" | "neon" | "grade9";
 

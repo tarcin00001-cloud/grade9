@@ -9,7 +9,7 @@ import LabShell from "@/components/LabShell";
 import Celebration from "@/components/Celebration";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
-import { AlertTriangle, Zap } from "lucide-react";
+import { AlertTriangle, Zap, ShieldCheck } from "lucide-react";
 
 interface StationConfig {
   id: string;
@@ -28,50 +28,50 @@ const STATIONS: StationConfig[] = [
   {
     id: "nearby_homes",
     name: "Suburban Grid",
-    sub: "Low Delay · 12ms",
+    sub: "Low Delay // 12ms",
     demand: 2,
     delayMs: 800,
     type: "residential",
     sectorTag: "SECTOR_A // NEAR_EDGE",
     reqLabel: "Social Stream",
     isNearEdge: true,
-    latencyBadge: { text: "12ms · ALREADY FAST", bg: "bg-emerald-100", textCol: "text-emerald-800", border: "border-emerald-300" },
+    latencyBadge: { text: "12ms // ALREADY FAST", bg: "bg-emerald-100", textCol: "text-emerald-800", border: "border-emerald-300" },
   },
   {
     id: "busy_town",
     name: "Metro Central",
-    sub: "High Traffic · Core Hub",
+    sub: "High Traffic // Core Hub",
     demand: 4,
     delayMs: 1200,
     type: "metropolis",
     sectorTag: "SECTOR_B // METRO_CORE",
     reqLabel: "4K Video Stream",
     isNearEdge: false,
-    latencyBadge: { text: "50ms · HEAVY TRAFFIC", bg: "bg-amber-100", textCol: "text-amber-800", border: "border-amber-300" },
+    latencyBadge: { text: "50ms // HEAVY TRAFFIC", bg: "bg-amber-100", textCol: "text-amber-800", border: "border-amber-300" },
   },
   {
     id: "far_north",
     name: "Northern Hub",
-    sub: "High Delay · 180ms",
+    sub: "High Delay // 180ms",
     demand: 2,
     delayMs: 2400,
     type: "outpost",
     sectorTag: "SECTOR_C // ALPINE_REMOTE",
     reqLabel: "Weather Satellite",
     isNearEdge: false,
-    latencyBadge: { text: "180ms · HIGH DELAY", bg: "bg-red-100", textCol: "text-red-800", border: "border-red-300" },
+    latencyBadge: { text: "180ms // HIGH DELAY", bg: "bg-red-100", textCol: "text-red-800", border: "border-red-300" },
   },
   {
     id: "far_south",
     name: "Southern Port",
-    sub: "High Delay · 195ms",
+    sub: "High Delay // 195ms",
     demand: 3,
     delayMs: 2800,
     type: "facility",
     sectorTag: "SECTOR_D // COASTAL_TERMINAL",
     reqLabel: "Port Cargo Sync",
     isNearEdge: false,
-    latencyBadge: { text: "195ms · HIGH DELAY", bg: "bg-red-100", textCol: "text-red-800", border: "border-red-300" },
+    latencyBadge: { text: "195ms // HIGH DELAY", bg: "bg-red-100", textCol: "text-red-800", border: "border-red-300" },
   },
 ];
 
@@ -83,12 +83,16 @@ export default function ContentDeliveryNetwork9() {
     drive_1: "origin_1",
     drive_2: "origin_2",
     drive_3: "origin_3",
+    drive_4: null,
   });
 
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
   const [selectedDrive, setSelectedDrive] = useState<string | null>(null);
   const [isDraggingAny, setIsDraggingAny] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [phase, setPhase] = useState(0); // 0: start, 1: caching, 2: success delay, 3: outage, 4: fixed
+  const [isOutageActive, setIsOutageActive] = useState(false);
 
   const [syncingStations, setSyncingStations] = useState<Set<string>>(new Set());
   const [impactStations, setImpactStations] = useState<Set<string>>(new Set());
@@ -179,7 +183,8 @@ export default function ContentDeliveryNetwork9() {
 
   // Calculate live global average latency in ms
   let liveLatencyMs = 240;
-  if (cachedCount === 0) liveLatencyMs = 240;
+  if (isOutageActive) liveLatencyMs = 503;
+  else if (cachedCount === 0) liveLatencyMs = 240;
   else if (cachedCount === 1) {
     liveLatencyMs = hasSuburban ? 228 : hasMetro ? 170 : hasNorth ? 140 : 130;
   } else if (cachedCount === 2) {
@@ -192,7 +197,7 @@ export default function ContentDeliveryNetwork9() {
     else if (hasSuburban && hasMetro && (hasNorth || hasSouth)) liveLatencyMs = 110;
   }
 
-  // Needle angle mapping: 240ms -> +68° (OVERLOAD), 140ms -> +35°, 60ms -> -10°, 12ms -> -68° (FAST)
+  // Needle angle mapping: 240ms -> +68 deg (OVERLOAD), 140ms -> +35 deg, 60ms -> -10 deg, 12ms -> -68 deg (FAST)
   let targetNeedleAngle = 68;
   if (liveLatencyMs <= 15) targetNeedleAngle = -68;
   else if (liveLatencyMs <= 60) targetNeedleAngle = -28;
@@ -200,8 +205,28 @@ export default function ContentDeliveryNetwork9() {
   else if (liveLatencyMs <= 180) targetNeedleAngle = 44;
   else targetNeedleAngle = 68;
 
-  // Genuine Victory: Cached 3 stations AND achieved lowest latency (Metro, North, South)
-  const isOptimalVictory = cachedCount === 3 && hasMetro && hasNorth && hasSouth;
+  const isRerouted = driveLocations.drive_4 !== null;
+
+  useEffect(() => {
+    if (cachedCount === 3 && hasMetro && hasNorth && hasSouth && phase === 0) {
+      setPhase(1);
+      setSuccessMessage("ORIGIN CACHING COMPLETE! Latency optimal.");
+      setTimeout(() => {
+        setSuccessMessage(null);
+        setPhase(2);
+        setIsOutageActive(true);
+        setDriveLocations((prev) => ({ ...prev, drive_4: 'origin_2' }));
+      }, 4000);
+    }
+    
+    if (isOutageActive && driveLocations.drive_4 !== null && driveLocations.drive_4 !== "origin_2") {
+        setIsOutageActive(false);
+        setPhase(4);
+    }
+  }, [cachedCount, hasMetro, hasNorth, hasSouth, phase, isOutageActive, driveLocations.drive_4]);
+
+  // Genuine Victory: Phase 4
+  const isOptimalVictory = phase === 4;
 
   useEffect(() => {
     if (isOptimalVictory && !completed && !worldCelebration) {
@@ -287,7 +312,7 @@ export default function ContentDeliveryNetwork9() {
     }
 
     // Pedagogical Check: If student caches Suburban Grid (12ms)
-    if (targetZone === "nearby_homes") {
+    if (targetZone === "nearby_homes" && driveId !== "drive_4" && !isOutageActive) {
       playError();
       setWarningMessage("Suburban Grid is already at 12ms low delay! Prioritize high-delay stations to reach the green zone.");
     } else {
@@ -343,19 +368,22 @@ export default function ContentDeliveryNetwork9() {
       labId="cdn-9"
       title="CDN Network Architecture"
       subtitle="Deploy Regional Caches to Reduce Global Wait Time"
-      instruction="Drag memory canisters into high-delay regional stations to eliminate network lag."
-      hint="Suburban Grid is already close (12ms). Deploy your 3 canisters to Metro Central, Northern Hub, and Southern Port (50–195ms) to bring global waiting time all the way into the green FAST zone!"
+      instruction="Deploy Regional Caches and BGP Routing. Drag memory canisters and the routing token into high-delay regional stations to eliminate network lag."
+      hint="Suburban Grid is already close (12ms). Deploy your 3 canisters to Metro Central, Northern Hub, and Southern Port (50-195ms) to bring global waiting time all the way into the green FAST zone!"
       bgOverride="bg-slate-100"
       onReset={() => {
-        setDriveLocations({ drive_1: "origin_1", drive_2: "origin_2", drive_3: "origin_3" });
+        setDriveLocations({ drive_1: "origin_1", drive_2: "origin_2", drive_3: "origin_3", drive_4: null });
         setSyncingStations(new Set());
         setSyncedStations(new Set());
         setWarningMessage(null);
+        setSuccessMessage(null);
         setWorldCelebration(false);
         setCompleted(false);
+        setPhase(0);
+        setIsOutageActive(false);
       }}
     >
-      {/* ── TECHNICAL MICRO-GRID BLUEPRINT BACKGROUND ── */}
+      {/* -- TECHNICAL MICRO-GRID BLUEPRINT BACKGROUND -- */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -382,7 +410,7 @@ export default function ContentDeliveryNetwork9() {
         )}
       </div>
 
-      {/* ── MAIN INTERACTIVE WORLD CONTAINER ── */}
+      {/* -- MAIN INTERACTIVE WORLD CONTAINER -- */}
       <div
         ref={containerRef}
         className="flex-1 w-full flex flex-col md:flex-row items-stretch justify-between relative z-10 min-h-0 px-2 sm:px-4 md:px-6 py-1"
@@ -405,9 +433,10 @@ export default function ContentDeliveryNetwork9() {
             const end = railCoords.stations[station.id];
             if (!start || !end || start.x === 0 || end.x === 0) return null;
 
-            const isCached = Object.values(driveLocations).includes(station.id);
+            const isRerouted = driveLocations.drive_4 === station.id;
+            const isCached = Object.values(driveLocations).includes(station.id) && !isRerouted;
             const isSyncing = syncingStations.has(station.id);
-            const isFullyActive = isCached && syncedStations.has(station.id);
+            const isFullyActive = (isCached || isRerouted) && syncedStations.has(station.id);
 
             const lineY = end.y;
 
@@ -416,43 +445,65 @@ export default function ContentDeliveryNetwork9() {
             const rxStart = { x: start.x, y: lineY + 4.5 };
             const rxEnd = { x: end.x, y: lineY + 4.5 };
 
-            const txPath = `M ${txEnd.x} ${txEnd.y} L ${txStart.x} ${txStart.y}`;
-            const rxPath = `M ${rxStart.x} ${rxStart.y} L ${rxEnd.x} ${rxEnd.y}`;
+            let txPath = `M ${txEnd.x} ${txEnd.y} L ${txStart.x} ${txStart.y}`;
+            let rxPath = `M ${rxStart.x} ${rxStart.y} L ${rxEnd.x} ${rxEnd.y}`;
+
+            const breakX = txStart.x + (txEnd.x - txStart.x) * 0.6;
+            const dropY = lineY + 50;
+
+            if (isRerouted) {
+              txPath = `M ${txEnd.x} ${txEnd.y} L ${breakX} ${txEnd.y} L ${breakX} ${dropY}`;
+              rxPath = `M ${rxEnd.x} ${rxEnd.y} L ${breakX - 9} ${rxEnd.y} L ${breakX - 9} ${dropY}`;
+            }
 
             const journeySec = station.delayMs / 1000;
 
             return (
               <g key={`rail-${station.id}`}>
                 {/* Outer Heavy Glass Bed Jacket */}
-                <path d={txPath} fill="none" stroke="#94a3b8" strokeWidth="6" strokeLinecap="round" opacity="0.3" />
-                <path d={rxPath} fill="none" stroke="#94a3b8" strokeWidth="6" strokeLinecap="round" opacity="0.3" />
+                <path d={txPath} fill="none" stroke={isRerouted ? "#059669" : "#94a3b8"} strokeWidth="6" strokeLinecap="round" opacity="0.3" className={isRerouted ? "animate-pulse" : ""} />
+                <path d={rxPath} fill="none" stroke={isRerouted ? "#059669" : "#94a3b8"} strokeWidth="6" strokeLinecap="round" opacity="0.3" className={isRerouted ? "animate-pulse" : ""} />
                 <path d={txPath} fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" opacity="0.85" />
                 <path d={rxPath} fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" opacity="0.85" />
+
+                {isRerouted && (
+                  <g transform={`translate(${breakX - 25}, ${dropY})`}>
+                    <rect x="0" y="0" width="50" height="20" rx="4" fill="#064e3b" stroke="#10b981" strokeWidth="2" />
+                    <text x="25" y="13" fill="#34d399" fontSize="8" fontWeight="black" textAnchor="middle" letterSpacing="0.5">GCP EDGE</text>
+                  </g>
+                )}
 
                 {/* 1. UPPER LANE: TX (Upstream Request Lane - Amber) */}
                 <path
                   d={txPath}
                   fill="none"
-                  stroke={isFullyActive ? "#cbd5e1" : "#f59e0b"}
-                  strokeWidth={isFullyActive ? "1.5" : "2.5"}
-                  strokeDasharray={isFullyActive ? "4 4" : "6 4"}
-                  className={!isFullyActive ? "animate-[dash_0.8s_linear_infinite]" : ""}
-                  opacity={isFullyActive ? 0.35 : 1}
+                  stroke={!isFullyActive && isOutageActive ? "#ef4444" : isFullyActive ? (isRerouted ? "#10b981" : "#94a3b8") : "#f59e0b"}
+                  strokeWidth={isFullyActive ? "2" : "2.5"}
+                  strokeDasharray={!isFullyActive && isOutageActive ? "2 6" : isFullyActive ? "4 4" : "6 4"}
+                  className={!isFullyActive && !isOutageActive ? "animate-[dash_0.8s_linear_infinite]" : ""}
+                  opacity={isFullyActive ? 0.8 : 1}
                 />
 
                 {/* 2. LOWER LANE: RX (Downstream Payload Lane - Cyan Laser) */}
                 <path
                   d={rxPath}
                   fill="none"
-                  stroke={isFullyActive ? "#cbd5e1" : isSyncing ? "#0284c7" : "#0284c7"}
-                  strokeWidth={isFullyActive ? "1.5" : isSyncing ? "4" : "2.5"}
-                  strokeDasharray={isFullyActive ? "4 4" : isSyncing ? "none" : "8 4"}
-                  className={!isFullyActive && !isSyncing ? "animate-[dash_0.6s_linear_infinite]" : ""}
-                  opacity={isFullyActive ? 0.35 : 1}
+                  stroke={!isFullyActive && isOutageActive ? "#ef4444" : isFullyActive ? (isRerouted ? "#10b981" : "#94a3b8") : isSyncing ? "#0284c7" : "#0284c7"}
+                  strokeWidth={isFullyActive ? "2" : isSyncing ? "4" : "2.5"}
+                  strokeDasharray={!isFullyActive && isOutageActive ? "2 6" : isFullyActive ? "4 4" : isSyncing ? "none" : "8 4"}
+                  className={!isFullyActive && !isSyncing && !isOutageActive ? "animate-[dash_0.6s_linear_infinite]" : ""}
+                  opacity={isFullyActive ? 0.8 : 1}
                 />
+                
+                {!isFullyActive && isOutageActive && (
+                  <g transform={`translate(${txStart.x + 20}, ${lineY})`}>
+                    <circle r="7" fill="#ef4444" className="animate-pulse" />
+                    <path d="M-2.5 -2.5 L2.5 2.5 M-2.5 2.5 L2.5 -2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </g>
+                )}
 
                 {/* Animated Packets during Uncached Origin Fetch */}
-                {!isCached && (
+                {!isCached && !isOutageActive && (
                   <>
                     {/* TX: Amber Request Photon moving right to left */}
                     <g filter="url(#pulseGlow)">
@@ -502,7 +553,7 @@ export default function ContentDeliveryNetwork9() {
           })}
         </svg>
 
-        {/* ── LEFT SIDE: Main Server Depot (Tactile Hardware Detailing) ── */}
+        {/* -- LEFT SIDE: Main Server Depot (Tactile Hardware Detailing) -- */}
         <div className="w-full md:w-[245px] lg:w-[265px] xl:w-[285px] flex items-center justify-center z-20 shrink-0 h-full min-h-0">
           <MainServerDepot
             needleAngle={targetNeedleAngle}
@@ -521,21 +572,24 @@ export default function ContentDeliveryNetwork9() {
             playPop={playPop}
             worldCelebration={worldCelebration}
             stationYs={railCoords.stationYs}
+            isOutageActive={isOutageActive}
           />
         </div>
 
-        {/* ── RIGHT SIDE: 4 Compact Living Regional Outposts ── */}
+        {/* -- RIGHT SIDE: 4 Compact Living Regional Outposts -- */}
         <div className="w-full md:w-[350px] lg:w-[390px] xl:w-[420px] flex flex-col justify-between py-0.5 h-full min-h-0 z-20 gap-2 sm:gap-2.5 shrink-0">
           {STATIONS.map((station) => (
             <VerticalStationModule
               key={station.id}
               station={station}
-              isCached={Object.values(driveLocations).includes(station.id)}
+              isCached={Object.values(driveLocations).includes(station.id) && driveLocations.drive_4 !== station.id}
+              isRerouted={driveLocations.drive_4 === station.id}
               isHovered={activeDropZone === station.id}
               isDraggingAny={isDraggingAny}
               isSyncing={syncingStations.has(station.id)}
               isSynced={syncedStations.has(station.id)}
               isImpact={impactStations.has(station.id)}
+              isOutageActive={isOutageActive}
               driveId={Object.keys(driveLocations).find((k) => driveLocations[k] === station.id)}
               nodeRefs={nodeRefs}
               selectedDrive={selectedDrive}
@@ -552,9 +606,9 @@ export default function ContentDeliveryNetwork9() {
 
       </div>
 
-      {/* ── PEDAGOGICAL WARNING BANNER (When student caches Low-Delay station) ── */}
+      {/* -- PEDAGOGICAL WARNING BANNER (When student caches Low-Delay station) -- */}
       <AnimatePresence>
-        {warningMessage && (
+        {(warningMessage || isOutageActive) && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -562,22 +616,36 @@ export default function ContentDeliveryNetwork9() {
             className="absolute bottom-2 left-1/2 -translate-x-1/2 z-40 bg-amber-500 text-white font-mono font-bold text-[8.5px] sm:text-[9.5px] px-3 py-1 rounded-full shadow-lg border border-amber-300 flex items-center gap-2"
           >
             <AlertTriangle size={12} className="shrink-0" />
-            <span>{warningMessage}</span>
+            <span>{warningMessage || "PRIMARY CDN OFFLINE! REROUTE TRAFFIC IMMEDIATELY!"}</span>
+          </motion.div>
+        )}
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 z-40 bg-emerald-500 text-white font-mono font-bold text-[8.5px] sm:text-[9.5px] px-3 py-1 rounded-full shadow-lg border border-emerald-300 flex items-center gap-2"
+          >
+            <Zap size={12} className="shrink-0" />
+            <span>{successMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── CANONICAL CELEBRATION OVERLAY WITH FULL-SCREEN CONFETTI & PARTICLES ── */}
+      {/* -- CANONICAL CELEBRATION OVERLAY WITH FULL-SCREEN CONFETTI & PARTICLES -- */}
       <Celebration
         isActive={completed}
         message="Global Latency Eliminated! You strategically deployed regional caches to the highest-lag networks, achieving 12ms optimal edge delivery!"
         onReplay={() => {
-          setDriveLocations({ drive_1: "origin_1", drive_2: "origin_2", drive_3: "origin_3" });
+          setDriveLocations({ drive_1: "origin_1", drive_2: "origin_2", drive_3: "origin_3", drive_4: null });
           setSyncingStations(new Set());
           setSyncedStations(new Set());
           setWarningMessage(null);
+          setSuccessMessage(null);
           setWorldCelebration(false);
           setCompleted(false);
+          setPhase(0);
+          setIsOutageActive(false);
         }}
       />
 
@@ -599,9 +667,9 @@ export default function ContentDeliveryNetwork9() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // COMPONENT 1: Western Main Server Depot (Hardware Detailing & Live Latency Readout)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 function MainServerDepot({
   needleAngle,
@@ -620,6 +688,7 @@ function MainServerDepot({
   playPop,
   worldCelebration,
   stationYs,
+  isOutageActive,
 }: any) {
   const isOverloaded = liveLatencyMs > 100;
   const isCoolAndNominal = liveLatencyMs <= 15;
@@ -632,26 +701,26 @@ function MainServerDepot({
   return (
     <div
       ref={(el) => { nodeRefs.current.server = el; }}
-      className={`relative w-full h-full min-h-0 rounded-2xl bg-gradient-to-b from-slate-100 via-slate-200 to-slate-300 border-4 shadow-xl p-2 sm:p-2.5 pr-3 flex flex-col justify-between items-center z-20 overflow-visible text-slate-800 transition-all duration-500 ${
+      className={`relative w-full h-full min-h-0 rounded-2xl bg-gradient-to-b from-cyan-950 via-slate-800 to-cyan-900 border-4 shadow-xl p-2 sm:p-2.5 pr-3 flex flex-col justify-between items-center z-20 overflow-visible text-slate-100 transition-all duration-500 ${
         isCoolAndNominal
-          ? "border-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.35)]"
+          ? "border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.4)]"
           : isOverloaded
-          ? "border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]"
-          : "border-slate-400 shadow-lg"
+          ? "border-cyan-500 shadow-[0_0_22px_rgba(6,182,212,0.35)]"
+          : "border-cyan-700 shadow-[0_0_16px_rgba(6,182,212,0.2)]"
       }`}
     >
       {/* 4 Corner Hex Bolt Screws */}
-      <div className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center shadow-xs">
-        <div className="w-1 h-0.5 bg-slate-500 rounded-xs" />
+      <div className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-cyan-800 border border-cyan-600 flex items-center justify-center shadow-xs">
+        <div className="w-1 h-0.5 bg-cyan-300 rounded-xs" />
       </div>
-      <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center shadow-xs">
-        <div className="w-1 h-0.5 bg-slate-500 rounded-xs" />
+      <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-800 border border-cyan-600 flex items-center justify-center shadow-xs">
+        <div className="w-1 h-0.5 bg-cyan-300 rounded-xs" />
       </div>
-      <div className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center shadow-xs">
-        <div className="w-1 h-0.5 bg-slate-500 rounded-xs" />
+      <div className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full bg-cyan-800 border border-cyan-600 flex items-center justify-center shadow-xs">
+        <div className="w-1 h-0.5 bg-cyan-300 rounded-xs" />
       </div>
-      <div className="absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center shadow-xs">
-        <div className="w-1 h-0.5 bg-slate-500 rounded-xs" />
+      <div className="absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-800 border border-cyan-600 flex items-center justify-center shadow-xs">
+        <div className="w-1 h-0.5 bg-cyan-300 rounded-xs" />
       </div>
 
       {/* 4 Dedicated Dual TX/RX Output Connectors Positioned at Dead-Level Station Height */}
@@ -682,14 +751,14 @@ function MainServerDepot({
 
       {/* Industrial Header with Active Dynamic Cooling Turbines */}
       <div className={`w-full rounded-lg px-2 py-1 border-b-2 shadow-sm flex items-center justify-between text-white shrink-0 transition-colors duration-500 ${
-        isCoolAndNominal ? "bg-emerald-600 border-emerald-700" : "bg-slate-700 border-slate-800"
+        isOutageActive ? "bg-red-700 border-red-800" : (isCoolAndNominal ? "bg-emerald-600 border-emerald-700" : "bg-sky-600 border-sky-700")
       }`}>
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-4 rounded-full bg-black/20 border border-white/40 flex items-center justify-center overflow-hidden shadow-inner">
             <svg
               viewBox="0 0 20 20"
-              className="w-3.5 h-3.5 fill-cyan-200"
-              style={{ animation: isOverloaded ? "fanRotateFast 0.4s linear infinite" : "fanRotateSlow 1.8s linear infinite" }}
+              className={`w-3.5 h-3.5 ${isOutageActive ? "fill-red-300" : "fill-cyan-200"}`}
+              style={{ animation: isOutageActive ? "none" : (isOverloaded ? "fanRotateFast 0.4s linear infinite" : "fanRotateSlow 1.8s linear infinite") }}
             >
               <path d="M10 10 L10 2 A3 3 0 0 1 13 4 Z M10 10 L18 10 A3 3 0 0 1 16 13 Z M10 10 L10 18 A3 3 0 0 1 7 16 Z M10 10 L2 10 A3 3 0 0 1 4 7 Z" />
             </svg>
@@ -697,8 +766,8 @@ function MainServerDepot({
           <div className="w-4 h-4 rounded-full bg-black/20 border border-white/40 flex items-center justify-center overflow-hidden shadow-inner">
             <svg
               viewBox="0 0 20 20"
-              className="w-3.5 h-3.5 fill-cyan-200"
-              style={{ animation: isOverloaded ? "fanRotateFast 0.4s linear infinite" : "fanRotateSlow 1.8s linear infinite" }}
+              className={`w-3.5 h-3.5 ${isOutageActive ? "fill-red-300" : "fill-cyan-200"}`}
+              style={{ animation: isOutageActive ? "none" : (isOverloaded ? "fanRotateFast 0.4s linear infinite" : "fanRotateSlow 1.8s linear infinite") }}
             >
               <path d="M10 10 L10 2 A3 3 0 0 1 13 4 Z M10 10 L18 10 A3 3 0 0 1 16 13 Z M10 10 L10 18 A3 3 0 0 1 7 16 Z M10 10 L2 10 A3 3 0 0 1 4 7 Z" />
             </svg>
@@ -707,29 +776,37 @@ function MainServerDepot({
 
         <div className="flex items-center gap-1">
           <div className={`w-2 h-2 rounded-full ${worldCelebration ? "bg-emerald-300 shadow-[0_0_6px_#10b981]" : isOverloaded ? "bg-red-400 animate-ping" : "bg-emerald-300"}`} />
-          <span className="text-[7.5px] sm:text-[8px] font-mono font-bold text-slate-100 tracking-wider">
-            {isCoolAndNominal ? "COOL_NOMINAL" : "ORIGIN_DEPOT"}
+          <span className="text-[7.5px] sm:text-[8px] font-mono font-bold text-sky-100 tracking-wider">
+            {isOutageActive ? "OFFLINE // 503" : (isCoolAndNominal ? "COOL_NOMINAL" : "ORIGIN_DEPOT")}
           </span>
         </div>
       </div>
 
       <div className="w-full text-center shrink-0">
-        <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-wider leading-none">
+        <h2 className="text-xs sm:text-sm font-black text-cyan-100 tracking-wider leading-none drop-shadow-sm">
           MAIN SERVER
         </h2>
-        <span className="text-[6.5px] font-mono font-bold text-slate-500 uppercase tracking-widest block mt-0.5">
+        <span className="text-[6.5px] font-mono font-bold text-cyan-400 uppercase tracking-widest block mt-0.5">
           CENTRAL ORIGIN // US-WEST 100TB
         </span>
       </div>
 
       {/* Recessed Dial Gauge with Live Latency Number Readout */}
-      <div className="w-full bg-slate-50 p-1 rounded-xl border-2 border-slate-300 shadow-inner flex flex-col items-center relative shrink-0">
-        <div className="text-[8px] sm:text-[9px] font-black text-slate-600 uppercase tracking-widest mb-0.5">
+      <div className="w-full bg-cyan-950/80 p-1 rounded-xl border-2 border-cyan-700 shadow-inner flex flex-col items-center relative shrink-0">
+        <div className="text-[8px] sm:text-[9px] font-black text-cyan-300 uppercase tracking-widest mb-0.5">
           WAITING TIME
         </div>
 
-        <svg viewBox="0 0 120 65" className="w-22 sm:w-28 md:w-32 overflow-visible">
-          <path d="M 15,60 A 45,45 0 0 1 105,60" fill="none" stroke="#cbd5e1" strokeWidth="14" strokeLinecap="round" />
+        {isOutageActive ? (
+          <div className="flex flex-col items-center justify-center w-full h-[65px] text-red-500 relative overflow-hidden mt-1 mb-6">
+            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, #ef4444 10px, #ef4444 20px)" }} />
+            <AlertTriangle size={24} className="mb-0.5 animate-pulse" />
+            <span className="text-[10px] font-black tracking-widest text-center leading-tight shadow-black drop-shadow-md">HTTP 503<br/>UNREACHABLE</span>
+          </div>
+        ) : (
+          <>
+          <svg viewBox="0 0 120 65" className="w-22 sm:w-28 md:w-32 overflow-visible">
+            <path d="M 15,60 A 45,45 0 0 1 105,60" fill="none" stroke="#164e63" strokeWidth="14" strokeLinecap="round" />
           <path d="M 15,60 A 45,45 0 0 1 38,24" fill="none" stroke="#10b981" strokeWidth="10" strokeLinecap="round" />
           <path d="M 38,24 A 45,45 0 0 1 82,24" fill="none" stroke="#f59e0b" strokeWidth="10" />
           <path d="M 82,24 A 45,45 0 0 1 105,60" fill="none" stroke="#ef4444" strokeWidth="10" strokeLinecap="round" />
@@ -740,12 +817,12 @@ function MainServerDepot({
             style={{ originX: "60px", originY: "60px", transformBox: "view-box", transformOrigin: "60px 60px" }}
             transition={{ type: "spring", stiffness: 50, damping: 14 }}
           >
-            <polygon points="57,60 63,60 60.8,16 59.2,16" fill="#1e293b" />
-            <line x1="60" y1="60" x2="60" y2="15" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+            <polygon points="57,60 63,60 60.8,16 59.2,16" fill="#e2e8f0" />
+            <line x1="60" y1="60" x2="60" y2="15" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
           </motion.g>
 
           {/* Static Center Pivot Cap */}
-          <circle cx="60" cy="60" r="7" fill="#0f172a" stroke="#cbd5e1" strokeWidth="2.5" />
+          <circle cx="60" cy="60" r="7" fill="#0c4a6e" stroke="#38bdf8" strokeWidth="2.5" />
         </svg>
 
         {/* Live Digital Latency Number Readout */}
@@ -757,7 +834,7 @@ function MainServerDepot({
               ? "bg-amber-100 text-amber-800 border-amber-300"
               : "bg-red-100 text-red-800 border-red-300"
           }`}>
-            {liveLatencyMs}ms · {liveLatencyMs <= 15 ? "FAST (OPTIMAL)" : liveLatencyMs <= 60 ? "MODERATE" : "OVERLOAD"}
+            {liveLatencyMs}ms // {liveLatencyMs <= 15 ? "FAST (OPTIMAL)" : liveLatencyMs <= 60 ? "MODERATE" : "OVERLOAD"}
           </span>
         </div>
 
@@ -766,12 +843,14 @@ function MainServerDepot({
           <span className="text-amber-600">DELAY</span>
           <span className="text-red-600">OVERLOAD</span>
         </div>
+        </>
+        )}
       </div>
 
       {/* Request Queue Belt */}
-      <div className="w-full bg-slate-200/90 rounded-lg p-1.5 border border-slate-300 shadow-inner flex flex-col justify-center shrink-0">
+      <div className="w-full bg-cyan-950/80 rounded-lg p-1.5 border border-cyan-700 shadow-inner flex flex-col justify-center shrink-0">
         <div className="flex justify-between items-center px-1 mb-1">
-          <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-700 uppercase tracking-wider">REQUEST QUEUE</span>
+          <span className="text-[7.5px] sm:text-[8px] font-bold text-cyan-300 uppercase tracking-wider">REQUEST QUEUE</span>
           <span
             className={`text-[7px] sm:text-[7.5px] font-mono font-black px-1.5 py-0.2 rounded ${
               cachedCount === 0
@@ -821,9 +900,9 @@ function MainServerDepot({
               <motion.span
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="text-[7.5px] font-mono text-emerald-400 font-black mx-auto z-10 tracking-wide flex items-center gap-1"
+                className="text-[7.5px] font-mono text-emerald-400 font-black mx-auto z-10 tracking-wide"
               >
-                <Zap size={10} className="text-emerald-400" /> QUEUE CLEARED (100% EDGE)
+                QUEUE CLEARED (100% EDGE)
               </motion.span>
             )}
           </div>
@@ -834,8 +913,8 @@ function MainServerDepot({
       </div>
 
       {/* 3 Canister Bays */}
-      <div className="w-full bg-slate-200/80 p-1.5 rounded-xl border border-slate-300 flex flex-col items-center shrink-0">
-        <div className="text-[8px] sm:text-[8.5px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+      <div className="w-full bg-cyan-950/80 p-1.5 rounded-xl border border-cyan-700 flex flex-col items-center shrink-0">
+        <div className="text-[8px] sm:text-[8.5px] font-bold text-cyan-300 uppercase tracking-wider mb-1">
           STORAGE CANISTERS ({availableCopies}/3 READY)
         </div>
 
@@ -885,18 +964,20 @@ function MainServerDepot({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // COMPONENT 2: Compact, Balanced Vertical Regional Outpost
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 function VerticalStationModule({
   station,
   isCached,
+  isRerouted,
   isHovered,
   isDraggingAny,
   isSyncing,
   isSynced,
   isImpact,
+  isOutageActive,
   driveId,
   nodeRefs,
   selectedDrive,
@@ -909,7 +990,7 @@ function VerticalStationModule({
   worldCelebration,
 }: any) {
   const hasDrive = !!driveId;
-  const isFullyActive = (isCached && isSynced) || worldCelebration;
+  const isFullyActive = ((isCached || isRerouted) && isSynced) || worldCelebration;
 
   return (
     <div
@@ -939,7 +1020,7 @@ function VerticalStationModule({
       <div className="absolute top-1 left-2.5 flex items-center gap-1.5 text-[7px] sm:text-[7.5px] font-mono font-black tracking-wider">
         <span className={isFullyActive ? "text-emerald-700" : "text-slate-500"}>{station.sectorTag}</span>
         <span className={`px-1 py-0.2 rounded font-bold ${isFullyActive ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-600 border border-slate-200"}`}>
-          {isFullyActive ? "0ms EDGE HIT" : "TX/RX FETCH"}
+          {isFullyActive ? "OK 0ms EDGE HIT" : "TX/RX FETCH"}
         </span>
       </div>
 
@@ -952,7 +1033,7 @@ function VerticalStationModule({
               : `${station.latencyBadge.bg} ${station.latencyBadge.textCol} ${station.latencyBadge.border}`
           }`}
         >
-          {isFullyActive ? "0ms · INSTANT" : station.latencyBadge.text}
+          {isFullyActive ? "0ms // INSTANT" : station.latencyBadge.text}
         </div>
       </div>
 
@@ -964,6 +1045,11 @@ function VerticalStationModule({
       >
         {/* Parabolic Dish Antenna */}
         <div className="relative w-6 h-6 sm:w-7 sm:h-7 flex flex-col items-center justify-center">
+          {(!isFullyActive && isOutageActive) && (
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-100 text-red-600 rounded-full p-0.5 border border-red-300 animate-pulse z-30 shadow-sm">
+              <AlertTriangle size={10} className="opacity-80" />
+            </div>
+          )}
           <motion.div
             className={`w-6 h-3 sm:w-7 sm:h-3.5 rounded-t-full border flex items-center justify-center relative ${
               isFullyActive
@@ -1008,7 +1094,9 @@ function VerticalStationModule({
                   DROP
                 </span>
                 <span className={`text-[6px] font-mono font-bold leading-none ${isDraggingAny ? "text-cyan-600" : "text-amber-500"}`}>
-                  CACHE
+                  {(!isFullyActive && isOutageActive) ? (
+                    <span className="text-emerald-600 animate-pulse bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200">DROP ROUTE</span>
+                  ) : "CACHE"}
                 </span>
               </div>
             )}
@@ -1058,7 +1146,7 @@ function VerticalStationModule({
                   : "bg-white text-amber-700 border-slate-200"
               }`}
             >
-              {isFullyActive ? "0ms EDGE HIT" : isSyncing ? "SYNCING..." : "FETCHING ORIGIN"}
+              {isFullyActive ? (isRerouted ? "GCP/CLOUDFLARE" : "0ms EDGE HIT") : isSyncing ? "SYNCING..." : (isOutageActive ? "TRAFFIC DROPPED // 503" : "FETCHING ORIGIN")}
             </div>
           </div>
         </div>
@@ -1083,7 +1171,12 @@ function VerticalStationModule({
       </div>
 
       {/* 3. Living Architectural Settlement Vector */}
-      <div className="shrink-0 flex items-center justify-end pr-1 mt-2">
+      <div className="shrink-0 flex items-center justify-end pr-1 mt-2 relative">
+        {(!isFullyActive && isOutageActive) && (
+          <div className="absolute -top-4 right-4 bg-red-100 text-red-600 rounded-full p-0.5 border border-red-300 animate-pulse z-30 shadow-sm">
+            <AlertTriangle size={12} className="opacity-80" />
+          </div>
+        )}
         <LivingInfrastructureVector type={station.type} isCached={isFullyActive} />
       </div>
 
@@ -1091,9 +1184,9 @@ function VerticalStationModule({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // COMPONENT 3: Living Grade 9 Architectural Vector Infrastructure
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 function LivingInfrastructureVector({ type, isCached }: { type: string; isCached: boolean }) {
   if (type === "metropolis") {
@@ -1207,9 +1300,9 @@ function LivingInfrastructureVector({ type, isCached }: { type: string; isCached
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // COMPONENT 4: Heavy-Duty 3D Memory Canister
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 interface CanisterProps {
   id: string;
