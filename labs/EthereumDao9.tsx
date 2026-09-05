@@ -18,7 +18,7 @@ const BLOCKS = [
 
 export default function EthereumDao9() {
     const { playClick, playPop, playError, playSuccess, playZap, playHeavyThud, playChime } = useLabAudio();
-    const { reportComplete } = useLMSBridge();
+    const { reportComplete } = useLMSBridge("ethereumdao9");
 
     const [phase, setPhase] = useState<Phase>('LEARN');
     const [daoBalance, setDaoBalance] = useState(150);

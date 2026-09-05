@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowRight, BrainCircuit, CircuitBoard, Cog, Globe2, Palette, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import type { ComponentType } from "react";
 import { BOOK_TITLE, GRADE, GRADE_LABEL, LABS, type LabDefinition, type LabTheme } from "@/data/labs";
@@ -15,9 +16,44 @@ const THEME_TAG: Record<LabTheme, string> = { circuit:"bg-emerald-100 text-emera
 function LabCard({ lab }: { lab: LabDefinition }) {
   const Icon = THEME_ICON[lab.theme];
   const isPlanned = lab.status === "planned";
+  const hasSampleImage = lab.n <= 48;
+  const [imgError, setImgError] = useState(false);
+
   const card = (
-    <div className={`group relative h-full overflow-hidden rounded-[2rem] transition-transform duration-300 ${isPlanned ? "cursor-not-allowed opacity-55" : "cursor-pointer hover:-translate-y-2 hover:shadow-2xl"}`}>
-      <img src={`/sample-lab-cards-9/${lab.n}.png`} alt={lab.title} className="block w-full h-auto object-contain" />
+    <div className={`group relative h-full min-h-[220px] overflow-hidden rounded-[2rem] transition-transform duration-300 ${isPlanned ? "cursor-not-allowed opacity-55" : "cursor-pointer hover:-translate-y-2 hover:shadow-2xl"}`}>
+      {hasSampleImage && !imgError ? (
+        <img 
+          src={`/sample-lab-cards-9/${lab.n}.png`} 
+          alt={lab.title} 
+          onError={() => setImgError(true)}
+          className="block w-full h-auto object-contain" 
+        />
+      ) : (
+        <div className={`w-full h-full min-h-[260px] rounded-[2rem] p-6 flex flex-col justify-between border shadow-xl backdrop-blur-md transition-all ${
+          lab.theme === 'cosmos' ? 'bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-950 text-white border-indigo-500/40' :
+          lab.theme === 'ocean' ? 'bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 text-white border-sky-400/40' :
+          lab.theme === 'forge' ? 'bg-gradient-to-br from-amber-600 via-orange-600 to-red-700 text-white border-amber-400/40' :
+          lab.theme === 'studio' ? 'bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-700 text-white border-pink-400/40' :
+          lab.theme === 'neon' ? 'bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 text-white border-emerald-400/40' :
+          'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-white border-slate-600/40'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black px-3 py-1 rounded-full bg-black/30 border border-white/20 uppercase tracking-widest text-white/90">
+              Lab {lab.n}
+            </span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${THEME_ICON_BG[lab.theme]} shadow-md`}>
+              <Icon size={20} />
+            </div>
+          </div>
+          <div className="my-3">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/70 block mb-1">{lab.lesson}</span>
+            <h3 className="font-black text-xl leading-tight text-white drop-shadow-sm">{lab.title}</h3>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-white/90 pt-3 border-t border-white/15">
+            Launch Simulation <ArrowRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
+          </div>
+        </div>
+      )}
     </div>
   );
   if (isPlanned) return card;

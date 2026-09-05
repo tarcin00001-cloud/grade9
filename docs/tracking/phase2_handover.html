@@ -1,0 +1,256 @@
+<title>Phase 2 Kickoff Brief</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #faf9f6;
+    --paper-raised: #ffffff;
+    --ink: #1c1a17;
+    --ink-soft: #57534a;
+    --ink-faint: #8a8477;
+    --line: #e4e0d8;
+    --line-strong: #cfc9bc;
+    --accent: #3730a3;
+    --accent-soft: #eeecfb;
+    --pass: #0f766e;
+    --pass-soft: #e3f3f1;
+    --fail: #b91c1c;
+    --fail-soft: #fbe9e7;
+    --warn: #b45309;
+    --warn-soft: #faf0e0;
+    --code-bg: #f1efe9;
+    --shadow: 0 1px 2px rgba(28,26,23,0.04), 0 8px 24px -12px rgba(28,26,23,0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161513; --paper-raised: #1e1c19; --ink: #f3f1ec; --ink-soft: #c7c1b4; --ink-faint: #8a8477;
+      --line: #322e28; --line-strong: #423d34; --accent: #a5a0f0; --accent-soft: #26234a;
+      --pass: #5eead4; --pass-soft: #14302c; --fail: #fca5a5; --fail-soft: #3a1a17;
+      --warn: #fcd34d; --warn-soft: #3a2a10; --code-bg: #201e1a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #161513; --paper-raised: #1e1c19; --ink: #f3f1ec; --ink-soft: #c7c1b4; --ink-faint: #8a8477;
+    --line: #322e28; --line-strong: #423d34; --accent: #a5a0f0; --accent-soft: #26234a;
+    --pass: #5eead4; --pass-soft: #14302c; --fail: #fca5a5; --fail-soft: #3a1a17;
+    --warn: #fcd34d; --warn-soft: #3a2a10; --code-bg: #201e1a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif; font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  code, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+
+  .masthead { border-bottom: 3px solid var(--ink); padding-bottom: 1.75rem; margin-bottom: 2.5rem; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint);
+    display: flex; gap: 0.6em; align-items: baseline; margin-bottom: 0.9rem; flex-wrap: wrap;
+  }
+  .eyebrow .dot { color: var(--line-strong); }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 2.9rem); line-height: 1.06; letter-spacing: -0.01em;
+    margin: 0 0 0.6rem; text-wrap: balance;
+  }
+  .masthead .dek { color: var(--ink-soft); font-size: 1.08rem; max-width: 64ch; margin: 0; }
+
+  .to-line {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; margin-top: 1.3rem;
+    font-size: 0.85rem; color: var(--ink-faint);
+  }
+  .to-line b { color: var(--ink-soft); font-weight: 600; }
+
+  .status-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--line); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; margin: 2rem 0 3rem;
+  }
+  .status-cell { background: var(--paper-raised); padding: 1.1rem 1rem; }
+  .status-cell .num { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.9rem; line-height: 1; display: block; }
+  .status-cell .lbl { font-size: 0.78rem; color: var(--ink-faint); margin-top: 0.35rem; display: block; }
+  .status-cell.pass .num { color: var(--pass); }
+  .status-cell.warn .num { color: var(--warn); }
+  .status-cell.accent .num { color: var(--accent); }
+  @media (max-width: 560px) { .status-strip { grid-template-columns: 1fr 1fr; } }
+
+  section { margin: 3.2rem 0; }
+  .section-head { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.1rem; }
+  .section-num { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+  h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.5rem; margin: 0; letter-spacing: -0.005em; }
+  h3 { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1rem; margin: 1.7rem 0 0.6rem; }
+  p { color: var(--ink-soft); max-width: 68ch; }
+  p.lede { color: var(--ink); font-size: 1.05rem; }
+  strong { color: var(--ink); font-weight: 600; }
+
+  .chip {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.03em; text-transform: uppercase; padding: 0.22rem 0.55rem;
+    border-radius: 999px; display: inline-block; white-space: nowrap;
+  }
+  .chip.fail { background: var(--fail-soft); color: var(--fail); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.pass { background: var(--pass-soft); color: var(--pass); }
+  .chip.accent { background: var(--accent-soft); color: var(--accent); }
+
+  .callout {
+    background: var(--accent-soft); border: 1px solid var(--line-strong); border-left: 4px solid var(--accent);
+    border-radius: 6px; padding: 1.2rem 1.4rem; margin: 1.4rem 0;
+  }
+  .callout p { color: var(--ink); max-width: none; margin: 0; }
+  .callout p + p { margin-top: 0.6rem; }
+  .callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout.fail { background: var(--fail-soft); border-left-color: var(--fail); }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.87rem; }
+  th { text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); padding: 0.5rem 0.7rem; border-bottom: 2px solid var(--ink); white-space: nowrap; }
+  td { padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; }
+  td.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--ink); }
+  td.num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; color: var(--ink-faint); }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--paper-raised); box-shadow: var(--shadow); }
+  .tbl-wrap table { margin: 0; }
+  .tbl-wrap th:first-child, .tbl-wrap td:first-child { padding-left: 1rem; }
+  .tbl-wrap th:last-child, .tbl-wrap td:last-child { padding-right: 1rem; }
+
+  ul.plain, ol.steps { padding-left: 1.3rem; color: var(--ink-soft); }
+  ul.plain li, ol.steps li { margin-bottom: 0.5rem; }
+  ol.steps li::marker { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; }
+
+  pre {
+    margin: 0.6rem 0; padding: 0.85rem 1rem; background: var(--code-bg);
+    border: 1px solid var(--line); border-radius: 8px; overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.55;
+  }
+
+  .fix {
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    margin: 1.4rem 0; background: var(--paper-raised); box-shadow: var(--shadow);
+  }
+  .fix-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.9rem 1.2rem; border-bottom: 1px solid var(--line);
+  }
+  .fix-head .name { font-weight: 700; font-size: 0.98rem; }
+  .fix-head .loc { font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: var(--ink-faint); }
+  .fix-body { padding: 1.1rem 1.2rem; }
+  .fix-body p { margin: 0 0 0.8rem; font-size: 0.92rem; max-width: none; }
+
+  .checklist { list-style: none; padding: 0; margin: 1rem 0; }
+  .checklist li {
+    display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.55rem 0;
+    border-bottom: 1px solid var(--line); font-size: 0.92rem; color: var(--ink-soft);
+  }
+  .checklist .box { flex-shrink: 0; width: 18px; height: 18px; border: 2px solid var(--line-strong); border-radius: 4px; margin-top: 0.15rem; }
+
+  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--ink-faint); }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Grade 9 Computing Labs <span class="dot">&middot;</span> Phase 2 Kickoff <span class="dot">&middot;</span> 2026-09-05</div>
+    <h1>Eleven Finished Labs Are Sitting Behind a 404</h1>
+    <p class="dek">The router already knows how to serve them. The catalog just never learned their names. This is the brief for the one piece of Phase 2 that's actually approved to start &mdash; register the labs, wire the one missing route, and prove all 59 slugs resolve before calling it done.</p>
+    <div class="to-line">
+      <span><b>Status:</b> Approved to start &middot; everything else in Phase 2 is still unscoped</span>
+      <span><b>Prior:</b> <a href="https://claude.ai/code/artifact/019c9cb5-79eb-4900-ac76-44e7057127d9">Phase 1 handover</a></span>
+    </div>
+  </div>
+
+  <div class="status-strip">
+    <div class="status-cell accent"><span class="num">48&rarr;59</span><span class="lbl">catalog entries after this phase</span></div>
+    <div class="status-cell warn"><span class="num">10</span><span class="lbl">built labs currently 404&rsquo;ing</span></div>
+    <div class="status-cell fail"><span class="num">1</span><span class="lbl">lab missing its route entirely</span></div>
+    <div class="status-cell pass"><span class="num">0</span><span class="lbl">lab files this phase should edit</span></div>
+  </div>
+
+  <section>
+    <div class="section-head"><span class="section-num">00</span><h2>What's actually wrong</h2></div>
+    <p class="lede">The router (<code>app/labs/[slug]/page.tsx</code>) has 58 <code>if (slug === ...)</code> branches. The catalog (<code>data/labs.ts</code>) lists 48 labs. Eleven finished components sit in that gap &mdash; ten routed but uncataloged, one (<code>ReverseProxies9</code>) imported but not even routed.</p>
+    <div class="callout">
+      <p><strong>These aren't stubs.</strong> Every one of the eleven already has a working <code>LabShell</code> with a real title, a real theme, and &mdash; unexpectedly &mdash; an &ldquo;L##&rdquo; lesson number baked into its own subtitle prop (L33 through L46). That's the signature of a planned extension sequence that got built and then never reconciled with the main catalog. The job here is registration, not construction.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">01</span><h2>The eleven labs</h2></div>
+    <p>Titles and themes below are copied verbatim from each lab's own <code>LabShell</code> props &mdash; not invented for this brief. Assign fresh sequential <code>n</code> values (49&ndash;59); the L-numbers are informative context, not the new catalog order, since they don't run sequentially with each other or with the existing 48.</p>
+    <div class="tbl-wrap"><table>
+      <tr><th>n</th><th>Slug</th><th>Title</th><th>Theme</th><th>Its own L#</th></tr>
+      <tr><td class="num">49</td><td class="mono">torrouting9</td><td>The Onion Router (TOR) Network</td><td class="mono">ocean</td><td class="num">L33</td></tr>
+      <tr><td class="num">50</td><td class="mono">microservices9</td><td>Microservices Architecture</td><td class="mono">cosmos</td><td class="num">L34</td></tr>
+      <tr><td class="num">51</td><td class="mono">zerodayexploit9</td><td>Zero-Day Exploits &amp; Patching</td><td class="mono">ocean</td><td class="num">L35</td></tr>
+      <tr><td class="num">52</td><td class="mono">machinelearningtraining9</td><td>Supervised ML (Gradient Descent)</td><td class="mono">cosmos</td><td class="num">L36</td></tr>
+      <tr><td class="num">53</td><td class="mono">graphqlbasics9</td><td>GraphQL Data Fetching</td><td class="mono">forge</td><td class="num">L38</td></tr>
+      <tr><td class="num">54</td><td class="mono">oauthflow9</td><td>OAuth 2.0 (SSO Identity)</td><td class="mono">ocean</td><td class="num">L42</td></tr>
+      <tr><td class="num">55</td><td class="mono">reverseproxies9</td><td>Reverse Proxies (NGINX)</td><td class="mono">cosmos</td><td class="num">L43</td></tr>
+      <tr><td class="num">56</td><td class="mono">webassembly9</td><td>WebAssembly (WASM) Speed</td><td class="mono">studio</td><td class="num">L44</td></tr>
+      <tr><td class="num">57</td><td class="mono">jwttokens9</td><td>JSON Web Tokens (JWT)</td><td class="mono">cosmos</td><td class="num">L45</td></tr>
+      <tr><td class="num">58</td><td class="mono">continuousintegration9</td><td>Continuous Integration (CI/CD)</td><td class="mono">studio</td><td class="num">L46</td></tr>
+      <tr><td class="num">59</td><td class="mono">testingstrategies43</td><td>Testing Strategies &amp; TestingScript</td><td class="mono">&mdash;<sup>*</sup></td><td class="num">&mdash;</td></tr>
+    </table></div>
+    <p style="font-size:0.85rem; margin-top:0.6rem;"><sup>*</sup> Uses <code>bgOverride</code>, not a <code>theme</code> prop. Confirm what it actually renders before assigning a theme value &mdash; don't guess.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2>The one that needs two fixes, not one</h2></div>
+    <div class="fix">
+      <div class="fix-head">
+        <span class="name">ReverseProxies9</span>
+        <span class="loc">reverseproxies9</span>
+      </div>
+      <div class="fix-body">
+        <p>Imported at the top of <code>app/labs/[slug]/page.tsx</code>, but no <code>if (slug === "reverseproxies9")</code> branch exists anywhere in the file &mdash; the only one of the eleven missing its route entirely. Add both:</p>
+        <pre>// data/labs.ts &mdash; new catalog entry, same as the other ten
+
+// app/labs/[slug]/page.tsx &mdash; new branch, near the others
+if (slug === "reverseproxies9") return &lt;ReverseProxies9 /&gt;;</pre>
+        <p>Verify by grepping the router file for <code>reverseproxies9</code> before and after &mdash; should go from 0 matches to 1.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2>Exact changes</h2></div>
+    <h3>data/labs.ts</h3>
+    <ul class="plain">
+      <li><strong>slug</strong> &mdash; exact match to the router's existing string (or the new one added for <code>reverseproxies9</code>).</li>
+      <li><strong>title</strong> &mdash; copy verbatim from each lab's own <code>LabShell title="..."</code>. Don't rewrite it.</li>
+      <li><strong>theme</strong> &mdash; copy verbatim from each lab's own <code>LabShell theme="..."</code>.</li>
+      <li><strong>lesson / desc</strong> &mdash; write fresh, grounded in what the lab actually teaches. These are real-world enrichment topics with no chapter in <code>docs/CURRICULUM_REFERENCE.md</code> &mdash; say so the same way <code>csrfattacks9</code> and <code>ransomware9</code> already do for their own enrichment framing. Don't invent a textbook citation.</li>
+      <li><strong>archetype</strong> &mdash; <code>"Simulation Sandbox"</code> unless a lab is genuinely shaped differently.</li>
+      <li><strong>status</strong> &mdash; <code>"live"</code>. These are finished, working labs.</li>
+    </ul>
+    <h3>Do not touch</h3>
+    <ul class="plain">
+      <li>Any of the eleven lab component files &mdash; already built and working. This is a registration task, not a content or design task.</li>
+      <li>Any of the existing 48 labs &mdash; nothing about their behavior changes.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">04</span><h2>Definition of done</h2></div>
+    <ul class="checklist">
+      <li><span class="box"></span> <code>npx tsc --noEmit</code> &mdash; 0 new errors.</li>
+      <li><span class="box"></span> <code>node scripts/lint-labs.js</code> &mdash; 0 new violations. These 11 files enter lint scope for the first time; fix anything it flags.</li>
+      <li><span class="box"></span> All 11 routes actually loaded in a browser and confirmed rendering (not 404), title matching the new catalog entry &mdash; a code-only check does not satisfy this.</li>
+      <li><span class="box"></span> 2&ndash;3 of the existing 48 spot-checked to confirm nothing broke.</li>
+      <li><span class="box"></span> Whatever page lists labs for students checked at the new count of 59 &mdash; or explicitly noted as out of scope if no such page exists yet.</li>
+    </ul>
+    <div class="callout warn">
+      <p>Report back per lab: the assigned <code>n</code>, the confirmed working route, and one honest sentence on what the lab actually does once opened &mdash; not just the title copied from its <code>LabShell</code> prop. The same verification discipline that closed Phase 1 applies here: a claim without independent proof gets re-checked, and anything missed gets called out by name.</p>
+    </div>
+  </section>
+
+  <footer>
+    Full task-by-task detail lives in <code>docs/tracking/PHASE2_KICKOFF_BRIEF.md</code> in the repository. Everything else from the original 4-proposal plan &mdash; 7-step state machine standardization, the mobile/theme pass, low-scoring lab rewrites &mdash; remains unscoped and unapproved; do not start on those without a separate brief.
+  </footer>
+
+</div>

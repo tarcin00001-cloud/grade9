@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useLMSBridge } from "@/hooks/useLMSBridge";
+import { useLabAudio } from "@/hooks/useLabAudio";
 import LabShell from "../components/LabShell";
 import { MessageSquare, Server, Smartphone, ScanSearch, ShieldCheck, Send, CheckCircle2, AlertTriangle, Database, ArrowRight, Cookie, ShieldX, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,6 +14,8 @@ type SanitizerMode = "PASS_THROUGH" | "ENCODE";
 type SimState = "IDLE" | "DISPATCHING" | "SCANNING" | "STORING" | "DELIVERING" | "EXECUTING" | "SECURE_RENDER";
 
 export default function CrossSiteScripting9() {
+    const { reportComplete } = useLMSBridge("crosssitescripting9");
+    const { playClick, playPop, playError, playSuccess } = useLabAudio();
     const [payload, setPayload] = useState<PayloadType>("BENIGN");
     const [sanitizerMode, setSanitizerMode] = useState<SanitizerMode>("PASS_THROUGH");
     const [simState, setSimState] = useState<SimState>("IDLE");
@@ -43,19 +47,18 @@ export default function CrossSiteScripting9() {
     useEffect(() => {
         if (hasExploited && hasSecured && !isCompleted) {
             setIsCompleted(true);
-            if ((window as any).reportComplete) {
-                (window as any).reportComplete();
-            }
+            reportComplete();
         }
     }, [hasExploited, hasSecured, isCompleted]);
 
     // Color Theme Lookups for the App Server Panel
     const serverTheme = sanitizerMode === "PASS_THROUGH" 
-        ? { bg: "bg-[#fef2f2]", border: "border-[#E5484D]", text: "text-[#E5484D]", header: "bg-[#fef2f2] text-[#E5484D]", icon: "text-[#E5484D]" }
-        : { bg: "bg-[#F0FDF4]", border: "border-[#10A875]", text: "text-[#10A875]", header: "bg-[#F0FDF4] text-[#10A875]", icon: "text-[#10A875]" };
+        ? { bg: "bg-[#fef2f2]", border: "border-[#F43F5E]", text: "text-[#F43F5E]", header: "bg-[#fef2f2] text-[#F43F5E]", icon: "text-[#F43F5E]" }
+        : { bg: "bg-[#F0FDF4]", border: "border-[#10B981]", text: "text-[#10B981]", header: "bg-[#F0FDF4] text-[#10B981]", icon: "text-[#10B981]" };
 
     const runPipeline = async () => {
         if (simState !== "IDLE") return;
+        if (playPop) playPop();
         
         // Reset states
         setDbStorage("");
@@ -100,11 +103,13 @@ export default function CrossSiteScripting9() {
             setSimState("EXECUTING");
             setIsHacked(true);
             setHasExploited(true);
+            if (playError) playError();
         } else if (payload !== "BENIGN" && sanitizerMode === "ENCODE") {
             setFeedback("Success! The encoder neutralized the tags. The payload was safely rendered as text.");
             setOutcome("Script displayed safely as text.");
             setSimState("SECURE_RENDER");
             setHasSecured(true);
+            if (playSuccess) playSuccess();
         } else {
             setFeedback("Normal comment processed safely.");
             setOutcome("Comment displayed safely as text.");
@@ -117,6 +122,7 @@ export default function CrossSiteScripting9() {
     };
 
     const reset = () => {
+        if (playClick) playClick();
         setSimState("IDLE");
         setDbStorage("");
         setVictimFeed("");
@@ -148,9 +154,9 @@ export default function CrossSiteScripting9() {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.5, y: 50 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="bg-white/90 backdrop-blur-md border-2 border-[#10A875] p-6 md:p-8 rounded-3xl shadow-[0_20px_60px_rgba(16,168,117,0.3)] flex flex-col items-center text-center max-w-sm pointer-events-auto"
+                        className="bg-white/90 backdrop-blur-md border-2 border-[#10B981] p-6 md:p-8 rounded-3xl shadow-[0_20px_60px_rgba(16,168,117,0.3)] flex flex-col items-center text-center max-w-sm pointer-events-auto"
                     >
-                        <div className="w-16 h-16 bg-[#F0FDF4] text-[#10A875] rounded-full flex items-center justify-center mb-4 shadow-inner">
+                        <div className="w-16 h-16 bg-[#F0FDF4] text-[#10B981] rounded-full flex items-center justify-center mb-4 shadow-inner">
                             <Trophy size={32} />
                         </div>
                         <h2 className="text-2xl font-black text-[#17324D] uppercase tracking-widest mb-2">Lab Complete!</h2>
@@ -168,18 +174,18 @@ export default function CrossSiteScripting9() {
                     {/* Floating Feedback Banner */}
                     <div className="flex-1 max-w-2xl w-full">
                         <div className="bg-[#FFFFFF] border-2 border-[#CFDCE8] shadow-md rounded-xl py-2.5 px-4 text-[#17324D] font-bold flex items-center gap-2 text-sm w-full">
-                            <div className={`w-2 h-2 rounded-full shrink-0 ${isRunning ? "bg-[#2563EB] animate-pulse" : "bg-[#10A875]"}`}/>
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${isRunning ? "bg-[#2563EB] animate-pulse" : "bg-[#10B981]"}`}/>
                             {feedback}
                         </div>
                     </div>
 
                     {/* Progress Tracker */}
                     <div className="flex gap-4 bg-[#FFFFFF] border-2 border-[#CFDCE8] p-2 px-4 rounded-xl shadow-md text-xs font-bold text-[#60758A]">
-                        <div className={`flex items-center gap-2 ${hasExploited ? "text-[#10A875]" : ""}`}>
+                        <div className={`flex items-center gap-2 ${hasExploited ? "text-[#10B981]" : ""}`}>
                             {hasExploited ? <CheckCircle2 size={16}/> : <div className="w-4 h-4 border-2 border-[#CFDCE8] rounded-full"/>}
                             1. Observe Exploit
                         </div>
-                        <div className={`flex items-center gap-2 ${hasSecured ? "text-[#10A875]" : ""}`}>
+                        <div className={`flex items-center gap-2 ${hasSecured ? "text-[#10B981]" : ""}`}>
                             {hasSecured ? <CheckCircle2 size={16}/> : <div className="w-4 h-4 border-2 border-[#CFDCE8] rounded-full"/>}
                             2. Encode to Secure
                         </div>
@@ -208,7 +214,7 @@ export default function CrossSiteScripting9() {
                                     <div className="text-[10px] font-bold text-[#60758A] uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                         <MessageSquare size={12}/> Draft Comment
                                     </div>
-                                    <div className={`font-mono text-xs font-bold break-all ${payload === "BENIGN" ? "text-[#17324D]" : "text-[#E5484D]"}`}>
+                                    <div className={`font-mono text-xs font-bold break-all ${payload === "BENIGN" ? "text-[#17324D]" : "text-[#F43F5E]"}`}>
                                         {getRawPayloadText()}
                                     </div>
                                 </div>
@@ -263,14 +269,14 @@ export default function CrossSiteScripting9() {
                                                     <div className="font-mono text-xs md:text-sm font-bold text-white text-center break-all relative">
                                                         {payload === "BENIGN" && "Love this!"}
                                                         {payload !== "BENIGN" && sanitizerMode === "PASS_THROUGH" && (
-                                                            <span><span className="text-[#E5484D] bg-[#E5484D]/20 px-1 rounded">&lt;</span>{payload === "SCRIPT" ? "script" : "img"}<span className="text-[#E5484D] bg-[#E5484D]/20 px-1 rounded">&gt;</span>...</span>
+                                                            <span><span className="text-[#F43F5E] bg-[#F43F5E]/20 px-1 rounded">&lt;</span>{payload === "SCRIPT" ? "script" : "img"}<span className="text-[#F43F5E] bg-[#F43F5E]/20 px-1 rounded">&gt;</span>...</span>
                                                         )}
                                                         {payload !== "BENIGN" && sanitizerMode === "ENCODE" && (
                                                             <span><span className="text-[#0891B2] bg-[#0891B2]/20 px-1 rounded">&amp;lt;</span>{payload === "SCRIPT" ? "script" : "img"}<span className="text-[#0891B2] bg-[#0891B2]/20 px-1 rounded">&amp;gt;</span>...</span>
                                                         )}
                                                     </div>
                                                     
-                                                    <div className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${payload !== "BENIGN" && sanitizerMode === "PASS_THROUGH" ? "bg-[#E5484D]/20 border-[#E5484D] text-[#E5484D]" : "bg-[#10A875]/20 border-[#10A875] text-[#10A875]"}`}>
+                                                    <div className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${payload !== "BENIGN" && sanitizerMode === "PASS_THROUGH" ? "bg-[#F43F5E]/20 border-[#F43F5E] text-[#F43F5E]" : "bg-[#10B981]/20 border-[#10B981] text-[#10B981]"}`}>
                                                         {payload !== "BENIGN" && sanitizerMode === "PASS_THROUGH" ? (
                                                             <><AlertTriangle size={10}/> VULNERABLE</>
                                                         ) : (
@@ -297,7 +303,7 @@ export default function CrossSiteScripting9() {
                                 {/* DB Vault */}
                                 <div className="w-full bg-[#142238] rounded-xl p-2 shadow-inner border border-[#17324D] flex flex-col shrink-0">
                                     <div className="text-[9px] font-black text-[#60758A] uppercase tracking-widest flex items-center gap-1.5 mb-1"><Database size={12} className="text-[#0891B2]"/> DATABASE STORAGE</div>
-                                    <div className="bg-[#0b1320] border border-[#17324D] rounded-lg py-1.5 px-3 font-mono text-[10px] text-[#10A875] min-h-[30px] flex items-center break-all shadow-inner">
+                                    <div className="bg-[#0b1320] border border-[#17324D] rounded-lg py-1.5 px-3 font-mono text-[10px] text-[#10B981] min-h-[30px] flex items-center break-all shadow-inner">
                                         {dbStorage ? dbStorage : <span className="text-[#60758A] italic">No records</span>}
                                     </div>
                                 </div>
@@ -334,7 +340,7 @@ export default function CrossSiteScripting9() {
                                             <motion.div 
                                                 initial={{ opacity: 0, scale: 0.9 }}
                                                 animate={{ opacity: 1, scale: 1 }}
-                                                className={`bg-[#F5F8FC] border-2 ${hasSecured ? "border-[#10A875]" : "border-[#CFDCE8]"} rounded-xl p-3 shadow-sm relative overflow-hidden shrink-0`}
+                                                className={`bg-[#F5F8FC] border-2 ${hasSecured ? "border-[#10B981]" : "border-[#CFDCE8]"} rounded-xl p-3 shadow-sm relative overflow-hidden shrink-0`}
                                             >
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
@@ -342,7 +348,7 @@ export default function CrossSiteScripting9() {
                                                         <div className="font-bold text-xs text-[#17324D]">Visitor</div>
                                                     </div>
                                                     {hasSecured && (
-                                                        <div className="text-[10px] font-black tracking-widest uppercase bg-[#10A875]/20 text-[#10A875] px-2 py-0.5 rounded flex items-center gap-1">
+                                                        <div className="text-[10px] font-black tracking-widest uppercase bg-[#10B981]/20 text-[#10B981] px-2 py-0.5 rounded flex items-center gap-1">
                                                             <ShieldCheck size={12}/> Safe
                                                         </div>
                                                     )}
@@ -354,7 +360,7 @@ export default function CrossSiteScripting9() {
                                                 {/* Visual Code Execution Glitch */}
                                                 {isHacked && (
                                                     <motion.div 
-                                                        className="absolute inset-0 bg-[#E5484D]/10 z-0 border-2 border-[#E5484D] rounded-xl"
+                                                        className="absolute inset-0 bg-[#F43F5E]/10 z-0 border-2 border-[#F43F5E] rounded-xl"
                                                         animate={{ opacity: [0, 1, 0] }}
                                                         transition={{ duration: 0.2, repeat: 3 }}
                                                     />
@@ -369,7 +375,7 @@ export default function CrossSiteScripting9() {
                                             <motion.div
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
-                                                className="absolute inset-0 z-40 bg-[#E5484D] text-white flex-col flex items-center justify-center text-center"
+                                                className="absolute inset-0 z-40 bg-[#F43F5E] text-white flex-col flex items-center justify-center text-center"
                                             >
                                                 <ShieldX size={48} className="mb-2 animate-bounce"/>
                                                 <div className="font-black text-2xl uppercase tracking-widest mb-2">System Hacked</div>
@@ -420,14 +426,14 @@ export default function CrossSiteScripting9() {
                             <button 
                                 onClick={() => setPayload("SCRIPT")} 
                                 disabled={isRunning}
-                                className={`flex-1 md:flex-none px-3 py-2 rounded-lg font-mono text-xs font-bold transition-all border-2 ${payload === "SCRIPT" ? "bg-[#fef2f2] border-[#E5484D] text-[#E5484D]" : "bg-[#FFFFFF] border-[#CFDCE8] text-[#60758A] hover:bg-[#fef2f2]"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
+                                className={`flex-1 md:flex-none px-3 py-2 rounded-lg font-mono text-xs font-bold transition-all border-2 ${payload === "SCRIPT" ? "bg-[#fef2f2] border-[#F43F5E] text-[#F43F5E]" : "bg-[#FFFFFF] border-[#CFDCE8] text-[#60758A] hover:bg-[#fef2f2]"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                                 &lt;script&gt;
                             </button>
                             <button 
                                 onClick={() => setPayload("IMG")} 
                                 disabled={isRunning}
-                                className={`flex-1 md:flex-none px-3 py-2 rounded-lg font-mono text-xs font-bold transition-all border-2 ${payload === "IMG" ? "bg-[#fef2f2] border-[#E5484D] text-[#E5484D]" : "bg-[#FFFFFF] border-[#CFDCE8] text-[#60758A] hover:bg-[#fef2f2]"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
+                                className={`flex-1 md:flex-none px-3 py-2 rounded-lg font-mono text-xs font-bold transition-all border-2 ${payload === "IMG" ? "bg-[#fef2f2] border-[#F43F5E] text-[#F43F5E]" : "bg-[#FFFFFF] border-[#CFDCE8] text-[#60758A] hover:bg-[#fef2f2]"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                                 &lt;img&gt;
                             </button>
@@ -443,20 +449,20 @@ export default function CrossSiteScripting9() {
                             <button 
                                 onClick={() => setSanitizerMode("PASS_THROUGH")}
                                 disabled={isRunning}
-                                className={`relative z-10 px-4 py-2 w-36 md:w-44 text-center rounded-lg font-bold text-[11px] transition-colors ${sanitizerMode === "PASS_THROUGH" ? "text-[#E5484D]" : "text-[#60758A] hover:text-[#17324D]"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
+                                className={`relative z-10 px-4 py-2 w-36 md:w-44 text-center rounded-lg font-bold text-[11px] transition-colors ${sanitizerMode === "PASS_THROUGH" ? "text-[#F43F5E]" : "text-[#60758A] hover:text-[#17324D]"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                                 {sanitizerMode === "PASS_THROUGH" && (
-                                    <motion.div layoutId="security-pill" className="absolute inset-0 bg-white border-2 border-[#E5484D] rounded-lg -z-10 shadow-sm" />
+                                    <motion.div layoutId="security-pill" className="absolute inset-0 bg-white border-2 border-[#F43F5E] rounded-lg -z-10 shadow-sm" />
                                 )}
                                 Allow raw HTML
                             </button>
                             <button 
                                 onClick={() => setSanitizerMode("ENCODE")}
                                 disabled={isRunning}
-                                className={`relative z-10 px-4 py-2 w-36 md:w-44 text-center rounded-lg font-bold text-[11px] transition-colors ${sanitizerMode === "ENCODE" ? "text-[#10A875]" : "text-[#60758A] hover:text-[#17324D]"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
+                                className={`relative z-10 px-4 py-2 w-36 md:w-44 text-center rounded-lg font-bold text-[11px] transition-colors ${sanitizerMode === "ENCODE" ? "text-[#10B981]" : "text-[#60758A] hover:text-[#17324D]"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                                 {sanitizerMode === "ENCODE" && (
-                                    <motion.div layoutId="security-pill" className="absolute inset-0 bg-white border-2 border-[#10A875] rounded-lg -z-10 shadow-sm" />
+                                    <motion.div layoutId="security-pill" className="absolute inset-0 bg-white border-2 border-[#10B981] rounded-lg -z-10 shadow-sm" />
                                 )}
                                 Encode HTML
                             </button>

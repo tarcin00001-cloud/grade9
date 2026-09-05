@@ -77,7 +77,7 @@ const STATIONS: StationConfig[] = [
 
 export default function ContentDeliveryNetwork9() {
   const { playDrop, playPop, playSuccess, playChime, playError } = useLabAudio();
-  const { reportComplete } = useLMSBridge();
+  const { reportComplete } = useLMSBridge("contentdeliverynetwork9");
 
   const [driveLocations, setDriveLocations] = useState<Record<string, string | null>>({
     drive_1: "origin_1",
@@ -365,7 +365,7 @@ export default function ContentDeliveryNetwork9() {
 
   return (
     <LabShell
-      labId="cdn-9"
+      labId="contentdeliverynetwork9"
       title="CDN Network Architecture"
       subtitle="Deploy Regional Caches to Reduce Global Wait Time"
       instruction="Deploy Regional Caches and BGP Routing. Drag memory canisters and the routing token into high-delay regional stations to eliminate network lag."

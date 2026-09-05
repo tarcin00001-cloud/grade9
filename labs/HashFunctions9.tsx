@@ -33,7 +33,7 @@ const computeSimHash = (str: string): string => {
 type Step = 'LEARN' | 'TRY_ORIGINAL' | 'TRY_SNEAK' | 'FAIL' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
 
 export default function HashFunctions9() {
-  const { reportComplete } = useLMSBridge();
+  const { reportComplete } = useLMSBridge("hashfunctions9");
   const { playPop, playZap, playError, playSuccess, playChime, playClick } = useLabAudio();
 
   const [step, setStep] = useState<Step>('LEARN');

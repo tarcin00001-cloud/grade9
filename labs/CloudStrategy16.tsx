@@ -2,6 +2,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useLMSBridge } from "@/hooks/useLMSBridge";
+import { useLabAudio } from "@/hooks/useLabAudio";
 import LabShell from "@/components/LabShell";
 import Celebration from "@/components/Celebration";
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
@@ -30,7 +31,8 @@ function AnimatedNumber({ value, prefix = "", suffix = "" }: { value: number, pr
 }
 
 export default function CloudStrategy16() {
-    const { reportComplete } = useLMSBridge();
+    const { reportComplete } = useLMSBridge("cloudstrategy16");
+    const { playClick, playPop, playError, playSuccess } = useLabAudio();
     
     const [quarter, setQuarter] = useState(1);
     const [cash, setCash] = useState(STARTING_CASH);
@@ -89,9 +91,11 @@ export default function CloudStrategy16() {
 
     const advanceQuarter = () => {
         if (pool > 0) {
+            if (playError) playError();
             alert("Assign all engineers before advancing the quarter!");
             return;
         }
+        if (playPop) playPop();
 
         const newLegacyRev = assignedLegacy * legacyYieldPerEng;
         const newCloudAdded = assignedCloud * cloudYieldPerEng;
@@ -114,6 +118,7 @@ export default function CloudStrategy16() {
         
         // Smart Bankruptcy Analysis
         if (newCash < 0) {
+            if (playError) playError();
             if (newLegacyRev < 40 && newCloudRev < 30) {
                 setBankruptReason("You pivoted too fast! Cloud subscriptions build slowly. You must keep enough engineers on Legacy software to generate the immediate cash needed to survive the transition.");
             } else {
@@ -125,6 +130,7 @@ export default function CloudStrategy16() {
 
         // Win Condition
         if (newMarketCap >= 1000 && !isVictorious) {
+            if (playSuccess) playSuccess();
             setIsVictorious(true);
             reportComplete({ labId: "cloudstrategy16", points: 100 });
             return; // Game Over: Do not reset engineers!
@@ -132,6 +138,7 @@ export default function CloudStrategy16() {
 
         // Time Limit Failure
         if (quarter >= MAX_QUARTERS) {
+            if (playError) playError();
             setIsTimeUp(true);
             return; // Game Over: Do not reset engineers!
         }
@@ -159,6 +166,7 @@ export default function CloudStrategy16() {
 
     const handleAssign = (type: 'legacy' | 'cloud') => {
         if (pool > 0) {
+            if (playPop) playPop();
             setPool(p => p - 1);
             if (type === 'legacy') setAssignedLegacy(l => l + 1);
             if (type === 'cloud') setAssignedCloud(c => c + 1);
@@ -168,16 +176,19 @@ export default function CloudStrategy16() {
     const handleUnassign = (type: 'legacy' | 'cloud', e: React.MouseEvent) => {
         e.stopPropagation();
         if (type === 'legacy' && assignedLegacy > 0) {
+            if (playPop) playPop();
             setAssignedLegacy(l => l - 1);
             setPool(p => p + 1);
         }
         if (type === 'cloud' && assignedCloud > 0) {
+            if (playPop) playPop();
             setAssignedCloud(c => c - 1);
             setPool(p => p + 1);
         }
     };
 
     const resetGame = () => {
+        if (playClick) playClick();
         setQuarter(1);
         setCash(STARTING_CASH);
         setCloudRecurring(0);
@@ -462,7 +473,7 @@ export default function CloudStrategy16() {
                                     <li>Reach a $1,000M Market Cap before Year 4.</li>
                                 </ul>
                             </div>
-                            <button onClick={() => setShowIntro(false)} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-400 transition-colors shadow-md">
+                            <button onClick={() => { if (playClick) playClick(); setShowIntro(false); }} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-400 transition-colors shadow-md">
                                 Begin Simulation
                             </button>
                         </motion.div>
@@ -512,7 +523,7 @@ export default function CloudStrategy16() {
                                 <br/><br/>
                                 <strong className="text-red-600 font-black bg-red-50 p-1 rounded">Legacy Engineers now generate 60% less revenue.</strong>
                             </p>
-                            <button onClick={() => setShowShock(false)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-400 shadow-lg transition-colors">
+                            <button onClick={() => { if (playClick) playClick(); setShowShock(false); }} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-400 shadow-lg transition-colors">
                                 Acknowledge
                             </button>
                         </motion.div>
@@ -531,13 +542,13 @@ export default function CloudStrategy16() {
                             </p>
                             <div className="flex flex-col gap-3">
                                 <button 
-                                    onClick={() => { setInteropMultiplier(2); setShowInterop(false); }} 
+                                    onClick={() => { if (playClick) playClick(); setInteropMultiplier(2); setShowInterop(false); }} 
                                     className="w-full bg-indigo-500 text-white font-bold py-3 rounded-xl hover:bg-indigo-400 flex items-center justify-center gap-2 transition-colors shadow-md"
                                 >
                                     <Globe size={18} /> Yes, Open the Cloud (2x Growth)
                                 </button>
                                 <button 
-                                    onClick={() => { setInteropMultiplier(0.8); setShowInterop(false); }} 
+                                    onClick={() => { if (playClick) playClick(); setInteropMultiplier(0.8); setShowInterop(false); }} 
                                     className="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 flex items-center justify-center gap-2 transition-colors border border-slate-200"
                                 >
                                     <Lock size={18} /> No, Keep it Walled (Slower Growth)

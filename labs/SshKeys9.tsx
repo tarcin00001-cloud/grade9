@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLMSBridge } from '@/hooks/useLMSBridge';
+import { useLabAudio } from '@/hooks/useLabAudio';
 import LabShell from '@/components/LabShell';
 import Celebration from '@/components/Celebration';
 import { 
@@ -13,7 +14,8 @@ import {
 } from 'lucide-react';
 
 export default function SSHKeys9() {
-    const { reportComplete } = useLMSBridge();
+    const { reportComplete } = useLMSBridge("sshkeys9");
+    const { playClick, playPop, playSuccess, playError, playZap } = useLabAudio();
 
     const [level, setLevel] = useState(1);
     
@@ -62,6 +64,7 @@ export default function SSHKeys9() {
             } else {
                 // Time ran out!
                 if (!playerState.isRevoked) {
+                    if (playError) playError();
                     setHackerState(prev => ({...prev, isBreached: true}));
                     setFailureReason("The hacker got in! You didn't change the locks fast enough. When a private key is compromised, you must revoke the public key immediately.");
                     setShowFailureModal(true);
@@ -72,11 +75,13 @@ export default function SSHKeys9() {
 
     // ACTIONS
     const handleSendPassword = () => {
+        if (playPop) playPop();
         setTransitPacket('PASSWORD');
         setTransitStatus('MOVING');
         setTimeout(() => {
             setTransitStatus('INTERCEPTED');
             setTimeout(() => {
+                if (playError) playError();
                 setFailureReason("The packet sniffer grabbed your password in plaintext! Because the internet is a public network, sending passwords is fundamentally insecure.\n\nSolution: We need a system where the secret password never actually travels across the network.");
                 setShowFailureModal(true);
             }, 800);
@@ -84,12 +89,14 @@ export default function SSHKeys9() {
     };
 
     const handleGenerateKeys = () => {
+        if (playPop) playPop();
         setTransitPacket(null);
         setShowFailureModal(false);
         setPlayerState(prev => ({...prev, keysGenerated: true}));
     };
 
     const handleSendPublicKey = () => {
+        if (playPop) playPop();
         setTransitPacket('PLAYER_PUBKEY');
         setTransitStatus('MOVING');
         setTimeout(() => {
@@ -99,12 +106,14 @@ export default function SSHKeys9() {
     };
 
     const handleConnectSSH = () => {
+        if (playPop) playPop();
         setTransitPacket('PLAYER_HANDSHAKE');
         setTransitStatus('MOVING');
         setTimeout(() => {
             setTransitPacket(null);
             setPlayerState(prev => ({...prev, isConnected: true}));
             setTimeout(() => {
+                if (playSuccess) playSuccess();
                 setShowMissionComplete(true);
             }, 1000);
         }, 2500);
@@ -112,10 +121,12 @@ export default function SSHKeys9() {
 
     // LEVEL 2 ACTIONS
     const handleGenerateAliceKeys = () => {
+        if (playPop) playPop();
         setAliceState(prev => ({...prev, keysGenerated: true}));
     };
 
     const handleSendAlicePublicKey = () => {
+        if (playPop) playPop();
         setTransitPacket('ALICE_PUBKEY');
         setTransitStatus('MOVING');
         setTimeout(() => {
@@ -125,12 +136,14 @@ export default function SSHKeys9() {
     };
 
     const handleAliceConnectSSH = () => {
+        if (playPop) playPop();
         setTransitPacket('ALICE_HANDSHAKE');
         setTransitStatus('MOVING');
         setTimeout(() => {
             setTransitPacket(null);
             setAliceState(prev => ({...prev, isConnected: true}));
             setTimeout(() => {
+                if (playSuccess) playSuccess();
                 setShowMissionComplete(true);
             }, 1000);
         }, 2500);
@@ -138,6 +151,7 @@ export default function SSHKeys9() {
 
     // LEVEL 3 ACTIONS
     const handleRevoke = () => {
+        if (playZap) playZap();
         setPlayerState(prev => ({...prev, isRevoked: true}));
         setHackerState(prev => ({...prev, isBlocked: true}));
         
@@ -149,6 +163,7 @@ export default function SSHKeys9() {
             setTimeout(() => {
                 setTransitPacket(null);
                 setTimeout(() => {
+                    if (playSuccess) playSuccess();
                     setIsVictorious(true);
                     reportComplete({ labId: "sshkeys9", points: 100 });
                 }, 1000);
@@ -157,6 +172,7 @@ export default function SSHKeys9() {
     };
 
     const resetGame = () => {
+        if (playClick) playClick();
         setLevel(1);
         setPlayerState({ keysGenerated: false, pubKeyInstalled: false, isConnected: false, isRevoked: false });
         setAliceState({ keysGenerated: false, pubKeyInstalled: false, isConnected: false });
@@ -609,7 +625,7 @@ export default function SSHKeys9() {
                                     <li>Distribute the padlock to securely establish a connection.</li>
                                 </ul>
                             </div>
-                            <button onClick={() => setShowIntro(false)} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-400 transition-colors shadow-md">
+                            <button onClick={() => { if (playClick) playClick(); setShowIntro(false); }} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-400 transition-colors shadow-md">
                                 Begin Access Protocol
                             </button>
                         </motion.div>
@@ -628,6 +644,7 @@ export default function SSHKeys9() {
                             </p>
                             <button 
                                 onClick={() => {
+                                    if (playClick) playClick();
                                     setShowMissionComplete(false);
                                     if (level === 1) {
                                         setLevel(2);
@@ -662,7 +679,7 @@ export default function SSHKeys9() {
                                     <li>Install her Public Key (Padlock) onto the server alongside yours.</li>
                                 </ul>
                             </div>
-                            <button onClick={() => setShowL2Intro(false)} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-400 transition-colors shadow-md">
+                            <button onClick={() => { if (playClick) playClick(); setShowL2Intro(false); }} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-400 transition-colors shadow-md">
                                 Begin Mission 2
                             </button>
                         </motion.div>
@@ -687,6 +704,7 @@ export default function SSHKeys9() {
                                 </ul>
                             </div>
                             <button onClick={() => {
+                                if (playClick) playClick();
                                 setShowL3Intro(false);
                                 setHackerState(prev => ({...prev, isActive: true}));
                             }} className="w-full bg-rose-600 text-white font-bold py-3 rounded-xl hover:bg-rose-500 transition-colors shadow-lg">
@@ -707,6 +725,7 @@ export default function SSHKeys9() {
                             </p>
                             <button 
                                 onClick={() => {
+                                    if (playClick) playClick();
                                     if (level === 1) {
                                         setShowFailureModal(false);
                                         setTransitPacket(null);

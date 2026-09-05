@@ -128,7 +128,7 @@ const MISSIONS: Record<MissionId, MissionConfig> = {
 
 export default function RequirementAnalysis9() {
   const { playPop, playSuccess, playError, playZap, playChime } = useLabAudio();
-  const { reportComplete } = useLMSBridge("requirementanalysis9");
+  const { reportComplete } = useLMSBridge("requirementsanalysis9");
 
   const [activeMission, setActiveMission] = useState<MissionId>("ecommerce");
   
@@ -370,7 +370,7 @@ export default function RequirementAnalysis9() {
 
   return (
     <LabShell
-      labId="requirementanalysis9"
+      labId="requirementsanalysis9"
       title="Requirements Analysis Studio"
             hint="1. Functional Blueprints: What the system does (Shopping Cart, Video Engine). 2. Quality Gauges: How well it performs (Encryption, <50ms Latency). 3. Avoid premature hardware traps and vague unmeasurable goals!"
       theme="ocean"
@@ -585,7 +585,7 @@ export default function RequirementAnalysis9() {
                   const isSelected = selectedModule === id;
                   
                   // Style logic based on type
-                  let colorClasses = "border-slate-300 hover:border-slate-500 text-slate-700 border-t-4 " + (mod.type === "functional" ? "border-t-cyan-500/50" : mod.type === "non-functional" ? "border-t-emerald-500/50" : "border-t-rose-500/50");
+                  let colorClasses = "border-slate-300 hover:border-slate-500 text-slate-700 border-t-4 " + (mod.type === "functional" ? "border-t-cyan-500" : mod.type === "non-functional" ? "border-t-emerald-500" : "border-t-rose-500");
                   if (isSelected) colorClasses = "border-amber-400 border-t-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.3)] text-slate-900";
 
                   return (
@@ -620,8 +620,8 @@ export default function RequirementAnalysis9() {
                       </p>
 
                       <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-300">
-                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200 ${
-                           mod.type === "functional" ? "text-cyan-500" : mod.type === "non-functional" ? "text-emerald-500" : "text-rose-500" 
+                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                           mod.type === "functional" ? "bg-cyan-50 text-cyan-700 border border-cyan-200" : mod.type === "non-functional" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200" 
                         }`}>
                            {mod.type === "functional" ? "Feature" : mod.type === "non-functional" ? "Quality" : mod.type === "solution" ? "Hardware?" : "Vague?"}
                         </span>

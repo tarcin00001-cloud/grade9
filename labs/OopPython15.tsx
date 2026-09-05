@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
+import { useLMSBridge } from "@/hooks/useLMSBridge";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
 import { 
@@ -11,6 +12,7 @@ import {
 
 export default function OopPython15() {
   const { playClick, playPop, playSuccess, playError, playZap } = useLabAudio();
+  const { reportComplete } = useLMSBridge("ooppython15");
 
   const [stage, setStage] = useState(0);
   const [shakeTask, setShakeTask] = useState(0);
@@ -111,6 +113,7 @@ export default function OopPython15() {
     if (playSuccess) playSuccess();
     setStage(4);
     setLabFinished(true);
+    reportComplete();
   };
 
   const resetLab = () => {

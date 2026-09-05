@@ -78,7 +78,7 @@ type ModalState = 'none' | 'level1_fail' | 'fail' | 'level_complete' | 'success'
 
 export default function RoboticSurgery46() {
   const { playClick, playPop, playSuccess, playError, playZap, playHeavyThud } = useLabAudio();
-  const { reportComplete } = useLMSBridge();
+  const { reportComplete } = useLMSBridge("roboticsurgery46");
 
   const [levelIndex, setLevelIndex] = useState(0);
   const level = LEVELS[levelIndex];

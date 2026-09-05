@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
+import { useLMSBridge } from "@/hooks/useLMSBridge";
 import LabShell from "@/components/LabShell";
 import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
@@ -88,6 +89,7 @@ const LEVELS: LevelData[] = [
 
 export default function SemanticWeb45() {
   const { playClick, playPop, playSuccess, playError } = useLabAudio();
+  const { reportComplete } = useLMSBridge("semanticweb45");
   const { width, height } = useWindowSize();
   const isMounted = useRef(false);
   
@@ -136,9 +138,7 @@ export default function SemanticWeb45() {
            setIsSimulating(false);
            setWin(true);
            if (playSuccess) playSuccess();
-           if ((window as any).reportComplete) {
-              (window as any).reportComplete();
-           }
+           reportComplete();
        }, 3000);
     }
 

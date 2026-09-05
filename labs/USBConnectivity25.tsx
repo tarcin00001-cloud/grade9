@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLMSBridge } from '@/hooks/useLMSBridge';
+import { useLabAudio } from '@/hooks/useLabAudio';
 import LabShell from '@/components/LabShell';
 import Celebration from '@/components/Celebration';
 import { 
@@ -85,7 +86,8 @@ const StatusLed = ({ active }: { active: boolean }) => (
 );
 
 export default function UsbConnectivity25() {
-    const { reportComplete } = useLMSBridge();
+    const { reportComplete } = useLMSBridge("usbconnectivity25");
+    const { playPop, playError, playSuccess, playClick, playZap } = useLabAudio();
 
     const [era, setEra] = useState<Era>('LEGACY');
     const [showIntro, setShowIntro] = useState(true);
@@ -191,6 +193,7 @@ export default function UsbConnectivity25() {
 
                 if (isValid && !isOccupied) {
                     setConnections(prev => [...prev, { from: activeWire.origin, to: closestSocket as string, color: activeWire.color }]);
+                    if (playPop) playPop();
                 }
             }
             setActiveWire(null);
@@ -203,10 +206,12 @@ export default function UsbConnectivity25() {
         setTimeout(() => {
             setIsPoweringOn(false);
             setShowLegacyError(true);
+            if (playError) playError();
         }, 1500);
     };
 
     const handleInventUSB = () => {
+        if (playZap) playZap();
         setShowLegacyError(false);
         setConnections([]); // Clear wires
         setEra('USB');
@@ -218,12 +223,14 @@ export default function UsbConnectivity25() {
             setTimeout(() => {
                 setIsPoweringOn(false);
                 setIsVictorious(true);
+                if (playSuccess) playSuccess();
                 reportComplete({ labId: 'usbconnectivity25', points: 100 });
             }, 1500);
         }
     };
 
     const resetGame = () => {
+        if (playClick) playClick();
         setEra('LEGACY');
         setConnections([]);
         setShowLegacyError(false);

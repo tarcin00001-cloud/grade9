@@ -40,7 +40,7 @@ const BLOCKS: ContentBlock[] = [
 ];
 
 export default function AiEducation22() {
-  const { reportComplete } = useLMSBridge();
+  const { reportComplete } = useLMSBridge("aieducation22");
   const { playPop, playZap, playError, playSuccess, playChime, playClick, playHeavyThud } = useLabAudio();
 
   const [step, setStep] = useState<Step>('LEARN');

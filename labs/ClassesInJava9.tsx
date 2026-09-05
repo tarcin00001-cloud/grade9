@@ -152,7 +152,7 @@ const BOT_MODELS = [
 
 export default function ClassesInJava9() {
   const { playPop, playSuccess, playError, playZap, playChime } = useLabAudio();
-  const { reportComplete } = useLMSBridge();
+  const { reportComplete } = useLMSBridge("classesinjava9");
 
   const [activeTab, setActiveTab] = useState<ActivityId>("blueprint");
 

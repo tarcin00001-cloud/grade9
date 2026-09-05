@@ -16,7 +16,7 @@ type ChainState =
 
 export default function Blockchain9() {
   const { playPop, playSuccess, playError, playZap, playHeavyThud, playChime } = useLabAudio();
-  const { reportComplete } = useLMSBridge();
+  const { reportComplete } = useLMSBridge("blockchain9");
 
   const [chainState, setChainState] = useState<ChainState>("trad_pristine");
   const [scrambleTick, setScrambleTick] = useState(0);

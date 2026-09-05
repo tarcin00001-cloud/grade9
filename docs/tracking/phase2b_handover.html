@@ -1,0 +1,252 @@
+<title>Theme &amp; Mobile Pass Brief</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #faf9f6;
+    --paper-raised: #ffffff;
+    --ink: #1c1a17;
+    --ink-soft: #57534a;
+    --ink-faint: #8a8477;
+    --line: #e4e0d8;
+    --line-strong: #cfc9bc;
+    --accent: #3730a3;
+    --accent-soft: #eeecfb;
+    --pass: #0f766e;
+    --pass-soft: #e3f3f1;
+    --fail: #b91c1c;
+    --fail-soft: #fbe9e7;
+    --warn: #b45309;
+    --warn-soft: #faf0e0;
+    --code-bg: #f1efe9;
+    --shadow: 0 1px 2px rgba(28,26,23,0.04), 0 8px 24px -12px rgba(28,26,23,0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161513; --paper-raised: #1e1c19; --ink: #f3f1ec; --ink-soft: #c7c1b4; --ink-faint: #8a8477;
+      --line: #322e28; --line-strong: #423d34; --accent: #a5a0f0; --accent-soft: #26234a;
+      --pass: #5eead4; --pass-soft: #14302c; --fail: #fca5a5; --fail-soft: #3a1a17;
+      --warn: #fcd34d; --warn-soft: #3a2a10; --code-bg: #201e1a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #161513; --paper-raised: #1e1c19; --ink: #f3f1ec; --ink-soft: #c7c1b4; --ink-faint: #8a8477;
+    --line: #322e28; --line-strong: #423d34; --accent: #a5a0f0; --accent-soft: #26234a;
+    --pass: #5eead4; --pass-soft: #14302c; --fail: #fca5a5; --fail-soft: #3a1a17;
+    --warn: #fcd34d; --warn-soft: #3a2a10; --code-bg: #201e1a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif; font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  code, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+
+  .masthead { border-bottom: 3px solid var(--ink); padding-bottom: 1.75rem; margin-bottom: 2.5rem; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint);
+    display: flex; gap: 0.6em; align-items: baseline; margin-bottom: 0.9rem; flex-wrap: wrap;
+  }
+  .eyebrow .dot { color: var(--line-strong); }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 2.9rem); line-height: 1.06; letter-spacing: -0.01em;
+    margin: 0 0 0.6rem; text-wrap: balance;
+  }
+  .masthead .dek { color: var(--ink-soft); font-size: 1.08rem; max-width: 66ch; margin: 0; }
+
+  .to-line {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; margin-top: 1.3rem;
+    font-size: 0.85rem; color: var(--ink-faint);
+  }
+  .to-line b { color: var(--ink-soft); font-weight: 600; }
+
+  .status-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--line); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden; margin: 2rem 0 3rem;
+  }
+  .status-cell { background: var(--paper-raised); padding: 1.1rem 1rem; }
+  .status-cell .num { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.8rem; line-height: 1; display: block; }
+  .status-cell .lbl { font-size: 0.76rem; color: var(--ink-faint); margin-top: 0.35rem; display: block; }
+  .status-cell.fail .num { color: var(--fail); }
+  .status-cell.warn .num { color: var(--warn); }
+  .status-cell.accent .num { color: var(--accent); }
+  @media (max-width: 560px) { .status-strip { grid-template-columns: 1fr 1fr; } }
+
+  section { margin: 3.2rem 0; }
+  .section-head { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.1rem; }
+  .section-num { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+  h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.5rem; margin: 0; letter-spacing: -0.005em; }
+  h3 { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1rem; margin: 1.7rem 0 0.6rem; }
+  p { color: var(--ink-soft); max-width: 70ch; }
+  p.lede { color: var(--ink); font-size: 1.05rem; }
+  strong { color: var(--ink); font-weight: 600; }
+
+  .callout {
+    background: var(--accent-soft); border: 1px solid var(--line-strong); border-left: 4px solid var(--accent);
+    border-radius: 6px; padding: 1.2rem 1.4rem; margin: 1.4rem 0;
+  }
+  .callout p { color: var(--ink); max-width: none; margin: 0; }
+  .callout p + p { margin-top: 0.6rem; }
+  .callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout.fail { background: var(--fail-soft); border-left-color: var(--fail); }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.86rem; }
+  th { text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); padding: 0.5rem 0.6rem; border-bottom: 2px solid var(--ink); white-space: nowrap; }
+  td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; }
+  td.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--ink); }
+  td.num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; color: var(--fail); font-weight: 700; text-align: right; }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--paper-raised); box-shadow: var(--shadow); }
+  .tbl-wrap table { margin: 0; }
+  .tbl-wrap th:first-child, .tbl-wrap td:first-child { padding-left: 1rem; }
+  .tbl-wrap th:last-child, .tbl-wrap td:last-child { padding-right: 1rem; }
+  .rank { font-family: 'JetBrains Mono', monospace; color: var(--ink-faint); }
+
+  ul.plain, ol.steps { padding-left: 1.3rem; color: var(--ink-soft); }
+  ul.plain li, ol.steps li { margin-bottom: 0.5rem; }
+  ol.steps li::marker { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; }
+
+  pre {
+    margin: 0.6rem 0; padding: 0.85rem 1rem; background: var(--code-bg);
+    border: 1px solid var(--line); border-radius: 8px; overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.55;
+  }
+
+  .checklist { list-style: none; padding: 0; margin: 1rem 0; }
+  .checklist li {
+    display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.55rem 0;
+    border-bottom: 1px solid var(--line); font-size: 0.92rem; color: var(--ink-soft);
+  }
+  .checklist .box { flex-shrink: 0; width: 18px; height: 18px; border: 2px solid var(--line-strong); border-radius: 4px; margin-top: 0.15rem; }
+
+  .chip {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; font-weight: 600;
+    letter-spacing: 0.03em; text-transform: uppercase; padding: 0.2rem 0.5rem;
+    border-radius: 999px; display: inline-block; white-space: nowrap;
+  }
+  .chip.fail { background: var(--fail-soft); color: var(--fail); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.pass { background: var(--pass-soft); color: var(--pass); }
+
+  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--ink-faint); }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Grade 9 Computing Labs <span class="dot">&middot;</span> Phase 2B Kickoff <span class="dot">&middot;</span> 2026-09-05</div>
+    <h1>The Theme Name Was Never the Signal</h1>
+    <p class="dek">The plan said migrate <code>cosmos</code>-themed labs to <code>ocean</code>. The code says otherwise: the worst dark-void offender in the whole catalog already carries the &ldquo;safe&rdquo; <code>ocean</code> theme. This brief replaces the theme-name assumption with an actual token count across all 59 labs.</p>
+    <div class="to-line">
+      <span><b>Status:</b> Approved to start &middot; state-machine standardization and lab rewrites remain separate, unscoped</span>
+      <span><b>Prior:</b> <a href="https://claude.ai/code/artifact/d5feb8bc-3a54-4259-8571-ebd156fc3d7e">Phase 2 catalog brief</a></span>
+    </div>
+  </div>
+
+  <div class="status-strip">
+    <div class="status-cell fail"><span class="num">18</span><span class="lbl">worst dark-token count, in a lab themed &ldquo;ocean&rdquo;</span></div>
+    <div class="status-cell warn"><span class="num">52/59</span><span class="lbl">labs with at least one dark-token hit</span></div>
+    <div class="status-cell warn"><span class="num">12</span><span class="lbl">catalog labs still passing <code>subtitle</code></span></div>
+    <div class="status-cell accent"><span class="num">43</span><span class="lbl">catalog labs with sub-10px text</span></div>
+  </div>
+
+  <section>
+    <div class="section-head"><span class="section-num">00</span><h2>Why the original framing breaks</h2></div>
+    <p class="lede">The <code>theme</code> prop on <code>LabShell</code> only decides text contrast in the shell chrome. It does not set a lab's background &mdash; that comes from each lab's own <code>bgOverride</code> string or an internal gradient div, entirely independent of the theme name.</p>
+    <div class="callout fail">
+      <p><strong>Proof:</strong> <code>ransomware9</code> passes <code>theme="ocean"</code> &mdash; the theme meant to signal compliance &mdash; yet sets <code>bgOverride="bg-slate-950"</code> directly and carries 18 occurrences of literally-banned dark-void tokens, the single worst count in the catalog. Meanwhile several <code>theme="cosmos"</code> labs have only 1 occurrence each. A worklist built from theme names would fix the wrong labs and miss the real ones.</p>
+    </div>
+    <p>Everything below comes from grepping the actual token strings across all 59 catalog files directly, not from what theme prop each file happens to declare.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">01</span><h2>Priority queue &mdash; top 16, ranked by real severity</h2></div>
+    <p>Work top to bottom. Re-run the grep after finishing this list before moving further down &mdash; there are 36 more labs with at least one hit below this cutoff.</p>
+    <div class="tbl-wrap"><table>
+      <tr><th>Rank</th><th>Slug</th><th>Dark-token hits</th><th>Theme prop</th></tr>
+      <tr><td class="rank">1</td><td class="mono">ransomware9</td><td class="num">18</td><td class="mono">ocean</td></tr>
+      <tr><td class="rank">2</td><td class="mono">algorithmicmusic9</td><td class="num">14</td><td class="mono">none</td></tr>
+      <tr><td class="rank">3</td><td class="mono">mobileplatform37</td><td class="num">11</td><td class="mono">ocean</td></tr>
+      <tr><td class="rank">3</td><td class="mono">csrfattacks9</td><td class="num">11</td><td class="mono">none</td></tr>
+      <tr><td class="rank">5</td><td class="mono">ratelimiting9</td><td class="num">9</td><td class="mono">none</td></tr>
+      <tr><td class="rank">5</td><td class="mono">quantumcomputing9</td><td class="num">9</td><td class="mono">cosmos</td></tr>
+      <tr><td class="rank">5</td><td class="mono">cloudflare9</td><td class="num">9</td><td class="mono">none</td></tr>
+      <tr><td class="rank">8</td><td class="mono">sshkeys9</td><td class="num">8</td><td class="mono">none</td></tr>
+      <tr><td class="rank">9</td><td class="mono">univac9</td><td class="num">7</td><td class="mono">none</td></tr>
+      <tr><td class="rank">9</td><td class="mono">setsandvenn27</td><td class="num">7</td><td class="mono">none</td></tr>
+      <tr><td class="rank">11</td><td class="mono">usbconnectivity25</td><td class="num">6</td><td class="mono">none</td></tr>
+      <tr><td class="rank">11</td><td class="mono">smartring32</td><td class="num">6</td><td class="mono">ocean</td></tr>
+      <tr><td class="rank">11</td><td class="mono">foldablesmartphone11</td><td class="num">6</td><td class="mono">none</td></tr>
+      <tr><td class="rank">11</td><td class="mono">ethereumdao9</td><td class="num">6</td><td class="mono">none</td></tr>
+      <tr><td class="rank">11</td><td class="mono">cloudstrategy16</td><td class="num">6</td><td class="mono">none</td></tr>
+      <tr><td class="rank">11</td><td class="mono">bufferoverflow9</td><td class="num">6</td><td class="mono">ocean</td></tr>
+    </table></div>
+    <p style="margin-top:1rem;"><span class="chip pass">Confirmed clean</span> on this specific check, don't touch for this reason alone: <span class="mono">classesinjava9, binarysearch12, crosssitescripting9, webassembly9, computingproject39, semanticweb45, propositionallogic42</span>.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2>What counts as &ldquo;fixed&rdquo;</h2></div>
+    <p>A nonzero token count is not automatically a violation &mdash; a small, contained mechanical accent (a terminal readout, a conveyor track) is allowed to stay dark. The judgment per hit: is this the dominant background fill, or a contained accent? Only fix the former.</p>
+    <ol class="steps">
+      <li>Open the lab, find what each flagged token actually renders.</li>
+      <li>If it's a dominant fill, replace it with <code>AGENTS.md</code>'s actual mandate &mdash; the <code>ocean</code> theme: crisp white cards, dark slate typography, vibrant emerald/indigo accents. A glossy chassis material (snow white, brushed metal, hazard yellow, cobalt blue) is a reasonable extension of the same direction. Stay inside this set; don't invent a new palette per lab.</li>
+      <li>No layout or mechanic changes &mdash; this is a compliance pass, same restriction as Phase 1's colorfulness work.</li>
+      <li>Screenshot before/after at 1366&times;768 for every fix. A clean diff has previously shipped a visually broken render in this project (self-shadowing, washed-out color against a new background depth) &mdash; look at the actual page.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2><code>subtitle</code> removal &mdash; 12 labs, with a useful overlap</h2></div>
+    <p>The raw grep hits 27 files, but most aren't in the 59-lab catalog at all. Filtered to what's actually registered:</p>
+    <p class="mono" style="font-size:0.85rem; background:var(--code-bg); padding:0.8rem 1rem; border-radius:8px; border:1px solid var(--line);">contentdeliverynetwork9, continuousintegration9, datavisualization36, graphqlbasics9, jwttokens9, machinelearningtraining9, microservices9, oauthflow9, reverseproxies9, torrouting9, webassembly9, zerodayexploit9</p>
+    <p>Nine of these twelve are the same nine labs just registered in the Phase 2 catalog extension &mdash; worth doing the dark-token, subtitle, and micro-type fixes on each of those nine files in one pass instead of reopening them three times.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">04</span><h2>Micro-typography &mdash; 43 catalog labs</h2></div>
+    <p>Any <code>text-[Npx]</code> where N&nbsp;&le;&nbsp;9 gets replaced with <code>text-xs</code> (12px) as the floor, more if the layout has room. The largest single line-item in this brief by file count &mdash; batch it onto files you're already touching for the other two fixes.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">05</span><h2>Mobile check, riding along</h2></div>
+    <p>AGENTS.md &sect;6 requires zero scroll and zero clipping at 390&times;844 and 1024&times;450 &mdash; the two tightest of the seven mandatory viewports. No dedicated screenshot pass exists yet for all 59 labs at these sizes; for any lab already opened in this brief, check both viewports in the same sitting and report a failure even if you don't fix it this round.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">06</span><h2>Out of scope</h2></div>
+    <ul class="plain">
+      <li>7-step state machine standardization &mdash; separate brief.</li>
+      <li>Full lab rewrites or new mechanics &mdash; separate brief.</li>
+      <li>Any lab not in the current 59-entry catalog.</li>
+      <li>Changing a lab's <code>theme</code> prop value itself &mdash; per &sect;00, it's cosmetic metadata that does nothing to the actual background. No reason to touch it here.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">07</span><h2>Definition of done</h2></div>
+    <ul class="checklist">
+      <li><span class="box"></span> <code>npx tsc --noEmit</code> &mdash; 0 new errors.</li>
+      <li><span class="box"></span> <code>node scripts/lint-labs.js</code> &mdash; 0 new violations.</li>
+      <li><span class="box"></span> All three greps re-run per touched file, counts reported before/after &mdash; not just &ldquo;fixed.&rdquo;</li>
+      <li><span class="box"></span> Screenshot at 1366&times;768 for every dark-token fix.</li>
+      <li><span class="box"></span> Screenshot at 390&times;844 for every lab also mobile-checked.</li>
+      <li><span class="box"></span> Per-lab report: found / changed / re-measured count, with a reason given for anything left nonzero on purpose.</li>
+    </ul>
+    <div class="callout warn">
+      <p>Do not report a lab done without re-rendering and looking at it. That single habit is what's caught every real gap in this project so far.</p>
+    </div>
+  </section>
+
+  <footer>
+    Full detail lives in <code>docs/tracking/PHASE2B_THEME_MOBILE_BRIEF.md</code> in the repository. Companion to the <a href="https://claude.ai/code/artifact/019c9cb5-79eb-4900-ac76-44e7057127d9">Phase 1 handover</a> and <a href="https://claude.ai/code/artifact/d5feb8bc-3a54-4259-8571-ebd156fc3d7e">Phase 2 catalog brief</a>.
+  </footer>
+
+</div>

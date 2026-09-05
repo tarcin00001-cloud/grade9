@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLMSBridge } from '@/hooks/useLMSBridge';
+import { useLabAudio } from '@/hooks/useLabAudio';
 import LabShell from '@/components/LabShell';
 import Celebration from '@/components/Celebration';
 import { 
@@ -65,16 +66,17 @@ const BASE_MISSIONS = [
 ];
 
 const CHIPS = [
-    { id: 'UNION', symbol: '∪', label: 'UNION' },
-    { id: 'INTERSECT', symbol: '∩', label: 'INTERSECT' },
-    { id: 'DIFFERENCE', symbol: '−', label: 'DIFFERENCE' },
-    { id: 'SYM_DIFF', symbol: 'Δ', label: 'SYM DIFF' },
-    { id: 'COMPLEMENT_A', symbol: "A'", label: 'NOT A' },
-    { id: 'COMPLEMENT_B', symbol: "B'", label: 'NOT B' }
+    { id: 'UNION', symbol: '∪', label: 'UNION', textClass: 'text-sky-400', borderClass: 'border-sky-500/50 hover:border-sky-400' },
+    { id: 'INTERSECT', symbol: '∩', label: 'INTERSECT', textClass: 'text-emerald-400', borderClass: 'border-emerald-500/50 hover:border-emerald-400' },
+    { id: 'DIFFERENCE', symbol: '−', label: 'DIFFERENCE', textClass: 'text-amber-400', borderClass: 'border-amber-500/50 hover:border-amber-400' },
+    { id: 'SYM_DIFF', symbol: 'Δ', label: 'SYM DIFF', textClass: 'text-fuchsia-400', borderClass: 'border-fuchsia-500/50 hover:border-fuchsia-400' },
+    { id: 'COMPLEMENT_A', symbol: "A'", label: 'NOT A', textClass: 'text-rose-400', borderClass: 'border-rose-500/50 hover:border-rose-400' },
+    { id: 'COMPLEMENT_B', symbol: "B'", label: 'NOT B', textClass: 'text-cyan-400', borderClass: 'border-cyan-500/50 hover:border-cyan-400' }
 ];
 
 export default function SetsAndVenn27() {
-    const { reportComplete } = useLMSBridge();
+    const { reportComplete } = useLMSBridge("setsandvenn27");
+    const { playClick, playPop, playError, playSuccess } = useLabAudio();
 
     const [missions, setMissions] = useState(BASE_MISSIONS);
     const [isMounted, setIsMounted] = useState(false);
@@ -118,11 +120,13 @@ export default function SetsAndVenn27() {
     };
 
     const executeOperator = (op: Operator) => {
+        if (playPop) playPop();
         setActiveOperator(op);
         setIsAnimating(true);
 
         if (op === currentMission.targetOperator) {
             // SUCCESS
+            if (playSuccess) playSuccess();
             setTimeout(() => {
                 setIsAnimating(false);
                 if (missionIndex < missions.length - 1) {
@@ -135,6 +139,7 @@ export default function SetsAndVenn27() {
             }, 3500); // Give them time to see the success animation
         } else {
             // FAIL - Wait 1.0s before showing modal so they see the wrong regions light up
+            if (playError) playError();
             const newStrikes = strikes + 1;
             setStrikes(newStrikes);
             
@@ -320,9 +325,9 @@ export default function SetsAndVenn27() {
                             <path 
                                 d={SVG_PATHS.LeftCrescent} 
                                 className="transition-all duration-700"
-                                fill={isRegionActive('A') ? "rgba(99, 102, 241, 0.4)" : "rgba(203, 213, 225, 0.2)"}
-                                stroke={isRegionActive('A') ? "#6366f1" : "#cbd5e1"}
-                                strokeWidth={isRegionActive('A') ? "2" : "1"}
+                                fill={isRegionActive('A') ? "rgba(79, 70, 229, 0.65)" : "rgba(203, 213, 225, 0.2)"}
+                                stroke={isRegionActive('A') ? "#4338ca" : "#cbd5e1"}
+                                strokeWidth={isRegionActive('A') ? "3" : "1"}
                                 style={activeOperator && isRegionActive('A') ? { filter: 'url(#glow)' } : {}}
                             />
                             
@@ -330,9 +335,9 @@ export default function SetsAndVenn27() {
                             <path 
                                 d={SVG_PATHS.RightCrescent} 
                                 className="transition-all duration-700"
-                                fill={isRegionActive('B') ? "rgba(16, 185, 129, 0.4)" : "rgba(203, 213, 225, 0.2)"}
-                                stroke={isRegionActive('B') ? "#10b981" : "#cbd5e1"}
-                                strokeWidth={isRegionActive('B') ? "2" : "1"}
+                                fill={isRegionActive('B') ? "rgba(16, 185, 129, 0.65)" : "rgba(203, 213, 225, 0.2)"}
+                                stroke={isRegionActive('B') ? "#059669" : "#cbd5e1"}
+                                strokeWidth={isRegionActive('B') ? "3" : "1"}
                                 style={activeOperator && isRegionActive('B') ? { filter: 'url(#glow)' } : {}}
                             />
                             
@@ -340,9 +345,9 @@ export default function SetsAndVenn27() {
                             <path 
                                 d={SVG_PATHS.Lens} 
                                 className="transition-all duration-700"
-                                fill={isRegionActive('AB') ? "rgba(34, 211, 238, 0.6)" : "rgba(148, 163, 184, 0.2)"}
-                                stroke={isRegionActive('AB') ? "#67e8f9" : "#94a3b8"}
-                                strokeWidth={isRegionActive('AB') ? "2" : "1"}
+                                fill={isRegionActive('AB') ? "rgba(6, 182, 212, 0.8)" : "rgba(148, 163, 184, 0.2)"}
+                                stroke={isRegionActive('AB') ? "#0891b2" : "#94a3b8"}
+                                strokeWidth={isRegionActive('AB') ? "3" : "1"}
                                 style={activeOperator && isRegionActive('AB') ? { filter: 'url(#glow)' } : {}}
                             />
 
@@ -389,11 +394,11 @@ export default function SetsAndVenn27() {
                                     dragSnapToOrigin={true}
                                     onDragEnd={(e, info) => handleDragEnd(e, info, op.id as Operator)}
                                     whileDrag={{ scale: 1.1, zIndex: 50, cursor: 'grabbing' }}
-                                    className={`relative w-16 h-16 md:w-20 md:h-20 bg-slate-800 border-2 border-slate-700 rounded-xl flex flex-col items-center justify-center shadow-lg cursor-grab
-                                        ${activeOperator === op.id ? 'opacity-50 pointer-events-none' : 'hover:bg-slate-700 hover:border-slate-500'}`}
+                                    className={`relative w-16 h-16 md:w-20 md:h-20 bg-slate-800 border-2 rounded-xl flex flex-col items-center justify-center shadow-lg cursor-grab ${op.borderClass}
+                                        ${activeOperator === op.id ? 'opacity-50 pointer-events-none' : 'hover:bg-slate-700'}`}
                                 >
-                                    <span className="text-2xl md:text-3xl font-black text-white">{op.symbol}</span>
-                                    <span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{op.label}</span>
+                                    <span className={`text-2xl md:text-3xl font-black ${op.textClass}`}>{op.symbol}</span>
+                                    <span className="text-[8px] md:text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-1">{op.label}</span>
                                 </motion.div>
                             ))}
                         </div>

@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback } from "react";
 import LabShell from "@/components/LabShell";
 import Celebration from "@/components/Celebration";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
+import { useLabAudio } from "@/hooks/useLabAudio";
 import { Terminal, ShieldAlert, ShieldCheck, Activity, ArrowRight, Settings2, Unplug } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -13,6 +14,7 @@ type LabStep = "LEARN" | "TRY" | "FAIL" | "UNDERSTAND" | "IMPROVE" | "COMPLETE" 
 
 export default function GestureControl40() {
   const { reportComplete } = useLMSBridge("gesturecontrol40"); // just to be safe
+  const { playPop, playError, playSuccess, playClick } = useLabAudio();
   const [step, setStep] = useState<LabStep>("LEARN");
   const [isSmoothingEnabled, setIsSmoothingEnabled] = useState(false);
   
@@ -121,6 +123,7 @@ export default function GestureControl40() {
 
     if (!isValid) {
       setVaultStatus("ERROR");
+      if (playError) playError();
       if (step === "TRY") {
         setTimeout(() => {
           setStep("FAIL");
@@ -128,6 +131,7 @@ export default function GestureControl40() {
       }
     } else {
       setVaultStatus("UNLOCKED");
+      if (playSuccess) playSuccess();
       if (step === "COMPLETE") {
         setStep("OUTCOME");
         setTimeout(() => {
@@ -145,6 +149,7 @@ export default function GestureControl40() {
   };
 
   const handleReset = () => {
+    if (playClick) playClick();
     setStep("LEARN");
     setIsSmoothingEnabled(false);
     setRawPoints([]);
@@ -159,7 +164,7 @@ export default function GestureControl40() {
       title="The Gesture Control Device"
       theme="grade9"
       bgOverride="bg-emerald-50"
-      labId="40"
+      labId="gesturecontrol40"
       onReset={handleReset}
       instruction="Real-world sensors pick up noise. Learn how software smooths noisy hardware data."
     >

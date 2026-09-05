@@ -128,6 +128,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (slug === "jwttokens9") return <JwtTokens9 />;
   if (slug === "computingproject39") return <ComputingProject39 />;
   if (slug === "continuousintegration9") return <ContinuousIntegration9 />;
+  if (slug === "reverseproxies9") return <ReverseProxies9 />;
   if (slug === "gesturecontrol40") return <GestureControl40 />;
   if (slug === "csrfattacks9") return <CsrfAttacks9 />;
   if (slug === "computingbenefits44") return <ComputingBenefits44 />;

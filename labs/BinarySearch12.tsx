@@ -24,7 +24,7 @@ type Level = 1 | 2 | 3;
 
 export default function BinarySearch12() {
   const { playPop, playSuccess, playError, playZap, playChime } = useLabAudio();
-  const { reportComplete } = useLMSBridge();
+  const { reportComplete } = useLMSBridge("binarysearch12");
 
   const [level, setLevel] = useState<Level>(1);
   const [target, setTarget] = useState(42);

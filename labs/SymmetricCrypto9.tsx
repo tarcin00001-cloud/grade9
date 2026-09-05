@@ -14,7 +14,7 @@ type Step = 'LEARN' | 'TRY_PUBLIC' | 'FAIL_RAW' | 'UNDERSTAND' | 'IMPROVE' | 'CO
 type TokenState = 'empty' | 'base' | 'scrambled_a' | 'scrambled_b' | 'master' | 'encrypted_msg';
 
 export default function SymmetricCrypto9() {
-  const { reportComplete } = useLMSBridge();
+  const { reportComplete } = useLMSBridge("symmetriccrypto9");
   const { playPop, playZap, playError, playSuccess, playChime, playClick, playHeavyThud, playGearGrind } = useLabAudio();
 
   const [step, setStep] = useState<Step>('LEARN');
