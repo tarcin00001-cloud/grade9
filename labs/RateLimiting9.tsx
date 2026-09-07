@@ -255,6 +255,18 @@ export default function RateLimiting9() {
       instruction="Configure a Token Bucket firewall to defend the server from a DDoS botnet, without blocking real users."
       compact={true}
       onReset={handleReset}
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
     >
       <Celebration isActive={stage === 7} />
       <div data-step={stageToStep(stage)} className="flex-1 w-full max-w-4xl mx-auto flex flex-col p-4 sm:p-6 min-h-0 relative">

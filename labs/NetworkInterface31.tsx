@@ -231,7 +231,7 @@ export default function NetworkInterface31() {
       compact={true}
       onReset={resetLab}
     >
-      <div className={`flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4 ${isShaking ? 'animate-shake' : ''}`}>
+      <div data-step={labCurrentStep} className={`flex flex-col h-full w-full gap-3 px-2 py-3 md:py-4 ${isShaking ? 'animate-shake' : ''}`}>
         
         {/* HUD - Top Bar */}
         <div className="flex flex-col md:flex-row gap-2 shrink-0">

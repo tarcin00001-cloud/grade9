@@ -152,6 +152,18 @@ export default function Colossus28() {
       compact={true}
       onReset={resetLab}
       instruction="Rebuild the world's first programmable electronic computer to break the Lorenz cipher."
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
     >
       <div className="flex flex-col h-full w-full gap-3 p-1">
         

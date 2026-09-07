@@ -156,7 +156,7 @@ export default function QuantumComputing9() {
     >
       <Celebration isActive={phase === "OUTCOME"} message="Engine Started! You stabilized the quantum core using a Hadamard gate!" onReplay={reset} />
 
-      <div className="w-full flex flex-col md:flex-row flex-1 min-h-0 gap-4 p-2 bg-slate-950">
+      <div data-step={labCurrentStep} className="w-full flex flex-col md:flex-row flex-1 min-h-0 gap-4 p-2 bg-slate-950">
         
         {/* LEFT PANE: Mission Guide & Quantum Telemetry */}
         <div className="w-full md:w-80 flex flex-col gap-4 min-h-0 shrink-0">
