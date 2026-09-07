@@ -330,6 +330,16 @@ export default function LoadBalancing9() {
                   return (
                      <div key={s.id} 
                         onClick={() => { if (phase === 'ROUND_ROBIN' && s.id === 2) killServer(s.id) }}
+                        {...(phase === 'ROUND_ROBIN' && s.id === 2 ? {
+                           role: "button",
+                           tabIndex: 0,
+                           onKeyDown: (e) => {
+                               if (e.key === 'Enter' || e.key === ' ') {
+                                   e.preventDefault();
+                                   killServer(s.id);
+                               }
+                           }
+                        } : {})}
                         className={`absolute left-[85%] -translate-x-1/2 -translate-y-1/2 z-10 p-5 rounded-2xl border-2 w-44 sm:w-52 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-md transition-all duration-300 ${
                           !s.active ? 'bg-slate-100/80 border-slate-200 opacity-60 grayscale' : 
                           isOverloaded ? 'bg-rose-50/90 border-rose-400' : 
