@@ -6,7 +6,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Activity, ArrowRightLeft, CheckCircle2, XCircle, AlertTriangle, Timer, Globe, PlusCircle, Server, ShieldCheck , Info} from "lucide-react";
+import { Activity, ArrowRightLeft, CheckCircle2, XCircle, AlertTriangle, Timer, Globe, PlusCircle, Server, ShieldCheck, Info, Cpu, Layers } from "lucide-react";
 
 const TIMER_DURATION_SECONDS = 5 * 60;
 
@@ -45,7 +45,6 @@ export default function LoadBalancing9() {
   const rrIndexRef = useRef(1);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Timer logic
   const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
   const [timedOut, setTimedOut] = useState(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -88,7 +87,6 @@ export default function LoadBalancing9() {
 
   const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
 
-  // Drain server loads every 1s
   useEffect(() => {
     const drainInterval = setInterval(() => {
       setServers(prev => prev.map(s => ({
@@ -111,7 +109,6 @@ export default function LoadBalancing9() {
       count++;
       if (count > 20) {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        // Advance phase
         setTimeout(() => {
           const currentP = phaseRef.current;
           if (currentP === "SWARM_1") {
@@ -126,7 +123,7 @@ export default function LoadBalancing9() {
              setPhase("DONE");
              playSuccess();
           }
-        }, 2000); // wait for last packets to arrive
+        }, 2000);
         return;
       }
 
@@ -145,28 +142,22 @@ export default function LoadBalancing9() {
           activeServers.sort((a,b) => a.load - b.load);
           targetId = activeServers[0].id;
         } else {
-          targetId = 1; // Fallback
+          targetId = 1;
         }
       }
 
       setTraffic(prev => [...prev, { id, target: targetId, dropped: false }]);
 
-      // Arrive at 1500ms
       setTimeout(() => {
         const s = serversRef.current.find(srv => srv.id === targetId);
         if (!s || !s.active || s.load >= 10) {
-          // Drop packet
           setTraffic(prev => prev.map(pt => pt.id === id ? { ...pt, dropped: true } : pt));
-          // If in single mode and overload, trigger a single alert sound if we just hit 10
           if (s && s.load < 10) playError();
-          
           if (s && s.active) {
              setServers(prev => prev.map(srv => srv.id === targetId ? { ...srv, load: 10 } : srv));
           }
-          
-          setTimeout(() => setTraffic(prev => prev.filter(pt => pt.id !== id)), 600);
+          setTimeout(() => setTraffic(prev => prev.filter(pt => pt.id !== id)), 400);
         } else {
-          // Process packet
           setServers(prev => prev.map(srv => srv.id === targetId ? { ...srv, load: srv.load + 1 } : srv));
           setTimeout(() => setTraffic(prev => prev.filter(pt => pt.id !== id)), 200);
         }
@@ -199,6 +190,9 @@ export default function LoadBalancing9() {
 
   const hasLB = phase !== "INIT_SINGLE" && phase !== "SWARM_1" && phase !== "CRASHED_1";
   const isSwarming = phase === "SWARM_1" || phase === "SWARM_RR" || phase === "SWARM_LC";
+  const stageNum = (phase === "INIT_SINGLE" || phase === "SWARM_1" || phase === "CRASHED_1") ? 1 : 
+                   (phase === "ROUND_ROBIN" || phase === "READY_RR_SWARM" || phase === "SWARM_RR" || phase === "FAILED_RR") ? 2 : 3;
+  const isSmart = phase === "LEAST_CONNECTIONS" || phase === "SWARM_LC" || phase === "DONE";
 
   return (
     <LabShell
@@ -217,7 +211,6 @@ export default function LoadBalancing9() {
       labId="loadbalancing9" 
       theme="ocean" 
       title="Load Balancing Architecture" 
-      instruction={INSTRUCTIONS[phase]} 
       compact
     >
       <Celebration 
@@ -226,22 +219,22 @@ export default function LoadBalancing9() {
         onReplay={() => window.location.reload()} 
       />
 
-      <div data-step={labCurrentStep} className="w-full flex flex-col flex-1 min-h-0 pt-1 gap-4">
+      <div data-step={labCurrentStep} className="w-full flex flex-col flex-1 min-h-0 pt-1 gap-4 overflow-hidden relative">
         
-        {/* Controls Bar */}
-        <div className="shrink-0 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 relative z-20">
+        {/* Controls Bar (Glassmorphism) */}
+        <div className="shrink-0 bg-white/80 backdrop-blur-xl rounded-3xl border border-white/80 p-4 px-6 shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col md:flex-row items-center justify-between gap-4 relative z-20 mx-4">
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
              <div className="flex flex-col items-center mr-2">
                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Stage</span>
-                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-600 font-black border-2 border-slate-200 shadow-sm">
-                     {phase === "INIT_SINGLE" || phase === "SWARM_1" || phase === "CRASHED_1" ? "1" : phase === "ROUND_ROBIN" || phase === "READY_RR_SWARM" || phase === "SWARM_RR" || phase === "FAILED_RR" ? "2" : "3"}/3
+                 <div className="flex items-center justify-center w-11 h-11 rounded-full bg-slate-50 text-slate-700 font-black border-2 border-slate-200/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
+                     {stageNum}/3
                  </div>
              </div>
              <div className="flex flex-col">
-                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Algorithm</span>
-                 <span className="text-sm font-black text-slate-800">
-                     {!hasLB ? "Direct Connection" : (phase === "LEAST_CONNECTIONS" || phase === "SWARM_LC" || phase === "DONE") ? "Least Connections + Health Check" : "Blind Round Robin"}
+                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Algorithm</span>
+                 <span className="text-[15px] font-black text-slate-800 tracking-tight">
+                     {!hasLB ? "Direct Connection" : isSmart ? "Least Connections + Health Check" : "Blind Round Robin"}
                  </span>
              </div>
           </div>
@@ -250,147 +243,162 @@ export default function LoadBalancing9() {
             {phase === "INIT_SINGLE" || phase === "READY_RR_SWARM" || phase === "LEAST_CONNECTIONS" ? (
               <button 
                 onClick={triggerSwarm} 
-                className="px-6 py-2.5 rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none active:translate-y-1 flex items-center gap-2"
+                className="px-6 py-3 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_15px_rgba(79,70,229,0.3)] active:shadow-none active:translate-y-1 flex items-center gap-2"
               >
                 <Activity size={18}/> Trigger Traffic Swarm
               </button>
             ) : phase === "CRASHED_1" ? (
               <button 
                 onClick={addLoadBalancer} 
-                className="px-6 py-2.5 rounded-xl font-black bg-sky-500 hover:bg-sky-600 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_0_rgba(14,165,233,1)] active:shadow-none active:translate-y-1 flex items-center gap-2 animate-bounce"
+                className="px-6 py-3 rounded-2xl font-black bg-sky-500 hover:bg-sky-600 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_15px_rgba(14,165,233,0.3)] active:shadow-none active:translate-y-1 flex items-center gap-2 animate-bounce"
               >
-                <PlusCircle size={18}/> Add Load Balancer
+                <Layers size={18}/> Add Load Balancer
               </button>
             ) : phase === "FAILED_RR" ? (
               <button 
                 onClick={upgradeAlgorithm} 
-                className="px-6 py-2.5 rounded-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_0_rgba(16,185,129,1)] active:shadow-none active:translate-y-1 flex items-center gap-2 animate-bounce"
+                className="px-6 py-3 rounded-2xl font-black bg-emerald-500 hover:bg-emerald-600 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_15px_rgba(16,185,129,0.3)] active:shadow-none active:translate-y-1 flex items-center gap-2 animate-bounce"
               >
                 <ShieldCheck size={18}/> Enable Smart Routing
               </button>
             ) : (
-              <button disabled className="px-6 py-2.5 rounded-xl font-black bg-slate-100 text-slate-400 flex items-center gap-2 border border-slate-200">
+              <button disabled className="px-6 py-3 rounded-2xl font-black bg-slate-100 text-slate-400 flex items-center gap-2 border border-slate-200">
                 <Activity size={18}/> Processing Swarm...
               </button>
             )}
           </div>
         </div>
 
-
-        {/* Instruction Banner */}
-        <div className="shrink-0 bg-indigo-50 border border-indigo-200 text-indigo-800 px-5 py-3 rounded-xl shadow-sm text-sm font-semibold flex items-start gap-3 z-10">
-          <Info size={20} className="text-indigo-500 shrink-0 mt-0.5"/>
-          <p className="leading-relaxed">{INSTRUCTIONS[phase]}</p>
+        {/* Instruction Banner (Frosted Glass) */}
+        <div className="shrink-0 bg-white/60 backdrop-blur-md border border-white/80 px-5 py-3.5 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] text-sm font-semibold flex items-start gap-3 z-10 mx-4">
+          <div className="p-1.5 bg-indigo-100/80 rounded-lg shrink-0 shadow-inner">
+             <Info size={18} className="text-indigo-600"/>
+          </div>
+          <p className="leading-relaxed mt-0.5 text-slate-700">{INSTRUCTIONS[phase]}</p>
         </div>
 
         {/* Network Canvas */}
-        <div className="flex-1 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner relative overflow-hidden flex items-center justify-center min-h-[350px]">
+        <div className="flex-1 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-[2.5rem] border border-slate-200/80 shadow-[inset_0_4px_20px_rgba(0,0,0,0.02)] relative overflow-hidden flex items-center justify-center min-h-[350px] mx-4 mb-4">
           
-          {/* Background Dot Pattern */}
-          <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #475569 2px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+          {/* Subtle Grid Pattern */}
+          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #334155 2px, transparent 0)', backgroundSize: '32px 32px' }}></div>
           
           <div className="relative w-full max-w-4xl h-full mx-auto">
+              {/* Path Lines */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                  <line x1="15%" y1="50%" x2={hasLB ? "50%" : "85%"} y2="50%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" className="opacity-50" />
+                  {hasLB && (
+                      <>
+                          <line x1="50%" y1="50%" x2="85%" y2="20%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" className="opacity-50" />
+                          <line x1="50%" y1="50%" x2="85%" y2="50%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" className="opacity-50" />
+                          <line x1="50%" y1="50%" x2="85%" y2="80%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" className="opacity-50" />
+                      </>
+                  )}
+              </svg>
 
-          
-          {/* Path Lines */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-              <line x1="15%" y1="50%" x2={hasLB ? "50%" : "85%"} y2="50%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" />
+              {/* Internet Node */}
+              <div className="absolute left-[15%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-3 z-10">
+                  <div className="w-20 h-20 rounded-[1.5rem] bg-gradient-to-br from-indigo-50 to-white border-2 border-indigo-100 flex items-center justify-center text-indigo-600 shadow-[0_8px_30px_rgba(99,102,241,0.15)] ring-4 ring-indigo-500/5 relative overflow-hidden">
+                      <Globe size={32} />
+                      {isSwarming && <span className="absolute -top-2 -right-2 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]"></span></span>}
+                  </div>
+                  <span className="font-black text-[10px] text-slate-500 tracking-widest bg-slate-50/80 backdrop-blur-sm px-2 py-0.5 rounded-full border border-slate-200/50">INTERNET</span>
+              </div>
+
+              {/* Load Balancer Node (The Brain) */}
               {hasLB && (
-                  <>
-                      <line x1="50%" y1="50%" x2="85%" y2="20%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" />
-                      <line x1="50%" y1="50%" x2="85%" y2="50%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" />
-                      <line x1="50%" y1="50%" x2="85%" y2="80%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" />
-                  </>
+              <div className="absolute left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
+                  <div className={`w-28 h-32 rounded-[2rem] border-[3px] flex flex-col items-center justify-center shadow-xl relative overflow-hidden transition-all duration-700 ${
+                      isSmart 
+                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-400 text-white shadow-[0_0_40px_rgba(99,102,241,0.4)]' 
+                        : 'bg-gradient-to-br from-slate-50 to-sky-50 border-sky-200 text-sky-700 shadow-[0_8px_30px_rgba(14,165,233,0.1)]'
+                  }`}>
+                      <div className={`absolute inset-0 opacity-20 ${isSmart ? 'bg-[radial-gradient(circle_at_50%_0%,#fff,transparent_70%)]' : ''}`}></div>
+                      {isSmart ? <Cpu size={36} className="mb-2 animate-pulse"/> : <ArrowRightLeft size={36} className="mb-2 text-sky-500"/>}
+                      <span className={`font-black text-[11px] text-center leading-tight tracking-widest z-10 ${isSmart ? 'text-indigo-100' : 'text-sky-800'}`}>LOAD<br/>BALANCER</span>
+                      {/* Plasma Scan */}
+                      {isSwarming && <div className={`absolute inset-0 w-full h-[200%] animate-[scan_1.5s_linear_infinite] ${isSmart ? 'bg-gradient-to-b from-transparent via-white/20 to-transparent' : 'bg-gradient-to-b from-transparent via-sky-400/20 to-transparent'}`} style={{ animationName: 'scan' }} />}
+                  </div>
+              </div>
               )}
-          </svg>
 
-          {/* Internet Node */}
-          <div className="absolute left-[15%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-50 border-2 border-indigo-200 flex items-center justify-center text-indigo-500 shadow-sm relative">
-                  <Globe size={28} />
-                  {isSwarming && <span className="absolute -top-2 -right-2 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500"></span></span>}
-              </div>
-              <span className="font-bold text-[10px] text-slate-500 tracking-widest bg-slate-50 px-1">INTERNET</span>
-          </div>
-
-          {/* Load Balancer Node */}
-          {hasLB && (
-          <div className="absolute left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
-              <div className="w-24 h-28 rounded-2xl bg-sky-50 border-2 border-sky-400 flex flex-col items-center justify-center text-sky-600 shadow-sm relative overflow-hidden">
-                  <ArrowRightLeft size={28} className="mb-2"/>
-                  <span className="font-bold text-[10px] text-center leading-tight">LOAD<br/>BALANCER</span>
-                  {/* Traffic flow scan effect */}
-                  {isSwarming && <div className="absolute inset-0 bg-gradient-to-b from-transparent via-sky-300/30 to-transparent w-full h-[200%] animate-[scan_1s_linear_infinite]" style={{ animationName: 'scan' }} />}
-                  <style>{`@keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(50%); } }`}</style>
-              </div>
-          </div>
-          )}
-
-          {/* Server Nodes */}
-          {servers.map(s => {
-              const topPos = hasLB ? (s.id === 1 ? '20%' : s.id === 2 ? '50%' : '80%') : '50%';
-              const isOverloaded = s.load >= 10;
-              
-              return (
-                 <div key={s.id} 
-                    onClick={() => { if (phase === 'ROUND_ROBIN' && s.id === 2) killServer(s.id) }}
-                    className={`absolute left-[85%] -translate-x-1/2 -translate-y-1/2 z-10 p-4 rounded-xl border-2 w-40 sm:w-48 shadow-sm transition-all duration-300 ${
-                      !s.active ? 'bg-slate-100 border-slate-300 opacity-60' : 
-                      isOverloaded ? 'bg-rose-50 border-rose-500' : 
-                      s.load >= 7 ? 'bg-amber-50 border-amber-400' : 
-                      'bg-white border-slate-200'
-                    } ${
-                      phase === 'ROUND_ROBIN' && s.id === 2 ? 'cursor-pointer hover:border-indigo-400 ring-4 ring-indigo-500/20' : ''
-                    }`} 
-                    style={{ 
-                      top: topPos,
-                      animation: isOverloaded ? 'shake 0.4s cubic-bezier(.36,.07,.19,.97) infinite' : 'none' 
-                    }}>
-                     <style>{`@keyframes shake { 15%, 90% { transform: translate(-50%, -50%) translate3d(-1px, 0, 0); } 20%, 80% { transform: translate(-50%, -50%) translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate(-50%, -50%) translate3d(-4px, 0, 0); } 40%, 60% { transform: translate(-50%, -50%) translate3d(4px, 0, 0); } }`}</style>
-                     
-                     <div className="flex justify-between items-center mb-3">
-                         <span className="font-black text-slate-700 flex items-center gap-1.5"><Server size={14}/> Srv {s.id}</span>
-                         {!s.active ? <XCircle size={18} className="text-slate-400"/> : isOverloaded ? <AlertTriangle size={18} className="text-rose-500"/> : <CheckCircle2 size={18} className="text-emerald-500"/>}
-                     </div>
-                     <div className="flex gap-1 h-6">
-                         {[...Array(10)].map((_, i) => (
-                             <div key={i} className={`flex-1 rounded-[2px] transition-colors duration-200 ${
-                               i < s.load ? (isOverloaded ? 'bg-rose-500' : s.load >= 7 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 border border-slate-300/50'
-                             }`} />
-                         ))}
-                     </div>
-                     {phase === 'ROUND_ROBIN' && s.id === 2 && (
-                       <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded animate-pulse after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-indigo-600">
-                         Click to Disable
-                       </div>
-                     )}
-                 </div>
-              )
-          })}
-
-          {/* Packet Animations */}
-          <AnimatePresence>
-              {traffic.map(p => {
-                  const targetTop = hasLB ? (p.target === 1 ? '20%' : p.target === 2 ? '50%' : '80%') : '50%';
+              {/* Server Nodes */}
+              {servers.map(s => {
+                  const topPos = hasLB ? (s.id === 1 ? '20%' : s.id === 2 ? '50%' : '80%') : '50%';
+                  const isOverloaded = s.load >= 10;
+                  
                   return (
-                      <motion.div
-                          key={p.id}
-                          initial={{ left: '15%', top: '50%', scale: 0, x: '-50%', y: '-50%' }}
-                          animate={{
-                              left: hasLB ? ['15%', '50%', '85%'] : ['15%', '85%'],
-                              top: hasLB ? ['50%', '50%', targetTop] : ['50%', targetTop],
-                              scale: [0.5, 1, 1],
-                              opacity: p.dropped ? 0 : 1,
-                              y: p.dropped ? '40px' : '-50%' // Fall down if dropped
-                          }}
-                          transition={{ duration: 1.5, ease: "linear", times: hasLB ? [0, 0.4, 1] : [0, 1] }}
-                          className={`absolute w-3.5 h-3.5 rounded-full z-20 ${
-                            p.dropped ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]' : 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.6)]'
-                          }`}
-                      />
+                     <div key={s.id} 
+                        onClick={() => { if (phase === 'ROUND_ROBIN' && s.id === 2) killServer(s.id) }}
+                        className={`absolute left-[85%] -translate-x-1/2 -translate-y-1/2 z-10 p-5 rounded-2xl border-2 w-44 sm:w-52 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-md transition-all duration-300 ${
+                          !s.active ? 'bg-slate-100/80 border-slate-200 opacity-60 grayscale' : 
+                          isOverloaded ? 'bg-rose-50/90 border-rose-400' : 
+                          s.load >= 7 ? 'bg-amber-50/90 border-amber-300' : 
+                          'bg-white/90 border-white/60 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]'
+                        } ${
+                          phase === 'ROUND_ROBIN' && s.id === 2 ? 'cursor-pointer ring-4 ring-indigo-500/20 hover:scale-105' : ''
+                        }`} 
+                        style={{ 
+                          top: topPos,
+                          animation: isOverloaded ? 'shake 0.4s cubic-bezier(.36,.07,.19,.97) infinite' : 'none' 
+                        }}>
+                         
+                         <div className="flex justify-between items-center mb-3">
+                             <span className="font-black text-slate-700 flex items-center gap-1.5"><Server size={16} className="text-slate-400"/> Srv {s.id}</span>
+                             {!s.active ? <XCircle size={20} className="text-slate-400"/> : isOverloaded ? <AlertTriangle size={20} className="text-rose-500"/> : <CheckCircle2 size={20} className="text-emerald-500"/>}
+                         </div>
+                         
+                         {/* Hardware LED Block */}
+                         <div className="flex gap-1 h-7 p-1 bg-slate-100/80 rounded-lg shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] border border-slate-200/50">
+                             {[...Array(10)].map((_, i) => (
+                                 <div key={i} className={`flex-1 rounded-[3px] transition-all duration-300 ${
+                                   i < s.load ? (
+                                      isOverloaded ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]' : 
+                                      s.load >= 7 ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 
+                                      'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                                   ) : 'bg-slate-200/50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]'
+                                 }`} />
+                             ))}
+                         </div>
+                         
+                         {phase === 'ROUND_ROBIN' && s.id === 2 && (
+                           <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap bg-indigo-600 text-white text-[11px] font-black px-3 py-1.5 rounded-lg shadow-lg animate-bounce after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-indigo-600 z-50">
+                             Click to Disable
+                           </div>
+                         )}
+                     </div>
                   )
               })}
-          </AnimatePresence>
+
+              {/* Liquid Plasma Packet Animations */}
+              <AnimatePresence>
+                  {traffic.map(p => {
+                      const targetTop = hasLB ? (p.target === 1 ? '20%' : p.target === 2 ? '50%' : '80%') : '50%';
+                      return (
+                          <motion.div
+                              key={p.id}
+                              initial={{ left: '15%', top: '50%', x: '-50%', y: '-50%', scale: 0 }}
+                              animate={p.dropped ? {
+                                  scale: 2.5,
+                                  opacity: 0,
+                                  transition: { duration: 0.4, ease: "easeOut" }
+                              } : {
+                                  left: hasLB ? ['15%', '50%', '85%'] : ['15%', '85%'],
+                                  top: hasLB ? ['50%', '50%', targetTop] : ['50%', targetTop],
+                                  scale: [0.5, 1, 1],
+                                  opacity: 1,
+                                  transition: { duration: 1.5, ease: "linear", times: hasLB ? [0, 0.4, 1] : [0, 1] }
+                              }}
+                              className={`absolute w-3.5 h-3.5 rounded-full z-20 ${
+                                p.dropped 
+                                  ? 'bg-rose-400 shadow-[0_0_20px_8px_rgba(244,63,94,0.8)]' 
+                                  : 'bg-indigo-400 shadow-[0_0_12px_4px_rgba(129,140,248,0.7)]'
+                              }`}
+                          />
+                      )
+                  })}
+              </AnimatePresence>
+
           </div>
 
         </div>
@@ -398,16 +406,16 @@ export default function LoadBalancing9() {
       </div>
     
       {timedOut && !isLabComplete && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
-            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-              <Timer className="w-7 h-7" />
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md rounded-[2.5rem]">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 max-w-sm text-center mx-4">
+            <div className="w-16 h-16 rounded-2xl bg-rose-50 border-2 border-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 shadow-inner">
+              <Timer className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
-            <p className="text-sm font-medium text-slate-600 mb-4">
-              You did not complete the lab in time.
+            <h3 className="text-xl font-black text-slate-800 mb-2">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-500 mb-6 leading-relaxed">
+              You did not complete the load balancing architecture in time.
             </p>
-            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+            <button onClick={() => window.location.reload()} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-black transition-all cursor-pointer">
               Try Again
             </button>
           </div>
