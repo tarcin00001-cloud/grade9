@@ -500,7 +500,7 @@ export default function ComputingProject39() {
       bgOverride="bg-slate-200"
       onReset={resetLab}
     >
-      <div className="absolute inset-0 top-[52px] md:top-[68px] p-2 md:p-3 flex justify-center overflow-hidden">
+      <div data-step={labCurrentStep} className="absolute inset-0 top-[52px] md:top-[68px] p-2 md:p-3 flex justify-center overflow-hidden">
         <div className="w-full max-w-6xl h-full flex flex-col md:flex-row gap-3 min-h-0">
           
           {/* LEFT: Project Grid (Sorting Tray) */}
@@ -569,8 +569,7 @@ export default function ComputingProject39() {
           <div className="w-full md:w-[62%] lg:w-[66%] bg-[#e2e6ea] rounded-2xl shadow-[5px_10px_20px_rgba(0,0,0,0.12)] border-t border-l border-white border-b-[5px] border-r-[3px] border-slate-300 p-2.5 md:p-3 flex flex-col min-h-0 relative">
             
             {!selected ? (
-              <div data-step={labCurrentStep}
-        className="flex-1 flex flex-col items-center justify-center text-slate-500 drop-shadow-xs">
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 drop-shadow-xs">
                 <Folder size={52} className="mb-2.5 opacity-60" />
                 <h2 className="text-base md:text-lg font-black uppercase tracking-widest text-slate-700">Select a Project Plan</h2>
                 <p className="text-xs font-medium text-slate-500">Pick a project option on the left to begin.</p>
