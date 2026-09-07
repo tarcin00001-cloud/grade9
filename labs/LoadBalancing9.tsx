@@ -210,7 +210,9 @@ export default function LoadBalancing9() {
       } 
       labId="loadbalancing9" 
       theme="ocean" 
-      title="Load Balancing Architecture" 
+      title="Load Balancing Architecture"
+      instruction={INSTRUCTIONS[phase]}
+      onReset={() => window.location.reload()} 
       compact
     >
       <Celebration 
