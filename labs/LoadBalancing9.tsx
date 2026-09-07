@@ -6,7 +6,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Activity, ArrowRightLeft, CheckCircle2, XCircle, AlertTriangle, Timer, Globe, PlusCircle, Server, ShieldCheck } from "lucide-react";
+import { Activity, ArrowRightLeft, CheckCircle2, XCircle, AlertTriangle, Timer, Globe, PlusCircle, Server, ShieldCheck , Info} from "lucide-react";
 
 const TIMER_DURATION_SECONDS = 5 * 60;
 
@@ -232,13 +232,16 @@ export default function LoadBalancing9() {
         <div className="shrink-0 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 relative z-20">
           
           <div className="flex items-center gap-3">
-             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500 font-black">
-                {phase === "INIT_SINGLE" || phase === "SWARM_1" || phase === "CRASHED_1" ? "1" : phase === "ROUND_ROBIN" || phase === "READY_RR_SWARM" || phase === "SWARM_RR" || phase === "FAILED_RR" ? "2" : "3"}
+             <div className="flex flex-col items-center mr-2">
+                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Stage</span>
+                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-600 font-black border-2 border-slate-200 shadow-sm">
+                     {phase === "INIT_SINGLE" || phase === "SWARM_1" || phase === "CRASHED_1" ? "1" : phase === "ROUND_ROBIN" || phase === "READY_RR_SWARM" || phase === "SWARM_RR" || phase === "FAILED_RR" ? "2" : "3"}/3
+                 </div>
              </div>
              <div className="flex flex-col">
                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Algorithm</span>
                  <span className="text-sm font-black text-slate-800">
-                     {!hasLB ? "None (Direct to Server)" : (phase === "LEAST_CONNECTIONS" || phase === "SWARM_LC" || phase === "DONE") ? "Least Connections + Health Check" : "Blind Round Robin"}
+                     {!hasLB ? "Direct Connection" : (phase === "LEAST_CONNECTIONS" || phase === "SWARM_LC" || phase === "DONE") ? "Least Connections + Health Check" : "Blind Round Robin"}
                  </span>
              </div>
           </div>
@@ -273,23 +276,36 @@ export default function LoadBalancing9() {
           </div>
         </div>
 
+
+        {/* Instruction Banner */}
+        <div className="shrink-0 bg-indigo-50 border border-indigo-200 text-indigo-800 px-5 py-3 rounded-xl shadow-sm text-sm font-semibold flex items-start gap-3 z-10">
+          <Info size={20} className="text-indigo-500 shrink-0 mt-0.5"/>
+          <p className="leading-relaxed">{INSTRUCTIONS[phase]}</p>
+        </div>
+
         {/* Network Canvas */}
         <div className="flex-1 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner relative overflow-hidden flex items-center justify-center min-h-[350px]">
           
+          {/* Background Dot Pattern */}
+          <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #475569 2px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+          
+          <div className="relative w-full max-w-4xl h-full mx-auto">
+
+          
           {/* Path Lines */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-              <line x1="10%" y1="50%" x2={hasLB ? "45%" : "85%"} y2="50%" stroke="#CBD5E1" strokeWidth="3" strokeDasharray="6 6" />
+              <line x1="15%" y1="50%" x2={hasLB ? "50%" : "85%"} y2="50%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" />
               {hasLB && (
                   <>
-                      <line x1="45%" y1="50%" x2="85%" y2="20%" stroke="#CBD5E1" strokeWidth="3" strokeDasharray="6 6" />
-                      <line x1="45%" y1="50%" x2="85%" y2="50%" stroke="#CBD5E1" strokeWidth="3" strokeDasharray="6 6" />
-                      <line x1="45%" y1="50%" x2="85%" y2="80%" stroke="#CBD5E1" strokeWidth="3" strokeDasharray="6 6" />
+                      <line x1="50%" y1="50%" x2="85%" y2="20%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" />
+                      <line x1="50%" y1="50%" x2="85%" y2="50%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" />
+                      <line x1="50%" y1="50%" x2="85%" y2="80%" stroke="#94A3B8" strokeWidth="3" strokeDasharray="6 6" />
                   </>
               )}
           </svg>
 
           {/* Internet Node */}
-          <div className="absolute left-[10%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
+          <div className="absolute left-[15%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
               <div className="w-16 h-16 rounded-2xl bg-indigo-50 border-2 border-indigo-200 flex items-center justify-center text-indigo-500 shadow-sm relative">
                   <Globe size={28} />
                   {isSwarming && <span className="absolute -top-2 -right-2 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500"></span></span>}
@@ -299,7 +315,7 @@ export default function LoadBalancing9() {
 
           {/* Load Balancer Node */}
           {hasLB && (
-          <div className="absolute left-[45%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
+          <div className="absolute left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
               <div className="w-24 h-28 rounded-2xl bg-sky-50 border-2 border-sky-400 flex flex-col items-center justify-center text-sky-600 shadow-sm relative overflow-hidden">
                   <ArrowRightLeft size={28} className="mb-2"/>
                   <span className="font-bold text-[10px] text-center leading-tight">LOAD<br/>BALANCER</span>
@@ -330,7 +346,7 @@ export default function LoadBalancing9() {
                       top: topPos,
                       animation: isOverloaded ? 'shake 0.4s cubic-bezier(.36,.07,.19,.97) infinite' : 'none' 
                     }}>
-                     <style>{`@keyframes shake { 10%, 90% { transform: translate(-50%, -50%) translate3d(-1px, 0, 0); } 20%, 80% { transform: translate(-50%, -50%) translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate(-50%, -50%) translate3d(-4px, 0, 0); } 40%, 60% { transform: translate(-50%, -50%) translate3d(4px, 0, 0); } }`}</style>
+                     <style>{`@keyframes shake { 15%, 90% { transform: translate(-50%, -50%) translate3d(-1px, 0, 0); } 20%, 80% { transform: translate(-50%, -50%) translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate(-50%, -50%) translate3d(-4px, 0, 0); } 40%, 60% { transform: translate(-50%, -50%) translate3d(4px, 0, 0); } }`}</style>
                      
                      <div className="flex justify-between items-center mb-3">
                          <span className="font-black text-slate-700 flex items-center gap-1.5"><Server size={14}/> Srv {s.id}</span>
@@ -339,7 +355,7 @@ export default function LoadBalancing9() {
                      <div className="flex gap-1 h-6">
                          {[...Array(10)].map((_, i) => (
                              <div key={i} className={`flex-1 rounded-[2px] transition-colors duration-200 ${
-                               i < s.load ? (isOverloaded ? 'bg-rose-500' : s.load >= 7 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-100'
+                               i < s.load ? (isOverloaded ? 'bg-rose-500' : s.load >= 7 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-200 border border-slate-300/50'
                              }`} />
                          ))}
                      </div>
@@ -359,9 +375,9 @@ export default function LoadBalancing9() {
                   return (
                       <motion.div
                           key={p.id}
-                          initial={{ left: '10%', top: '50%', scale: 0, x: '-50%', y: '-50%' }}
+                          initial={{ left: '15%', top: '50%', scale: 0, x: '-50%', y: '-50%' }}
                           animate={{
-                              left: hasLB ? ['10%', '45%', '85%'] : ['10%', '85%'],
+                              left: hasLB ? ['15%', '50%', '85%'] : ['15%', '85%'],
                               top: hasLB ? ['50%', '50%', targetTop] : ['50%', targetTop],
                               scale: [0.5, 1, 1],
                               opacity: p.dropped ? 0 : 1,
@@ -375,6 +391,7 @@ export default function LoadBalancing9() {
                   )
               })}
           </AnimatePresence>
+          </div>
 
         </div>
 
