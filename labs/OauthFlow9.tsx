@@ -6,7 +6,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Globe, Lock, ShieldCheck, UserCircle, KeySquare, ChevronRight, Copy } from "lucide-react";
+import { Globe, Lock, ShieldCheck, UserCircle, KeySquare, ChevronRight, Copy , Timer} from "lucide-react";
 
 // ─── SVG Architecture Visualizer ──────────────────────────────────────────────
 
@@ -103,8 +103,17 @@ function OauthSVG({ phase }: { phase: Phase }) {
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ["APP_START", "GOOGLE_CONSENT", "GOOGLE_TOKEN", "APP_RETURN", "FETCHING_DATA", "DONE"];
+function marksForStep(s: string): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.max(0, Math.round((index / (STEP_ORDER.length - 1)) * 100));
+}
+
 export default function OauthFlow9() {
-  const { reportComplete } = useLMSBridge("oauthflow9");
+  const { reportComplete: _reportComplete } = useLMSBridge("oauthflow9");
+
+  
   const { playPop, playZap, playSuccess, playError } = useLabAudio();
 
   const [phase, setPhase] = useState<Phase>("APP_START");
@@ -152,8 +161,65 @@ export default function OauthFlow9() {
     setTokenInput("");
   };
 
+const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = phase;
+  const isLabComplete = phase === STEP_ORDER[STEP_ORDER.length - 1] || phase === "DONE";
+
+  const reportComplete = useCallback((args?: any) => {
+    _reportComplete({ points: marksForStep(labCurrentStep) });
+  }, [_reportComplete, labCurrentStep]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      _reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, _reportComplete, labCurrentStep]);
+
+  useEffect(() => {
+    if (isLabComplete) {
+      _reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [isLabComplete, _reportComplete, labCurrentStep]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
   return (
-    <LabShell labId="oauthflow9" theme="ocean" title="OAuth 2.0 (SSO Identity)" subtitle="L42 · Web Security"
+    <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      } labId="oauthflow9" theme="ocean" title="OAuth 2.0 (SSO Identity)" subtitle="L42 · Web Security"
       instruction="You want to play 'Super Sketchy Game', but you don't want to create a new password for them (they might steal it!). Be your own browser. Redirect to Google, grant consent for your Name ONLY, get an Access Token, and bring it back to the game to log in securely." compact>
       
       <Celebration isActive={hasWon} message="Identity Verified! OAuth solves the password problem. Instead of handing your password to 100 different sketch apps, you log into 1 secure provider (Google/Apple). They mint a temporary 'Access Token' that only grants access to your Name and Email." onReplay={reset} />
@@ -170,7 +236,7 @@ export default function OauthFlow9() {
                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
               </div>
-              <div className="flex-1 bg-black/50 border border-slate-800 rounded-lg px-3 py-2 flex items-center gap-2 text-sm font-mono text-slate-300">
+              <div data-step={labCurrentStep} className="flex-1 bg-black/50 border border-slate-800 rounded-lg px-3 py-2 flex items-center gap-2 text-sm font-mono text-slate-300">
                  {phase === "GOOGLE_CONSENT" || phase === "GOOGLE_TOKEN" ? (
                     <><Lock size={14} className="text-emerald-500" /> https://accounts.google.com/oauth/consent?client_id=sketchy_game</>
                  ) : (
@@ -268,6 +334,23 @@ export default function OauthFlow9() {
         </div>
 
       </div>
-    </LabShell>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
   );
 }

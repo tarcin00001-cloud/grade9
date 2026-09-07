@@ -6,7 +6,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Bug, ShieldCheck, RefreshCcw, Eye, Lock, ChevronDown, ChevronRight } from "lucide-react";
+import { Bug, ShieldCheck, RefreshCcw, Eye, Lock, ChevronDown, ChevronRight , Timer} from "lucide-react";
 
 // ─── JWT Structure ─────────────────────────────────────────────────────────────
 
@@ -67,8 +67,48 @@ function SegmentCard({
 
 type Step = "EXPLORE" | "TAMPERED" | "VERIFYING" | "REJECTED" | "ACCEPTED";
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+
 export default function JwtTokens9() {
-  const { reportComplete } = useLMSBridge("jwttokens9");
+  const { reportComplete: _reportComplete } = useLMSBridge("jwttokens9");
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLabComplete, setIsLabComplete] = useState(false);
+
+  const reportComplete = useCallback((args?: any) => {
+    setIsLabComplete(true);
+    _reportComplete({ points: 100 });
+  }, [_reportComplete]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      _reportComplete({ points: 0 });
+    }
+  }, [timedOut, _reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
   const { playPop, playZap, playError, playSuccess } = useLabAudio();
 
   const [adminValue, setAdminValue] = useState<"false" | "true">("false");
@@ -121,7 +161,19 @@ export default function JwtTokens9() {
     : "bg-slate-50/90 border-slate-800 text-slate-400";
 
   return (
-    <LabShell labId="jwttokens9" theme="cosmos" title="JSON Web Tokens (JWT)" subtitle="L45 · Cryptography"
+    <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      } labId="jwttokens9" theme="cosmos" title="JSON Web Tokens (JWT)" subtitle="L45 · Cryptography"
       instruction="A JWT has 3 parts: Header, Payload, and Signature. The Payload is readable by anyone — it's just Base64, not encryption. Try editing your own role or admin field below. Then send the token to the server and see if your forged permissions are accepted." compact>
 
       <Celebration isActive={hasWon} message="Hack Blocked! You edited the Payload, but the Signature was computed with the old Payload and the server's secret key. Since you don't know the secret, you can't recompute a valid Signature. The server detected the mismatch and rejected your tampered token." onReplay={reset} />
@@ -308,6 +360,23 @@ export default function JwtTokens9() {
         </div>
 
       </div>
-    </LabShell>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You did not complete the lab in time.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
   );
 }

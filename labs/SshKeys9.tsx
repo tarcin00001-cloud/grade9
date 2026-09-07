@@ -1,5 +1,6 @@
 "use client";
 
+import { Timer } from "lucide-react";
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLMSBridge } from '@/hooks/useLMSBridge';
@@ -13,8 +14,13 @@ import {
     Users
 } from 'lucide-react';
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+function marksForStep(s: string) { if (s === "COMPLETE") return 100; const val = parseInt(s.split("_")[1] || "1"); return Math.round(((val - 1) / 3) * 100); }
+
 export default function SSHKeys9() {
-    const { reportComplete } = useLMSBridge("sshkeys9");
+    const { reportComplete: _reportComplete } = useLMSBridge("sshkeys9");
+
+  
     const { playClick, playPop, playSuccess, playError, playZap } = useLabAudio();
 
     const [level, setLevel] = useState(1);
@@ -191,8 +197,58 @@ export default function SSHKeys9() {
     const isNetworkSecure = (level === 1 && playerState.isConnected) || (level === 2 && aliceState.isConnected) || (level === 3 && hackerState.isBlocked);
     const isNetworkCompromised = (transitPacket === 'PASSWORD' && transitStatus === 'INTERCEPTED') || hackerState.isBreached;
 
+const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isLabComplete = level === 3 && !hackerState.isBlocked && !hackerState.isBreached;
+  const labCurrentStep = isLabComplete ? "COMPLETE" : `LEVEL_${level}`;
+
+  const reportComplete = useCallback((args?: any) => {
+    _reportComplete({ points: marksForStep(labCurrentStep) });
+  }, [_reportComplete, labCurrentStep]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      _reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, isLabComplete, _reportComplete, labCurrentStep]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
     return (
-        <LabShell labId="sshkeys9"
+        <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      } labId="sshkeys9"
             title="SSH Key Cryptography"
             instruction={`Mission ${level}: ${level === 1 ? 'Establish secure connection.' : level === 2 ? 'Add a teammate securely.' : 'DEFEND THE SERVER!'}`}
             compact={true}
@@ -233,7 +289,7 @@ export default function SSHKeys9() {
                 </div>
 
                 {/* ARENA: 3 ZONES */}
-                <div className="flex-1 flex gap-2 overflow-hidden relative">
+                <div data-step={labCurrentStep} className="flex-1 flex gap-2 overflow-hidden relative">
                     
                     {/* LEFT: TEAM LAPTOPS */}
                     <div className="flex-1 bg-white border border-slate-200 rounded-xl p-3 flex flex-col gap-2 relative shadow-sm z-10">
@@ -747,6 +803,23 @@ export default function SSHKeys9() {
                 message="Threat Neutralized! You successfully revoked your compromised padlock before the hacker could get in. Because Alice had her own separate keypair, she remained safely connected!"
                 onReplay={resetGame}
             />
-        </LabShell>
+        
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
     );
 }

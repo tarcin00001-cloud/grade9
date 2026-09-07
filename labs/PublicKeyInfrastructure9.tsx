@@ -6,7 +6,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Lock, FileBadge, CheckCircle, RefreshCcw } from "lucide-react";
+import { Lock, FileBadge, CheckCircle, RefreshCcw , Timer} from "lucide-react";
 
 // ─── SVG PKI & Certificate Visualizer ─────────────────────────────────────────
 
@@ -111,8 +111,17 @@ function PkiSVG({ phase }: { phase: Phase }) {
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ["IDLE", "SEND_CSR", "CA_STAMPS", "CERT_ISSUED", "CLIENT_CONNECTS", "VERIFIED"];
+function marksForStep(s: string): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.max(0, Math.round((index / (STEP_ORDER.length - 1)) * 100));
+}
+
 export default function PublicKeyInfrastructure9() {
-  const { reportComplete } = useLMSBridge("publickeyinfrastructure9");
+  const { reportComplete: _reportComplete } = useLMSBridge("publickeyinfrastructure9");
+
+  
   const { playPop, playZap, playSuccess } = useLabAudio();
 
   const [phase, setPhase] = useState<Phase>("IDLE");
@@ -160,8 +169,65 @@ export default function PublicKeyInfrastructure9() {
     setHasWon(false);
   };
 
+const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = phase;
+  const isLabComplete = phase === STEP_ORDER[STEP_ORDER.length - 1];
+
+  const reportComplete = useCallback((args?: any) => {
+    _reportComplete({ points: marksForStep(labCurrentStep) });
+  }, [_reportComplete, labCurrentStep]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      _reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, _reportComplete, labCurrentStep]);
+
+  useEffect(() => {
+    if (isLabComplete) {
+      _reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [isLabComplete, _reportComplete, labCurrentStep]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
   return (
-    <LabShell labId="publickeyinfrastructure9" theme="forge" title="SSL/TLS Certificates & PKI" subtitle="L24 · Cryptography"
+    <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      } labId="publickeyinfrastructure9" theme="forge" title="SSL/TLS Certificates & PKI" subtitle="L24 · Cryptography"
       instruction="How do you know a website is real? Watch the Web Server send its Public Key to a trusted Certificate Authority (CA). The CA signs it, creating a Certificate. When your browser connects, it verifies that CA Signature to enable the Green Padlock." compact>
       
       <Celebration isActive={hasWon} message="Secure Connection Established! The browser trusts the CA, and the CA trusts the Server. By verifying the CA's signature on the Certificate, the browser knows the Server is completely legitimate." onReplay={reset} />
@@ -186,13 +252,30 @@ export default function PublicKeyInfrastructure9() {
         </div>
 
         {/* Main SVG Area */}
-        <div className="flex-1 panel-glass rounded-3xl overflow-x-auto overflow-y-hidden relative border-amber-900/40 bg-[#030712] shadow-[inset_0_0_80px_rgba(0,0,0,0.9)] flex items-center justify-center">
+        <div data-step={labCurrentStep} className="flex-1 panel-glass rounded-3xl overflow-x-auto overflow-y-hidden relative border-amber-900/40 bg-[#030712] shadow-[inset_0_0_80px_rgba(0,0,0,0.9)] flex items-center justify-center">
           <div className="w-full max-w-5xl aspect-[2.2] min-w-[800px]">
             <PkiSVG phase={phase} />
           </div>
         </div>
 
       </div>
-    </LabShell>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
   );
 }

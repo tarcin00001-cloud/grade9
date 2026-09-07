@@ -10,7 +10,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Activity, Bluetooth, Thermometer, Radio, Brain, Battery, Zap, CheckCircle2, XCircle, AlertTriangle, Smartphone, CreditCard, Play, Fingerprint } from "lucide-react";
+import { Activity, Bluetooth, Thermometer, Radio, Brain, Battery, Zap, CheckCircle2, XCircle, AlertTriangle, Smartphone, CreditCard, Play, Fingerprint , Timer} from "lucide-react";
 
 // ============================================================================
 // SHARED COMPONENTS
@@ -774,8 +774,15 @@ const TABS = [
   { id: 'm5', title: '5. Assessment', icon: Brain }
 ];
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+function marksForStep(s: string): number {
+  return Math.round((parseInt(s) / 5) * 100);
+}
+
 export default function SmartRing32() {
-  const { reportComplete } = useLMSBridge("smartring32");
+  const { reportComplete: _reportComplete } = useLMSBridge("smartring32");
+
+  
   const [activeTab, setActiveTab] = useState(0);
   const [completedTabs, setCompletedTabs] = useState([false, false, false, false, false]);
 
@@ -787,8 +794,59 @@ export default function SmartRing32() {
     else setTimeout(() => setActiveTab(t => Math.min(4, t + 1)), 1500);
   };
 
+const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isLabComplete = completedTabs.every(Boolean);
+  const labCurrentStep = completedTabs.filter(Boolean).length.toString();
+
+  const reportComplete = useCallback((args?: any) => {
+    _reportComplete({ points: marksForStep(labCurrentStep) });
+  }, [_reportComplete, labCurrentStep]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      _reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, isLabComplete, _reportComplete, labCurrentStep]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
   return (
-    <LabShell 
+    <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      } 
       labId="smartring32" 
       theme="ocean" 
       title="Miniaturization & Wearables"
@@ -798,7 +856,7 @@ export default function SmartRing32() {
     >
       <Celebration isActive={completedTabs.every(Boolean)} message="Microcode Certified! You have mastered power-budget tradeoffs for wearable computing." onReplay={() => {}} />
 
-      <div className="w-full flex flex-col flex-1 min-h-0 max-w-6xl mx-auto relative z-10 pt-2 gap-4">
+      <div data-step={labCurrentStep} className="w-full flex flex-col flex-1 min-h-0 max-w-6xl mx-auto relative z-10 pt-2 gap-4">
         
         {/* Top Navigation Tabs */}
         <div className="shrink-0 w-full grid grid-cols-5 gap-2">
@@ -829,6 +887,23 @@ export default function SmartRing32() {
         </div>
 
       </div>
-    </LabShell>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
   );
 }

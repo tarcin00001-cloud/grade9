@@ -10,7 +10,7 @@ import LabShell from "@/components/LabShell";
 import * as THREE from 'three';
 import { 
   Settings, Zap, ShieldCheck, Cpu, Smartphone, MonitorPlay, Keyboard, Tablet, AlertTriangle, Bug
-} from "lucide-react";
+, Timer} from "lucide-react";
 
 // The HTML UIs for the 3D Phone
 const GlitchUI = () => (
@@ -186,8 +186,17 @@ function FoldableDevice({
     );
 }
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+function marksForStep(s: string): number {
+  if (s === "COMPLETE") return 100;
+  if (s === "M2_IN_PROGRESS") return 50;
+  return 0;
+}
+
 export default function FoldableSmartphone11() {
-  const { reportComplete } = useLMSBridge("foldablesmartphone11");
+  const { reportComplete: _reportComplete } = useLMSBridge("foldablesmartphone11");
+
+  
   const { playPop, playSuccess, playError, playChime, playHeavyThud, playClick } = useLabAudio();
 
   const [mission, setMission] = useState<1 | 2>(1);
@@ -266,8 +275,59 @@ export default function FoldableSmartphone11() {
       else currentLayout = logicMap[180] || 'none';
   }
 
+const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isLabComplete = softwarePassed;
+  const labCurrentStep = isLabComplete ? "COMPLETE" : hardwarePassed ? "M2_IN_PROGRESS" : "M1_IN_PROGRESS";
+
+  const reportComplete = useCallback((args?: any) => {
+    _reportComplete({ points: marksForStep(labCurrentStep) });
+  }, [_reportComplete, labCurrentStep]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      _reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, isLabComplete, _reportComplete, labCurrentStep]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
   return (
     <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
       labId="foldablesmartphone11"
       title="The Foldable Smartphone"
       compact={true}
@@ -281,7 +341,7 @@ export default function FoldableSmartphone11() {
     >
       <Celebration isActive={softwarePassed} message="Masterful Engineering! You designed a durable folding mechanism and programmed a seamless Adaptive UI!" />
 
-      <div className="flex flex-col md:flex-row w-full h-full min-h-0 font-sans overflow-hidden p-2 sm:p-4 gap-4">
+      <div data-step={labCurrentStep} className="flex flex-col md:flex-row w-full h-full min-h-0 font-sans overflow-hidden p-2 sm:p-4 gap-4">
         
         {/* LEFT/TOP: 3D CANVAS */}
         <div className="w-full md:w-[60%] min-h-[400px] bg-slate-900 rounded-xl shadow-xl border-4 border-slate-800 relative overflow-hidden flex flex-col">
@@ -424,6 +484,23 @@ export default function FoldableSmartphone11() {
             )}
         </div>
       </div>
-    </LabShell>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
   );
 }

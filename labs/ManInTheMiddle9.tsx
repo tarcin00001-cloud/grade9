@@ -6,15 +6,55 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Lock, Unlock, ShieldAlert, ShieldCheck, Laptop, Server, Terminal, Send, Skull, Network, Activity } from "lucide-react";
+import { Lock, Unlock, ShieldAlert, ShieldCheck, Laptop, Server, Terminal, Send, Skull, Network, Activity , Timer} from "lucide-react";
 
 type Stage = 1 | 2 | 3 | 4;
 type AnimState = "idle" | "start" | "router1" | "eve" | "eve_bounce" | "router2" | "bob";
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+
 export default function ManInTheMiddle9() {
-  const { reportComplete } = useLMSBridge("maninthemiddle9");
+  const { reportComplete: _reportComplete } = useLMSBridge("maninthemiddle9");
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLabComplete, setIsLabComplete] = useState(false);
+
+  const reportComplete = useCallback((args?: any) => {
+    setIsLabComplete(true);
+    _reportComplete({ points: 100 });
+  }, [_reportComplete]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      _reportComplete({ points: 0 });
+    }
+  }, [timedOut, _reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
   const { playPop, playZap, playError, playSuccess } = useLabAudio();
 
   const [stage, setStage] = useState<Stage>(1);
@@ -134,7 +174,19 @@ export default function ManInTheMiddle9() {
   };
 
   return (
-    <LabShell 
+    <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      } 
       labId="maninthemiddle9" 
       theme="ocean" 
       title="Man-In-The-Middle (MitM)" 
@@ -380,6 +432,23 @@ export default function ManInTheMiddle9() {
         </div>
 
       </div>
-    </LabShell>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You did not complete the lab in time.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
   );
 }

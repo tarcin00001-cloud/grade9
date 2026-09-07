@@ -6,7 +6,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Search, ArrowDownWideNarrow, XCircle, CheckCircle2, Navigation, FastForward, Trophy } from "lucide-react";
+import { Search, ArrowDownWideNarrow, XCircle, CheckCircle2, Navigation, FastForward, Trophy , Timer} from "lucide-react";
 
 // Generate distinct ordered arrays for levels
 const LEVEL1_UNSORTED = [73, 15, 119, 9, 4, 137, 82, 50, 94, 150, 42, 61, 31, 108, 23, 125];
@@ -22,9 +22,25 @@ const LEVEL3_SORTED = generateSortedArray(64);
 type Phase = "idle" | "pick_mid" | "evaluate" | "failed" | "success";
 type Level = 1 | 2 | 3;
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+function marksForStep(s: string): number {
+  if (s === "COMPLETE") return 100;
+  const parts = s.split("_");
+  const lvl = parseInt(parts[1] || "1");
+  const p = parts.slice(2).join("_");
+  if (lvl === 3 && p === "SUCCESS") return 100;
+  if (lvl === 3) return 66;
+  if (lvl === 2 && p === "SUCCESS") return 66;
+  if (lvl === 2) return 33;
+  if (lvl === 1 && p === "SUCCESS") return 33;
+  return 0;
+}
+
 export default function BinarySearch12() {
   const { playPop, playSuccess, playError, playZap, playChime } = useLabAudio();
-  const { reportComplete } = useLMSBridge("binarysearch12");
+  const { reportComplete: _reportComplete } = useLMSBridge("binarysearch12");
+
+  
 
   const [level, setLevel] = useState<Level>(1);
   const [target, setTarget] = useState(42);
@@ -167,8 +183,59 @@ export default function BinarySearch12() {
     setMidIndex(null);
   };
 
+const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isLabComplete = phase === "success" && level === 3;
+  const labCurrentStep = isLabComplete ? "COMPLETE" : `LEVEL_${level}_${phase.toUpperCase()}`;
+
+  const reportComplete = useCallback((args?: any) => {
+    _reportComplete({ points: marksForStep(labCurrentStep) });
+  }, [_reportComplete, labCurrentStep]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      _reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, isLabComplete, _reportComplete, labCurrentStep]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
   return (
     <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
       labId="binarysearch12"
       title="Advanced Searching Methods"
       hint="Binary search needs ordered data. In pick_mid, find the center of the active white cards."
@@ -183,7 +250,7 @@ export default function BinarySearch12() {
         onReplay={handleReset}
       />
 
-      <div className="flex-1 min-h-0 w-full flex flex-col px-4 py-3 gap-3 relative z-10 select-none">
+      <div data-step={labCurrentStep} className="flex-1 min-h-0 w-full flex flex-col px-4 py-3 gap-3 relative z-10 select-none">
         
         {/* Status & Feedback Panel */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col justify-center min-h-[90px]">
@@ -328,6 +395,23 @@ export default function BinarySearch12() {
         </div>
 
       </div>
-    </LabShell>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
   );
 }

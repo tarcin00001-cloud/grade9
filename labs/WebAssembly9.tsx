@@ -6,7 +6,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Play, Cpu, RefreshCcw, Zap, Code2, Binary } from "lucide-react";
+import { Play, Cpu, RefreshCcw, Zap, Code2, Binary , Timer} from "lucide-react";
 
 // ─── Source Code Snippets ──────────────────────────────────────────────────────
 
@@ -203,8 +203,48 @@ function ParticleViz({ mode }: { mode: RunMode }) {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
+const TIMER_DURATION_SECONDS = 5 * 60;
+
 export default function WebAssembly9() {
-  const { reportComplete } = useLMSBridge("webassembly9");
+  const { reportComplete: _reportComplete } = useLMSBridge("webassembly9");
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLabComplete, setIsLabComplete] = useState(false);
+
+  const reportComplete = useCallback((args?: any) => {
+    setIsLabComplete(true);
+    _reportComplete({ points: 100 });
+  }, [_reportComplete]);
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      _reportComplete({ points: 0 });
+    }
+  }, [timedOut, _reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
   const { playPop, playZap, playError, playSuccess } = useLabAudio();
 
   const [lang, setLang] = useState<"JS" | "CPP">("JS");
@@ -280,7 +320,19 @@ export default function WebAssembly9() {
   const codeLabel = lang === "JS" ? "physics_sim.js" : mode === "WASM" ? "physics.wasm  ← compiled binary" : "physics_sim.cpp";
 
   return (
-    <LabShell labId="webassembly9" theme="studio" title="WebAssembly (WASM) Speed" subtitle="L44 · Browser Engines"
+    <LabShell
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      } labId="webassembly9" theme="studio" title="WebAssembly (WASM) Speed" subtitle="L44 · Browser Engines"
       instruction="A physics simulator needs to hit 60 FPS. Running it as JavaScript hits V8's parse/compile bottlenecks and stutters. Switch source to C++, compile it to WebAssembly, and inject the .wasm binary into the browser — bypassing the JS engine entirely for near-native speed." compact>
 
       <Celebration isActive={hasWon} message="60 FPS Unlocked! WebAssembly bypasses V8's JavaScript engine entirely. Because it's already compiled native machine code, there's zero parsing, zero JIT compilation, and zero garbage collection pauses — the browser runs it at hardware speed." onReplay={reset} />
@@ -481,6 +533,23 @@ export default function WebAssembly9() {
           </div>
         </div>
       </div>
-    </LabShell>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You did not complete the lab in time.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+</LabShell>
   );
 }

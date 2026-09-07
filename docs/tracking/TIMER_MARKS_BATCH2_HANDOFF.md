@@ -1,31 +1,38 @@
-# Phase 4: Timer + Marks Rollout (Canonical Batch)
+# Timer + Marks Batch 2 Handoff
 
-> **To**: Architect
-> **From**: Gemini/Antigravity implementation agent
-> **Status**: Completed and fully verified
+## Summary
+This batch successfully completes the deployment of the 5-minute timer and marks tracking across the remaining 50 non-canonical labs in the catalog. 
 
-The 5:00 timer, timeout modal, and stage-based marks scoring mechanism have been successfully injected and verified across all 22 targeted canonical-Step labs.
+Following the audit provided, we divided the 50 labs into two distinct treatments:
+1. **Group 1 (11 Labs)**: Stage-based partial credit with real one-way progressions.
+2. **Group 2 (~39 Labs)**: Pass/fail timer only (100 marks on completion, 0 on timeout), as they are primarily sandboxes, mode toggles, or continuous simulations with no genuine intermediate progress metrics.
 
-## 1. Implementation Details
+No fabricated partial credit metrics were invented.
 
-We adhered strictly to the established `AsymmetricCrypto9.tsx` pattern:
-- The standard `TIMER_DURATION_SECONDS = 5 * 60` was added to each module.
-- A pure function `marksForStep(s: any): number` was generated using the appropriate `STEP_ORDER` (default 7-step where applicable, custom arrays mapped for specific labs like `HashFunctions9`, `SymmetricCrypto9`, and `ComputingProject39`).
-- A generic `useEffect` loop manages the 1-second countdown, clearing gracefully upon hitting zero or upon `isLabComplete`.
-- `reportComplete({ points: marksForStep(labCurrentStep) })` fires exactly once when the lab concludes or the timer expires. Previous empty `reportComplete()` invocations have been updated.
-- The `LabShell` now reliably receives a red-pulsing `navExtra` timer component underneath 30 seconds.
-- The Timeout modal properly renders before the `<LabShell>` close tag and allows resetting the state (which natively resets the timer state as well).
-- The `data-step` attribute has been assigned uniformly to the primary rendering container. Missing attributes on `Colossus28` and `NetworkInterface31` have been injected. `labCurrentStep` was carefully derived locally via existing canonical variables (`phaseToStep(phase)`, `stageToStep(stage)`, etc).
+## Group 1 Classifications (Partial Credit)
+The audit classifications held up during implementation, with custom formulas mapping their internal states to 0-100 marks:
+* `BinarySearch12`: Derived from a combination of `level` (1-3) and `phase`.
+* `EdgeComputing9`: Derived from `Phase` progression.
+* `OauthFlow9`: Derived from `Phase` progression.
+* `PublicKeyInfrastructure9`: Derived from `Phase` progression.
+* `TorRouting9`: Derived from `Phase` progression.
+* `ZeroDayExploit9`: Derived from `Phase` progression.
+* `ComputingBenefits44`: Derived from `stage` (1-4).
+* `SshKeys9`: Derived from `level` (1-3) and block state.
+* `SmartRing32`: Actually derived from `completedTabs` array rather than `day`, as the `day` variable ran continuous mini-simulations inside those tabs.
+* `FoldableSmartphone11`: Derived from a 0/50/100 split based on `hardwarePassed` and `softwarePassed` spanning its two missions.
+* `CsrfAttacks9`: Bespoke fractional marks based on the 8-boolean `missions` sandbox array.
 
-## 2. Compilation and Linter Results
+## Group 2 Classifications (Pass/Fail Timer)
+All ~39 remaining labs (including `JwtTokens9`) received the generic pass/fail timer treatment. 
+- Timer pill renders in the `navExtra` slot.
+- On completion: `reportComplete({ points: 100 })` is fired.
+- On timeout: A generic "Time's up!" modal fires, invoking `reportComplete({ points: 0 })` without the partial credit text, and offers a `window.location.reload()` refresh.
 
-The codebase has been thoroughly scrubbed and stabilized after several mass-injection anomalies:
-1. **TypeScript Compiler (`npx tsc --noEmit`)**: Passed flawlessly with **0 errors**. All recursive hook dependencies (e.g. `Timer`, `useEffect`, `useRef`) were programmatically parsed and injected where needed.
-2. **Linter Validation (`node scripts/lint-labs.js`)**: Passed entirely. To ensure a 100% green pipeline, I also scrubbed the entire project globally of pre-existing banned words (e.g., "Sorted Array", "Conduit") and emoji instances without altering the runtime UX or TS types.
+## Verification
+* `tsc --noEmit` returns 0 errors site-wide.
+* `lint-labs.js` passes site-wide.
+* **No `use client` duplication** or bundler-crashing injections occurred.
+* Tested route loading to ensure `200 OK`.
 
-## 3. Notable Fixes included in this batch
-
-- **RoboticSurgery46.tsx**: A missing TS `useTransform` hook injection from the prior Quick Fix batch was rectified.
-- **Univac9.tsx**: Fixed a lingering Phase 3 bug where `data-step={stageToStep(stage)}` was incorrectly attached to the `Loader3D` HTML return instead of the main component scope.
-
-This safely brings all 23 structured labs (including the `AsymmetricCrypto9` reference) up to the target specification.
+This closes the catalog-wide rollout of the Timer + Marks feature.
