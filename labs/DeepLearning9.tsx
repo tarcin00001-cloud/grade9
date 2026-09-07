@@ -51,6 +51,22 @@ const MISSIONS = [
   }
 ];
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function phaseToStep(phase: Phase): Step {
+  switch (phase) {
+    case 'learn': return 'LEARN';
+    case 'training_fail': return 'TRY_MANUAL';
+    case 'training_success': return 'TRY_MANUAL';
+    case 'failed': return 'FAIL_OVERLOAD';
+    case 'feedback': return 'UNDERSTAND';
+    case 'improving': return 'IMPROVE';
+    case 'success': return 'COMPLETE';
+    default: return 'LEARN';
+  }
+}
+
 export default function DeepLearning9() {
   const { reportComplete } = useLMSBridge("deeplearning9");
   const { playPop, playSuccess, playError, playZap } = useLabAudio();
@@ -234,7 +250,7 @@ export default function DeepLearning9() {
         actionIcon={missionIndex < MISSIONS.length - 1 ? <Play size={20} fill="currentColor" /> : <RotateCcw size={20} />}
       />
 
-      <div className="flex-1 flex flex-col gap-4 min-h-0 w-full max-w-6xl mx-auto">
+      <div data-step={phaseToStep(phase)} className="flex-1 flex flex-col gap-4 min-h-0 w-full max-w-6xl mx-auto">
         
         {/* Top: Objective Banner */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 md:p-4 shrink-0 flex items-center justify-between gap-4">

@@ -18,6 +18,23 @@ const APPS = [
   { id: "email", name: "Email Client", icon: Mail, color: "text-amber-600", bgColor: "bg-amber-50", borderColor: "border-amber-200" }
 ];
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function phaseToStep(phase: Phase): Step {
+  switch (phase) {
+    case 'intro': return 'LEARN';
+    case 'ram_fill': return 'TRY_MANUAL'; 
+    case 'first_fault': return 'FAIL_OVERLOAD';
+    case 'thrashing_intro': return 'UNDERSTAND';
+    case 'thrashing': return 'IMPROVE';
+    case 'upgrade_ssd': return 'FAIL_OVERLOAD';
+    case 'ssd_test': return 'IMPROVE';
+    case 'success': return 'OUTCOME';
+    default: return 'LEARN';
+  }
+}
+
 export default function VirtualMem9() {
   const { reportComplete } = useLMSBridge("virtualmem9");
   const { playPop, playSuccess, playError, playZap } = useLabAudio();
@@ -195,7 +212,7 @@ export default function VirtualMem9() {
         onReplay={handleReset}
       />
 
-      <div className="w-full flex-1 flex flex-col gap-3 md:gap-4 relative isolate pb-2 max-w-7xl mx-auto min-h-0">
+      <div data-step={phaseToStep(phase)} className="w-full flex-1 flex flex-col gap-3 md:gap-4 relative isolate pb-2 max-w-7xl mx-auto min-h-0">
         
         {/* HUD */}
         <div className={`bg-white rounded-2xl border p-3 md:p-4 shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-colors ${stats.cpuTemp > 80 ? 'border-rose-300 bg-rose-50' : 'border-slate-200'}`}>

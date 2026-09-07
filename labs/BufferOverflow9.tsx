@@ -16,6 +16,21 @@ type Stage = 1 | 2 | 3 | 4 | 5 | 6;
 type SysState = "IDLE" | "PROCESSING" | "CRASHED" | "HIJACKED" | "SECURED";
 type PayloadType = "SAFE" | "OVERFLOW" | "EXPLOIT";
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function getStep(stage: Stage, sysState: SysState): Step {
+  if (sysState === 'SECURED' || stage === 6) return 'OUTCOME';
+  if (sysState === 'PROCESSING') return 'TRY_MANUAL';
+  if (sysState === 'CRASHED' || sysState === 'HIJACKED') return 'FAIL_OVERLOAD';
+  
+  if (stage === 1) return 'LEARN';
+  if (stage === 2 || stage === 3) return 'TRY_MANUAL';
+  if (stage === 4 || stage === 5) return 'IMPROVE';
+  
+  return 'LEARN';
+}
+
 export default function BufferOverflow9() {
   const { reportComplete } = useLMSBridge("bufferoverflow9");
   const { playPop, playZap, playError, playSuccess } = useLabAudio();
@@ -199,7 +214,7 @@ export default function BufferOverflow9() {
         onReplay={handleReset} 
       />
 
-      <div className="w-full flex-1 relative bg-slate-50 overflow-hidden rounded-[2rem] border border-slate-200 shadow-inner flex flex-col lg:flex-row font-sans text-slate-800 min-h-0">
+      <div data-step={getStep(stage, sysState)} className="w-full flex-1 relative bg-slate-50 overflow-hidden rounded-[2rem] border border-slate-200 shadow-inner flex flex-col lg:flex-row font-sans text-slate-800 min-h-0">
         
         {/* Left Hemisphere: Code & Interactive Payload Controller */}
         <div className="w-full lg:w-5/12 flex flex-col border-r border-slate-200 bg-white z-10 shadow-[10px_0_20px_rgba(0,0,0,0.03)] relative min-h-0">

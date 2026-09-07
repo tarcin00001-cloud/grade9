@@ -75,6 +75,20 @@ const SHIFT_DURATION = 60; // 60 seconds to survive
 const MAX_STRIKES = 3;
 const BASE_THREAT_TIME = 80; // Ticks (approx 8 seconds)
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function phaseToStep(phase: Phase): Step {
+  switch (phase) {
+    case 'intro': return 'LEARN';
+    case 'playing': return 'TRY_MANUAL';
+    case 'feedback': return 'UNDERSTAND';
+    case 'game_over': return 'FAIL_OVERLOAD';
+    case 'success': return 'OUTCOME';
+    default: return 'LEARN';
+  }
+}
+
 export default function ItSupport18() {
   const { reportComplete } = useLMSBridge("itsupport18");
   const { playPop, playSuccess, playError, playZap } = useLabAudio();
@@ -260,7 +274,7 @@ export default function ItSupport18() {
         onReplay={handleReset}
       />
 
-      <div className="w-full flex-1 flex flex-col min-h-0 relative isolate pb-4 max-w-7xl mx-auto">
+      <div data-step={phaseToStep(phase)} className="w-full flex-1 flex flex-col min-h-0 relative isolate pb-4 max-w-7xl mx-auto">
         
         {/* HUD */}
         <div className="shrink-0 flex items-center justify-between bg-white rounded-2xl border border-slate-200 p-4 mb-4 shadow-sm z-20 relative w-full max-w-5xl lg:max-w-6xl mx-auto">

@@ -10,8 +10,25 @@ import { useLabAudio } from "@/hooks/useLabAudio";
 // Types
 type Packet = { id: number; type: 'good' | 'bad'; y: number; x: number; status: 'moving' | 'dropped' | 'processed' };
 
+
+type Stage = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function stageToStep(stage: Stage): Step {
+  switch (stage) {
+    case 1: return 'LEARN';
+    case 2: return 'TRY_MANUAL';
+    case 3: return 'TRY_MANUAL';
+    case 4: return 'FAIL_OVERLOAD'; 
+    case 5: return 'IMPROVE';
+    case 6: return 'IMPROVE';
+    case 7: return 'OUTCOME';
+    default: return 'LEARN';
+  }
+}
+
 export default function RateLimiting9() {
-  const [stage, setStage] = useState(1);
+  const [stage, setStage] = useState<Stage>(1);
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
   const [health, setHealth] = useState(100);
@@ -193,7 +210,7 @@ export default function RateLimiting9() {
       onReset={handleReset}
     >
       <Celebration isActive={stage === 7} />
-      <div className="flex-1 w-full max-w-4xl mx-auto flex flex-col p-4 sm:p-6 min-h-0 relative">
+      <div data-step={stageToStep(stage)} className="flex-1 w-full max-w-4xl mx-auto flex flex-col p-4 sm:p-6 min-h-0 relative">
         
 
           {/* External Diegetic Sticky Notes */}

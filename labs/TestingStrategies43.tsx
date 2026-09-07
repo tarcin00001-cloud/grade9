@@ -18,6 +18,27 @@ type QAState =
   | "build_selenium" | "selenium_running" | "selenium_success"
   | "assessing" | "completed";
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function qaStateToStep(state: QAState): Step {
+  switch (state) {
+    case 'manual_1_typing': return 'TRY_MANUAL';
+    case 'manual_1_testing': return 'TRY_MANUAL';
+    case 'manual_1_success': return 'TRY_MANUAL';
+    case 'regression_alert': return 'FAIL_OVERLOAD';
+    case 'manual_2_typing': return 'FAIL_OVERLOAD';
+    case 'manual_2_testing': return 'FAIL_OVERLOAD';
+    case 'manual_2_fail': return 'FAIL_OVERLOAD';
+    case 'build_selenium': return 'IMPROVE';
+    case 'selenium_running': return 'IMPROVE';
+    case 'selenium_success': return 'COMPLETE';
+    case 'assessing': return 'OUTCOME';
+    case 'completed': return 'OUTCOME';
+    default: return 'LEARN';
+  }
+}
+
 export default function TestingStrategies43() {
   const { playPop, playSuccess, playError, playZap, playHeavyThud } = useLabAudio();
   const { reportComplete } = useLMSBridge();
@@ -209,7 +230,7 @@ export default function TestingStrategies43() {
       {qaState === "completed" && <Celebration isActive={true} />}
       
       {/* Clean Laboratory Environment - Split Screen */}
-      <div className="flex-1 w-full flex flex-col relative overflow-hidden font-sans bg-white lg:rounded-xl border-t lg:border border-slate-200 shadow-sm">
+      <div data-step={qaStateToStep(qaState)} className="flex-1 w-full flex flex-col relative overflow-hidden font-sans bg-white lg:rounded-xl border-t lg:border border-slate-200 shadow-sm">
           
           {/* Subtle Grid */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#0F172A 1px, transparent 1px), linear-gradient(90deg, #0F172A 1px, transparent 1px)', backgroundSize: '30px 30px' }} />

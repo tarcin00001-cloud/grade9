@@ -567,7 +567,7 @@ export default function SpectreMeltdown9() {
 
                       {/* Cache lines */}
                       {[0, 1, 2].map((i) => (
-                        <rect key={i} x="530" y="140 + i * 30" width="100" height="20" rx="4" fill="#e2e8f0" />
+                        <rect key={i} x="530" y={140 + i * 30} width="100" height="20" rx="4" fill="#e2e8f0" />
                       ))}
 
                       {/* Speculative Loaded cache block */}

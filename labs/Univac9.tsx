@@ -25,7 +25,7 @@ useGLTF.preload('/models/univac_computer_compressed.glb');
 function Loader3D() {
   return (
     <Html center zIndexRange={[100, 0]}>
-      <div className="flex flex-col items-center gap-3 bg-slate-900/95 backdrop-blur-md px-6 py-5 rounded-2xl border-2 border-indigo-500 shadow-[0_0_35px_rgba(99,102,241,0.6)] text-center w-64">
+      <div data-step={stageToStep(stage)} className="flex flex-col items-center gap-3 bg-slate-900/95 backdrop-blur-md px-6 py-5 rounded-2xl border-2 border-indigo-500 shadow-[0_0_35px_rgba(99,102,241,0.6)] text-center w-64">
         <div className="relative">
           <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-amber-400 rounded-full animate-spin" />
           <Zap size={20} className="text-amber-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
@@ -235,6 +235,20 @@ function TractorFeedPrintout({ onVerify }: { onVerify: () => void }) {
 // MAIN COMPONENT
 // ---------------------------------------------------------
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function stageToStep(stage: 1 | 2 | 3 | 4 | 5): Step {
+  switch (stage) {
+    case 1: return 'LEARN';
+    case 2: return 'FAIL_OVERLOAD';
+    case 3: return 'IMPROVE';
+    case 4: return 'IMPROVE';
+    case 5: return 'OUTCOME';
+    default: return 'LEARN';
+  }
+}
+
 export default function Univac9() {
   const { reportComplete } = useLMSBridge("univac9");
   const { playPop, playSuccess, playError, playChime, playClick } = useLabAudio();
@@ -364,7 +378,7 @@ export default function Univac9() {
         message="Mastery Achieved! You recreated UNIVAC's legendary 1952 election breakthrough and proved computers could predict the future!" 
       />
 
-      <div className="flex flex-col lg:flex-row w-full h-full min-h-0 font-sans overflow-hidden p-2 sm:p-3 gap-3">
+      <div data-step={stageToStep(stage)} className="flex flex-col lg:flex-row w-full h-full min-h-0 font-sans overflow-hidden p-2 sm:p-3 gap-3">
         
         {/* ========================================================================= */}
         {/* LEFT PANE: 3D CLEAN ROOM VIEWPORT WITH LABORATORY FLOOR */}

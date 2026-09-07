@@ -28,6 +28,22 @@ const generateGarbage = (len: number) => {
   return res;
 }
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function getStep(stage: Stage, status: AttackStatus): Step {
+  if (status === 'defended' || stage === 4) return 'OUTCOME';
+  if (status === 'attacking') return 'TRY_MANUAL';
+  if (status === 'cracked') return 'FAIL_OVERLOAD';
+  if (status === 'stalled') return 'UNDERSTAND';
+  
+  if (stage === 1) return 'LEARN';
+  if (stage === 2) return 'UNDERSTAND';
+  if (stage === 3) return 'IMPROVE';
+  
+  return 'LEARN';
+}
+
 export default function PasswordCracking9() {
   const { reportComplete } = useLMSBridge("passwordcracking9");
   const { playPop, playZap, playError, playSuccess, playGearGrind } = useLabAudio();
@@ -227,7 +243,7 @@ export default function PasswordCracking9() {
         onReplay={handleReset} 
       />
 
-      <div className="w-full flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 min-h-0 relative isolate pb-4 max-w-7xl mx-auto px-2 md:px-4">
+      <div data-step={getStep(stage, status)} className="w-full flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 min-h-0 relative isolate pb-4 max-w-7xl mx-auto px-2 md:px-4">
         
         {/* Feedback Banner Overlay */}
         <AnimatePresence>

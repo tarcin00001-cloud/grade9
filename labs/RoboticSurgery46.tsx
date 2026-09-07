@@ -140,7 +140,13 @@ export default function RoboticSurgery46() {
       if (latest > 40 && !hasStarted) setHasStarted(true);
   });
 
-  const lastErrorTime = useRef(0);
+  const pillOffsetX = useTransform(x, (val) => {
+      const minCenter = 85;
+      const maxCenter = bounds.w > 0 ? bounds.w - 85 : 1000;
+      return Math.max(minCenter, Math.min(maxCenter, val)) - val;
+   });
+
+   const lastErrorTime = useRef(0);
 
   useAnimationFrame(() => {
     if (bounds.w === 0 || modalState !== 'none' || !hasStarted) return;
@@ -335,6 +341,7 @@ export default function RoboticSurgery46() {
                        <AnimatePresence>
                          {modalState === 'none' && (
                            <motion.div
+                             style={{ x: pillOffsetX }}
                              initial={{ opacity: 0, y: 10, scale: 0.9 }}
                              animate={{ opacity: 1, y: 0, scale: 1 }}
                              className={`absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1.5 font-bold text-[10px] lg:text-xs uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg border backdrop-blur whitespace-nowrap ${

@@ -10,6 +10,21 @@ import { Zap, ShieldCheck, ShieldAlert, ChevronRight, Binary, Fingerprint, Credi
 type GateType = "AND" | "OR" | "XOR" | "NOT";
 type MissionPhase = "M1_SANDBOX" | "M2_AND" | "M3_OR" | "M4_XOR" | "M5_FAULT" | "OUTCOME";
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function phaseToStep(phase: MissionPhase): Step {
+  switch (phase) {
+    case 'M1_SANDBOX': return 'LEARN';
+    case 'M2_AND': return 'IMPROVE';
+    case 'M3_OR': return 'IMPROVE';
+    case 'M4_XOR': return 'IMPROVE';
+    case 'M5_FAULT': return 'IMPROVE';
+    case 'OUTCOME': return 'OUTCOME';
+    default: return 'LEARN';
+  }
+}
+
 export default function PropositionalLogic42() {
   const { reportComplete } = useLMSBridge("propositionallogic42");
   const { playPop, playClick, playSuccess, playError, playZap } = useLabAudio();
@@ -145,7 +160,7 @@ export default function PropositionalLogic42() {
           disabled={qBroken && row.q === true}
           className={`grid ${gate === "NOT" ? "grid-cols-2" : "grid-cols-3"} w-full text-center py-1.5 text-[11px] font-bold rounded-lg transition-all duration-200 cursor-pointer ${isCurrent ? "bg-blue-600 text-white shadow-md transform scale-[1.02]" : "text-slate-600 hover:bg-slate-100 border-b border-slate-100"} ${(qBroken && row.q === true) ? "opacity-30 cursor-not-allowed" : ""}`}
         >
-          <div>{row.p ? "1 (T)" : "0 (F)"}</div>
+          <div data-step={phaseToStep(phase)}>{row.p ? "1 (T)" : "0 (F)"}</div>
           {gate !== "NOT" && <div>{row.q ? "1 (T)" : "0 (F)"}</div>}
           <div className={isCurrent ? "text-white font-black" : out ? "text-amber-500 font-black" : "text-slate-400"}>{out ? "1 (T)" : "0 (F)"}</div>
         </button>

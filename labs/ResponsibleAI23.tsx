@@ -308,6 +308,20 @@ const STAMPS = [
   { id: "deepfake", name: "AI Deepfake", icon: VenetianMask, color: "text-fuchsia-500", bg: "bg-fuchsia-500", border: "border-fuchsia-700", ring: "ring-fuchsia-500", anim: "group-hover:-rotate-12 group-hover:scale-110 transition-transform" }
 ];
 
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function phaseToStep(phase: Phase): Step {
+  switch (phase) {
+    case 'intro': return 'LEARN';
+    case 'playing': return 'TRY_MANUAL';
+    case 'feedback': return 'UNDERSTAND';
+    case 'game_over': return 'FAIL_OVERLOAD';
+    case 'success': return 'OUTCOME';
+    default: return 'LEARN';
+  }
+}
+
 export default function ResponsibleAI23() {
   const { reportComplete } = useLMSBridge("responsibleai23");
   const { playPop, playSuccess, playError, playZap } = useLabAudio();
@@ -396,7 +410,7 @@ export default function ResponsibleAI23() {
         onReplay={handleReset}
       />
 
-      <div className="w-full flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 min-h-0 relative isolate pb-4 max-w-7xl mx-auto px-2 md:px-4">
+      <div data-step={phaseToStep(phase)} className="w-full flex-1 flex flex-col lg:flex-row gap-4 md:gap-6 min-h-0 relative isolate pb-4 max-w-7xl mx-auto px-2 md:px-4">
         
         {/* Feedback Banner Overlay */}
         <AnimatePresence>

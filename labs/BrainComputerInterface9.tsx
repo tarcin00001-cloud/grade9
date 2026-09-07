@@ -24,18 +24,18 @@ import {
 } from "lucide-react";
 
 type LabStage = 
-  | "INTRO"             // Step 1: Learn about skull attenuation & bandwidth bottleneck
-  | "RAW_ATTEMPT"       // Step 2: Try with raw surface EEG
-  | "DSP_TUNING"        // Step 3-5: Toggle 60Hz filter & dock neural threads
-  | "MIND_GRASP"        // Step 6: Trigger tuned neural transmission & robotic grasp
-  | "COMPLETED";
+  | "LEARN"             // Step 1: Learn about skull attenuation & bandwidth bottleneck
+  | "TRY_MANUAL"       // Step 2: Try with raw surface EEG
+  | "IMPROVE"        // Step 3-5: Toggle 60Hz filter & dock neural threads
+  | "COMPLETE"        // Step 6: Trigger tuned neural transmission & robotic grasp
+  | "OUTCOME";
 
 export default function BrainComputerInterface9() {
   const { playPop, playSuccess, playZap, playError, playClick, playChime } = useLabAudio();
   const { reportComplete } = useLMSBridge("braincomputerinterface9");
 
   // State Machine
-  const [stage, setStage] = useState<LabStage>("INTRO");
+  const [stage, setStage] = useState<LabStage>("LEARN");
   
   // DSP & Hardware Controls
   const [notchFilter, setNotchFilter] = useState(false);
@@ -166,7 +166,7 @@ export default function BrainComputerInterface9() {
         
         // Lab Complete!
         setTimeout(() => {
-          setStage("COMPLETED");
+          setStage("OUTCOME");
           setIsVictorious(true);
           reportComplete({ labId: "braincomputerinterface9", points: 100 });
           playChime();
@@ -177,7 +177,7 @@ export default function BrainComputerInterface9() {
 
   const resetLab = () => {
     playPop();
-    setStage("INTRO");
+    setStage("LEARN");
     setNotchFilter(false);
     setNeuralThreadsDocked(false);
     setSpikeThreshold(55);
@@ -203,27 +203,27 @@ export default function BrainComputerInterface9() {
         onReplay={resetLab}
       />
 
-      <div className="flex flex-col h-full w-full max-w-6xl mx-auto gap-2 p-1 relative z-10 font-sans select-none overflow-hidden">
+      <div data-step={stage} className="flex flex-col h-full w-full max-w-6xl mx-auto gap-2 p-1 relative z-10 font-sans select-none overflow-hidden">
         
         {/* ─── STAGE PROGRESS PILL BAR ─── */}
         <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-xs shrink-0">
           <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] font-medium text-slate-600">
             {[
-              { id: "INTRO", label: "1. Biological Bottleneck" },
-              { id: "RAW_ATTEMPT", label: "2. Surface EEG Trial" },
-              { id: "DSP_TUNING", label: "3. Neural DSP Deck" },
-              { id: "COMPLETED", label: "4. Calibrated" },
+              { id: "LEARN", label: "1. Biological Bottleneck" },
+              { id: "TRY_MANUAL", label: "2. Surface EEG Trial" },
+              { id: "IMPROVE", label: "3. Neural DSP Deck" },
+              { id: "OUTCOME", label: "4. Calibrated" },
             ].map((st, i) => {
               const isActive = 
-                (st.id === "INTRO" && stage === "INTRO") ||
-                (st.id === "RAW_ATTEMPT" && stage === "RAW_ATTEMPT") ||
-                (st.id === "DSP_TUNING" && (stage === "DSP_TUNING" || stage === "MIND_GRASP")) ||
-                (st.id === "COMPLETED" && stage === "COMPLETED");
+                (st.id === "LEARN" && stage === "LEARN") ||
+                (st.id === "TRY_MANUAL" && stage === "TRY_MANUAL") ||
+                (st.id === "IMPROVE" && (stage === "IMPROVE" || stage === "COMPLETE")) ||
+                (st.id === "OUTCOME" && stage === "OUTCOME");
               
               const isPast = 
-                (st.id === "INTRO" && stage !== "INTRO") ||
-                (st.id === "RAW_ATTEMPT" && stage !== "INTRO" && stage !== "RAW_ATTEMPT") ||
-                (st.id === "DSP_TUNING" && stage === "COMPLETED");
+                (st.id === "LEARN" && stage !== "LEARN") ||
+                (st.id === "TRY_MANUAL" && stage !== "LEARN" && stage !== "TRY_MANUAL") ||
+                (st.id === "IMPROVE" && stage === "OUTCOME");
 
               return (
                 <div
@@ -556,7 +556,7 @@ export default function BrainComputerInterface9() {
               <AnimatePresence mode="wait">
                 
                 {/* ── STEP 1: INTRO / BIOLOGICAL BOTTLENECK ── */}
-                {stage === "INTRO" && (
+                {stage === "LEARN" && (
                   <motion.div
                     key="intro"
                     initial={{ opacity: 0, y: 10 }}
@@ -579,7 +579,7 @@ export default function BrainComputerInterface9() {
                     <button
                       onClick={() => {
                         playClick();
-                        setStage("RAW_ATTEMPT");
+                        setStage("TRY_MANUAL");
                       }}
                       className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
                     >
@@ -590,7 +590,7 @@ export default function BrainComputerInterface9() {
                 )}
 
                 {/* ── STEP 2: RAW SURFACE EEG ATTEMPT ── */}
-                {stage === "RAW_ATTEMPT" && (
+                {stage === "TRY_MANUAL" && (
                   <motion.div
                     key="raw_attempt"
                     initial={{ opacity: 0, y: 10 }}
@@ -626,7 +626,7 @@ export default function BrainComputerInterface9() {
                         <button
                           onClick={() => {
                             playClick();
-                            setStage("DSP_TUNING");
+                            setStage("IMPROVE");
                           }}
                           className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                         >
@@ -639,7 +639,7 @@ export default function BrainComputerInterface9() {
                 )}
 
                 {/* ── STEP 3-5: DSP TUNING & GRASP CHALLENGE ── */}
-                {(stage === "DSP_TUNING" || stage === "MIND_GRASP") && (
+                {(stage === "IMPROVE" || stage === "COMPLETE") && (
                   <motion.div
                     key="dsp_tuning"
                     initial={{ opacity: 0, y: 10 }}
@@ -687,7 +687,7 @@ export default function BrainComputerInterface9() {
 
 
                 {/* ── FINAL COMPLETED VIEW ── */}
-                {stage === "COMPLETED" && (
+                {stage === "OUTCOME" && (
                   <motion.div
                     key="completed"
                     initial={{ opacity: 0, scale: 0.95 }}
