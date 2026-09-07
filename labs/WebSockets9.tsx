@@ -1,305 +1,408 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { ArrowLeftRight, Clock, Zap , Timer} from "lucide-react";
+import { Gamepad2, Server, Activity, Zap, Mail, Smartphone, ShieldAlert, ArrowRightLeft, CheckCircle } from "lucide-react";
 
-// ─── SVG WebSockets Visualizer ────────────────────────────────────────────────
+type ProtocolMode = "POLLING" | "WEBSOCKET";
 
-type Packet = { id: number; type: "REQ" | "EMPTY_RES" | "DATA"; x: number; y: number };
-
-function WebSocketsSVG({
-  mode,
-  packets,
-  isConnected
-}: {
-  mode: "POLLING" | "WEBSOCKETS";
-  packets: Packet[];
-  isConnected: boolean;
-}) {
-  return (
-    <svg viewBox="0 0 900 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <filter id="glow-ws">
-          <feGaussianBlur stdDeviation="4" result="b" />
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <pattern id="gridNet" width="30" height="30" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1" fill="#1e293b" />
-        </pattern>
-      </defs>
-
-      <rect width="900" height="500" fill="url(#gridNet)" />
-
-      {/* ── Network Pipe ── */}
-      <rect x="250" y="220" width="400" height="60" fill="#0f172a" stroke="#334155" strokeWidth="4" />
-      
-      {/* WebSocket Glowing Tunnel */}
-      {mode === "WEBSOCKETS" && isConnected && (
-         <rect x="250" y="230" width="400" height="40" fill="#fb7185" opacity="0.2" filter="url(#glow-ws)" />
-      )}
-      {mode === "WEBSOCKETS" && isConnected && (
-         <path d="M 250,250 L 650,250" fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="10 10" className="animate-[dash_1s_linear_infinite]" filter="url(#glow-ws)" />
-      )}
-
-      {/* ── Client (Left) ── */}
-      <g transform="translate(150, 250)">
-        <circle cx="0" cy="0" r="60" fill="#1e293b" stroke="#cbd5e1" strokeWidth="4" />
-        <text x="0" y="5" fill="#fff" fontSize="18" fontWeight="black" textAnchor="middle">CLIENT</text>
-        
-        {/* State Indicator */}
-        <rect x="-40" y="30" width="80" height="20" fill="#020617" rx="4" />
-        <text x="0" y="44" fill={mode === "POLLING" ? "#f59e0b" : "#10b981"} fontSize="10" fontWeight="bold" textAnchor="middle">
-          {mode === "POLLING" ? "Asking every 1s..." : "Listening Instantly"}
-        </text>
-      </g>
-
-      {/* ── Server (Right) ── */}
-      <g transform="translate(750, 250)">
-        <rect x="-50" y="-70" width="100" height="140" fill="#1e1b4b" rx="8" stroke="#f43f5e" strokeWidth="4" />
-        <text x="0" y="5" fill="#a5b4fc" fontSize="18" fontWeight="black" textAnchor="middle">SERVER</text>
-        
-        {/* Server State */}
-        <text x="0" y="40" fill="#f43f5e" fontSize="10" textAnchor="middle">New Data Available?</text>
-        <circle cx="0" cy="55" r="5" fill={packets.some(p => p.type === "DATA" && p.x > 500) ? "#10b981" : "#4c0519"} filter="url(#glow-ws)" />
-      </g>
-
-      {/* ── Packets in Transit ── */}
-      <AnimatePresence>
-        {packets.map(p => {
-          const isData = p.type === "DATA";
-          const isReq = p.type === "REQ";
-          
-          return (
-            <motion.g 
-              key={p.id}
-              initial={{ x: isReq ? 210 : 690, y: isReq ? 240 : 260, scale: 0 }}
-              animate={{ x: isReq ? 690 : 210, y: isReq ? 240 : 260, scale: 1 }}
-              transition={{ duration: 0.8, ease: "linear" }}
-              exit={{ opacity: 0, scale: 0 }}
-            >
-              {isReq && (
-                <g>
-                  <rect x="-15" y="-10" width="30" height="20" fill="#f59e0b" rx="4" />
-                  <text x="0" y="3" fill="#000" fontSize="10" fontWeight="bold" textAnchor="middle">REQ?</text>
-                </g>
-              )}
-              {p.type === "EMPTY_RES" && (
-                <g>
-                  <rect x="-15" y="-10" width="30" height="20" fill="#475569" rx="4" />
-                  <text x="0" y="3" fill="#fff" fontSize="10" fontWeight="bold" textAnchor="middle">NO</text>
-                </g>
-              )}
-              {isData && (
-                <g filter="url(#glow-ws)">
-                  <rect x="-20" y="-15" width="40" height="30" fill="#34d399" rx="4" stroke="#fff" strokeWidth="2" />
-                  <text x="0" y="4" fill="#000" fontSize="12" fontWeight="black" textAnchor="middle">DATA!</text>
-                </g>
-              )}
-            </motion.g>
-          );
-        })}
-      </AnimatePresence>
-
-    </svg>
-  );
-}
-
-// ─── Main Component ─────────────────────────────────────────────────────────────
-
-const TIMER_DURATION_SECONDS = 5 * 60;
+// Packet type for animations
+type Packet = {
+  id: number;
+  type: "POLL_REQ" | "POLL_EMPTY" | "POLL_DATA" | "WS_DATA" | "WS_HANDSHAKE";
+  direction: "C2S" | "S2C";
+  startY: number;
+};
 
 export default function WebSockets9() {
-  const { reportComplete: _reportComplete } = useLMSBridge("websockets9");
+  const { reportComplete } = useLMSBridge("websockets9");
+  const { playPop, playError, playSuccess, playClick } = useLabAudio();
 
-  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
-  const [timedOut, setTimedOut] = useState(false);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isLabComplete, setIsLabComplete] = useState(false);
+  // Phase: 0=Intro, 1=Polling, 2=Understand (Unlock Upgrade), 3=Upgrading, 4=WebSocket, 5=Victory
+  const [phase, setPhase] = useState<number>(0);
+  const [mode, setMode] = useState<ProtocolMode>("POLLING");
+  
+  // Game Positions (0 to 100)
+  const [clientPos, setClientPos] = useState<number>(50);
+  const [serverPos, setServerPos] = useState<number>(50);
+  
+  // Telemetry
+  const [wastedRequests, setWastedRequests] = useState(0);
+  const [latencyMs, setLatencyMs] = useState(1200);
+  const [wsFramesSent, setWsFramesSent] = useState(0);
 
-  const reportComplete = useCallback((args?: any) => {
-    setIsLabComplete(true);
-    _reportComplete({ points: 100 });
-  }, [_reportComplete]);
-
-  useEffect(() => {
-    if (timedOut || isLabComplete) {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      return;
-    }
-    timerIntervalRef.current = setInterval(() => {
-      setSecondsLeft(prev => {
-        if (prev <= 1) {
-          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-          setTimedOut(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    };
-  }, [timedOut, isLabComplete]);
-
-  useEffect(() => {
-    if (timedOut) {
-      _reportComplete({ points: 0 });
-    }
-  }, [timedOut, _reportComplete]);
-
-  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
-  const { playPop, playZap, playSuccess } = useLabAudio();
-
-  const [mode, setMode] = useState<"POLLING" | "WEBSOCKETS">("POLLING");
+  // Animation packets
   const [packets, setPackets] = useState<Packet[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [hasWon, setHasWon] = useState(false);
-
   const packetIdRef = useRef(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // References for polling loop
+  const clientPosRef = useRef(50);
+  const serverPosRef = useRef(50);
+  
+  useEffect(() => {
+    clientPosRef.current = clientPos;
+  }, [clientPos]);
 
   useEffect(() => {
-    if (mode === "POLLING") {
-      // Start polling loop
-      intervalRef.current = setInterval(() => {
-        const reqId = ++packetIdRef.current;
-        playPop();
-        // Client shoots REQ
-        setPackets(prev => [...prev, { id: reqId, type: "REQ", x: 0, y: 0 }]);
+    serverPosRef.current = serverPos;
+  }, [serverPos]);
+
+  // Polling Loop
+  useEffect(() => {
+    if (mode !== "POLLING" || phase === 0 || phase >= 3) return;
+
+    const interval = setInterval(() => {
+      // 1. Client asks "Are we there yet?"
+      const reqId = packetIdRef.current++;
+      setPackets((prev) => [...prev, { id: reqId, type: "POLL_REQ", direction: "C2S", startY: clientPosRef.current }]);
+      playPop();
+
+      // 2. Server responds after 600ms (half the lag)
+      setTimeout(() => {
+        const cPos = clientPosRef.current;
+        const sPos = serverPosRef.current;
         
-        // Server responds NO after 0.8s (transit time)
-        setTimeout(() => {
-          const resId = ++packetIdRef.current;
-          setPackets(prev => prev.filter(p => p.id !== reqId)); // remove req
-          setPackets(prev => [...prev, { id: resId, type: "EMPTY_RES", x: 0, y: 0 }]);
-          
-          // Remove res after transit
-          setTimeout(() => {
-             setPackets(prev => prev.filter(p => p.id !== resId));
-          }, 800);
-        }, 800);
-      }, 2000);
-    } else {
-      // WebSocket Mode
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      setPackets([]);
+        const resId = packetIdRef.current++;
+        if (cPos !== sPos) {
+          // Data changed!
+          setPackets((prev) => [...prev, { id: resId, type: "POLL_DATA", direction: "S2C", startY: cPos }]);
+          setServerPos(cPos); // Server updates its state
+        } else {
+          // No data changed, wasted request
+          setPackets((prev) => [...prev, { id: resId, type: "POLL_EMPTY", direction: "S2C", startY: sPos }]);
+          setWastedRequests((prev) => {
+            const next = prev + 1;
+            if (next >= 5 && phase === 1) {
+              setPhase(2); // Unlock upgrade after 5 wasted requests
+              playError();
+            }
+            return next;
+          });
+        }
+      }, 600);
+
+    }, 1200); // Poll every 1.2s
+
+    return () => clearInterval(interval);
+  }, [mode, phase, playPop, playError]);
+
+  // Remove old packets
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      setPackets((prev) => prev.filter(p => p.id > packetIdRef.current - 15));
+    }, 2000);
+    return () => clearInterval(cleanup);
+  }, []);
+
+  // Handle Joystick Input
+  const handleJoystick = (val: number) => {
+    if (phase === 0) setPhase(1); // Start interacting
+    
+    setClientPos(val);
+    
+    if (mode === "WEBSOCKET") {
+      // Instant streaming!
+      setServerPos(val);
+      setWsFramesSent((prev) => prev + 1);
+      
+      // Add a tiny dot packet
+      const pid = packetIdRef.current++;
+      setPackets((prev) => [...prev, { id: pid, type: "WS_DATA", direction: "C2S", startY: val }]);
+      
+      if (phase === 4 && wsFramesSent > 30) {
+        setPhase(5); // Victory!
+        playSuccess();
+        reportComplete({ points: 100 });
+      }
     }
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [mode, playPop]);
-
-  const triggerWebSocketHandshake = () => {
-    playZap();
-    setIsConnected(true);
-    // Nothing else happens until Server specifically PUSHES data
   };
 
-  const triggerServerPush = () => {
-    const dataId = ++packetIdRef.current;
-    playSuccess();
+  const handleUpgrade = () => {
+    playClick();
+    setPhase(3); // Upgrading handshake
     
-    // Server instantly shoots DATA without being asked
-    setPackets(prev => [...prev, { id: dataId, type: "DATA", x: 0, y: 0 }]);
+    // Handshake animation
+    const hsId = packetIdRef.current++;
+    setPackets((prev) => [...prev, { id: hsId, type: "WS_HANDSHAKE", direction: "C2S", startY: 50 }]);
     
     setTimeout(() => {
-       setPackets(prev => prev.filter(p => p.id !== dataId));
-       if (mode === "WEBSOCKETS" && !hasWon) {
-         setHasWon(true);
-         setTimeout(reportComplete, 1500);
-       }
-    }, 800);
+      setMode("WEBSOCKET");
+      setPhase(4);
+      setLatencyMs(12); // Buttery smooth!
+      playSuccess();
+    }, 1500);
   };
 
-  const toggleMode = () => {
-    setMode(m => m === "POLLING" ? "WEBSOCKETS" : "POLLING");
-    setIsConnected(false);
+  const resetLab = () => {
+    setPhase(0);
+    setMode("POLLING");
+    setClientPos(50);
+    setServerPos(50);
+    setWastedRequests(0);
+    setLatencyMs(1200);
+    setWsFramesSent(0);
     setPackets([]);
-    setHasWon(false);
+    packetIdRef.current = 0;
   };
 
   return (
     <LabShell
-      navExtra={
-        !isLabComplete && (
-          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
-            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
-            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-            "bg-white border-sky-100/80 text-sky-700"
-          }`}>
-            <Timer size={16} strokeWidth={2.5} />
-            <span>{timedOut ? "Time's Up" : formattedTime}</span>
-          </div>
-        )
-      } labId="websockets9" theme="neon" title="Real-Time Data: WebSockets vs Polling" subtitle="L30 · Network Protocols"
-      instruction="In Polling Mode, the Client blindly asks 'Any updates?' every 2 seconds, wasting bandwidth with empty responses. Switch to WebSockets, open the connection, and notice the silence. Now, trigger a 'Server Push'. The data is sent instantly without the client ever asking." compact>
-      
-      <Celebration isActive={hasWon} message="Bi-Directional Communication! WebSockets keep a permanent pipe open. This is how multiplayer games and chat apps work—the server PUSHES data the millisecond it happens, rather than waiting for the client to ask." onReplay={toggleMode} />
-
-      <div className="w-full flex flex-col flex-1 min-h-0 pt-1 gap-3">
-        
-        {/* Interactive Controls */}
-        <div className="shrink-0 panel-glass rounded-2xl border-rose-900/50 p-4 flex flex-col md:flex-row items-center justify-between gap-6">
-          
-          <button 
-            onClick={toggleMode} 
-            className={`px-6 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-3 transition-all border-2 w-full md:w-auto ${mode === "POLLING" ? "bg-amber-500/20 border-amber-500/50 text-amber-300" : "bg-rose-600/20 border-rose-500/50/50 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.3)]"}`}
-          >
-            <Clock size={20}/> Mode: {mode === "POLLING" ? "HTTP Long-Polling" : "WebSocket (TCP)"}
-          </button>
-          
-          <div className="flex gap-3">
-            {mode === "WEBSOCKETS" && !isConnected && (
-              <button 
-                onClick={triggerWebSocketHandshake} 
-                className="px-6 py-3 rounded-xl font-black bg-rose-600/20 border-2 border-rose-500/50/50 text-blue-400 hover:bg-rose-600/30 transition-all hover:scale-[1.02] flex items-center gap-2"
-              >
-                <ArrowLeftRight size={18}/> Open WS Connection
-              </button>
-            )}
-            
-            <button 
-              onClick={triggerServerPush} 
-              disabled={mode === "WEBSOCKETS" && !isConnected}
-              className="px-8 py-3 rounded-xl font-black bg-emerald-500/20 border-2 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30 transition-all hover:scale-[1.02] disabled:opacity-50 flex items-center gap-2"
-            >
-              <Zap size={18}/> Server: Push Data
-            </button>
-          </div>
-
-        </div>
-
-        {/* Main SVG Area */}
-        <div className="flex-1 panel-glass rounded-3xl overflow-x-auto overflow-y-hidden relative border-rose-900/40 bg-[#0a0a0a] shadow-[inset_0_0_80px_rgba(0,0,0,0.9)] flex items-center justify-center">
-          <div className="w-full max-w-5xl aspect-[2.2] min-w-[800px]">
-            <WebSocketsSVG mode={mode} packets={packets} isConnected={isConnected} />
-          </div>
-        </div>
-
+      labId="websockets9"
+      title="Real-Time Data: WebSockets vs Polling"
+      instruction={
+        phase >= 3 ? "Establishing persistent WebSocket connection..." :
+        phase === 0 ? "Drag the player joystick on the left up and down to start playing. Notice the horrible lag?" :
+        phase === 2 ? "Look at all those wasted empty requests! We need a better connection protocol." :
+        "Keep moving! In HTTP Polling, the client has to ask the server 'Any updates?' every second."
+      }
+      compact={true}
+      onReset={resetLab}
+    >
+      {
+        // Ocean Theme Background
+      }
+      <div className="absolute inset-0 bg-slate-50 overflow-hidden z-0">
+        <svg className="w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid-ws" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 L 0 40" fill="none" stroke="#94a3b8" strokeWidth="1" strokeDasharray="2 4" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid-ws)" />
+        </svg>
       </div>
-    
-      {timedOut && !isLabComplete && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
-            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-              <Timer className="w-7 h-7" />
+
+      {/* Main Layout */}
+      <div className="relative z-10 w-full h-full flex flex-col p-4 sm:p-6 gap-4">
+        
+        {/* Top Control Bar */}
+        <div className="w-full flex justify-between items-center bg-white border border-slate-200 rounded-xl p-3 shadow-sm h-16">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${mode === "POLLING" ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"}`}>
+              <ArrowRightLeft size={20} />
             </div>
-            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
-            <p className="text-sm font-medium text-slate-600 mb-4">
-              You did not complete the lab in time.
-            </p>
-            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
-              Try Again
-            </button>
+            <div>
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide leading-tight">Protocol Mode</h2>
+              <p className={`text-xs font-mono font-bold leading-tight ${mode === "POLLING" ? "text-amber-500" : "text-emerald-500"}`}>
+                {mode === "POLLING" ? "HTTP LONG-POLLING" : "WSS:// PERSISTENT WEBSOCKET"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <AnimatePresence>
+              {phase >= 2 && mode !== "WEBSOCKET" && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={handleUpgrade}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-lg shadow-md shadow-emerald-500/20 flex items-center gap-2 animate-pulse"
+                >
+                  <Zap size={14} />
+                  Upgrade to WebSocket
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      )}
-</LabShell>
+
+        {/* Central Canvas (Client -> Pipe -> Server) */}
+        <div className="flex-1 w-full flex items-center justify-between gap-2 relative">
+          
+          {/* CLIENT NODE */}
+          <div className="w-24 sm:w-32 h-full bg-white border-2 border-slate-200 rounded-2xl shadow-sm flex flex-col items-center py-4 z-20 relative">
+            <div className="bg-slate-100 p-2 rounded-full mb-2">
+              <Smartphone size={24} className="text-slate-600" />
+            </div>
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest mb-4">Player</h3>
+            
+            {/* Joystick Area */}
+            <div className="flex-1 w-full px-4 flex flex-col items-center justify-center relative">
+              <div className="absolute inset-y-0 w-2 bg-slate-100 rounded-full"></div>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                value={100 - clientPos}
+                onChange={(e) => handleJoystick(100 - parseInt(e.target.value))}
+                className="w-4 h-full absolute appearance-none bg-transparent cursor-pointer z-10 pointer-events-auto custom-slider-vertical"
+                style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
+              />
+              {/* Player Avatar */}
+              <motion.div 
+                className="absolute w-10 h-10 bg-blue-500 rounded-full border-[3px] border-white shadow-md z-0 flex items-center justify-center pointer-events-none"
+                animate={{ top: `${clientPos}%` }}
+                transition={{ type: "tween", duration: 0.05 }}
+                style={{ marginTop: '-20px' }}
+              >
+                <Gamepad2 size={16} className="text-white" />
+              </motion.div>
+            </div>
+          </div>
+
+          {/* THE NETWORK PIPE */}
+          <div className="flex-1 h-24 sm:h-32 relative flex items-center z-10">
+            {/* Pipe Background */}
+            <div className={`w-full h-8 sm:h-10 rounded-full border-y-2 border-slate-300 relative overflow-hidden transition-all duration-700 ${mode === "WEBSOCKET" ? "bg-emerald-50 border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "bg-slate-100"}`}>
+              {/* Glowing WebSocket Beam */}
+              {mode === "WEBSOCKET" && (
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-cyan-400 opacity-30"></div>
+              )}
+            </div>
+
+            {/* Packets */}
+            <AnimatePresence>
+              {packets.map(p => (
+                <motion.div
+                  key={p.id}
+                  initial={{ 
+                    left: p.direction === "C2S" ? "0%" : "100%", 
+                    x: p.direction === "C2S" ? "-50%" : "50%",
+                    y: (p.startY - 50) * 1.5 // offset slightly based on y
+                  }}
+                  animate={{ 
+                    left: p.direction === "C2S" ? "100%" : "0%",
+                    x: p.direction === "C2S" ? "50%" : "-50%",
+                  }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ 
+                    duration: mode === "WEBSOCKET" ? 0.2 : 0.6, 
+                    ease: "linear" 
+                  }}
+                  className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center z-30"
+                >
+                  {p.type === "POLL_REQ" && (
+                    <div className="bg-white border border-slate-300 shadow-sm rounded px-2 py-0.5 flex items-center gap-1">
+                      <span className="text-[8px] sm:text-[10px] font-mono font-bold text-slate-500 whitespace-nowrap">GET /update</span>
+                      <Mail size={10} className="text-slate-400" />
+                    </div>
+                  )}
+                  {p.type === "POLL_EMPTY" && (
+                    <div className="bg-amber-100 border border-amber-300 shadow-sm rounded px-2 py-0.5 flex items-center gap-1">
+                      <ShieldAlert size={10} className="text-amber-500" />
+                      <span className="text-[8px] sm:text-[10px] font-mono font-bold text-amber-600 whitespace-nowrap">304 Not Modified</span>
+                    </div>
+                  )}
+                  {p.type === "POLL_DATA" && (
+                    <div className="bg-blue-100 border border-blue-300 shadow-sm rounded px-2 py-0.5 flex items-center gap-1">
+                      <Activity size={10} className="text-blue-500" />
+                      <span className="text-[8px] sm:text-[10px] font-mono font-bold text-blue-600 whitespace-nowrap">200 OK </span>
+                    </div>
+                  )}
+                  {p.type === "WS_HANDSHAKE" && (
+                    <div className="bg-emerald-100 border border-emerald-400 shadow-lg  rounded-full px-3 py-1 flex items-center gap-1">
+                      <Zap size={12} className="text-emerald-500" />
+                      <span className="text-[9px] sm:text-[11px] font-mono font-bold text-emerald-700 whitespace-nowrap">101 Switching Protocols</span>
+                    </div>
+                  )}
+                  {p.type === "WS_DATA" && (
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,1)]"></div>
+                  )}
+                </motion.div>
+              ))
+            }</AnimatePresence>
+          </div>
+
+          {/* SERVER NODE */}
+          <div className="w-24 sm:w-32 h-full bg-slate-800 border-2 border-slate-700 rounded-2xl shadow-xl flex flex-col items-center py-4 z-20 relative overflow-hidden">
+            <div className="bg-slate-700 p-2 rounded-lg mb-2 shadow-inner">
+              <Server size={24} className="text-cyan-400" />
+            </div>
+            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-4">Server</h3>
+            
+            {/* Server Avatar Representation */}
+            <div className="flex-1 w-full px-4 flex flex-col items-center justify-center relative">
+              <div className="absolute inset-y-0 w-2 bg-slate-700/50 rounded-full"></div>
+              
+              <motion.div 
+                className="absolute w-10 h-10 bg-transparent rounded-full border-2 border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)] z-0 flex items-center justify-center"
+                animate={{ top: `${serverPos}%` }}
+                transition={{ 
+                  type: mode === "WEBSOCKET" ? "spring" : "tween", 
+                  duration: mode === "WEBSOCKET" ? 0.1 : 0.2 
+                }}
+                style={{ marginTop: '-20px' }}
+              >
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+              </motion.div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom Telemetry Dashboard */}
+        <div className="w-full grid grid-cols-3 gap-2 sm:gap-4 mt-auto z-20">
+          
+          <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex flex-col">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Architecture</span>
+            <div className="flex items-center gap-2">
+              {mode === "POLLING" ? (
+                <span className="text-xs sm:text-sm font-mono font-bold text-amber-600">Stateless Polling</span>
+              ) : (
+                <span className="text-xs sm:text-sm font-mono font-bold text-emerald-600 flex items-center gap-1">
+                  <CheckCircle size={14} /> Persistent Stream
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className={`border rounded-xl p-3 shadow-sm flex flex-col transition-colors duration-500 ${wastedRequests > 0 && mode === "POLLING" ? "bg-amber-50 border-amber-200" : "bg-white border-slate-200"}`}>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Overhead (Wasted)</span>
+            <div className="flex items-end gap-1">
+              <span className={`text-lg sm:text-xl font-mono font-black leading-none ${mode === "POLLING" ? "text-amber-600" : "text-slate-700"}`}>
+                {mode === "POLLING" ? wastedRequests : "0"}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 mb-0.5">Empty Headers</span>
+            </div>
+          </div>
+
+          <div className={`border rounded-xl p-3 shadow-sm flex flex-col transition-colors duration-500 ${mode === "WEBSOCKET" ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-200"}`}>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Network Latency</span>
+            <div className="flex items-end gap-1">
+              <span className={`text-lg sm:text-xl font-mono font-black leading-none ${mode === "WEBSOCKET" ? "text-emerald-600" : "text-amber-600"}`}>
+                {latencyMs}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 mb-0.5">ms ping</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Custom Styles for hidden slider thumb */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-slider-vertical::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 40px;
+          height: 40px;
+          background: transparent;
+          cursor: pointer;
+        }
+        .custom-slider-vertical::-moz-range-thumb {
+          width: 40px;
+          height: 40px;
+          background: transparent;
+          cursor: pointer;
+          border: none;
+        }
+      `}} />
+
+      {/* Victory Celebration */}
+      <AnimatePresence>
+        {phase === 5 && (
+          <Celebration
+            isActive={phase === 5}
+            message="Zero Lag Achieved! WebSockets establish an open pipe, eliminating the massive overhead of HTTP polling. You just saved 98% of your server's bandwidth!"
+            onReplay={resetLab}
+          />
+        )}
+      </AnimatePresence>
+    </LabShell>
   );
 }
