@@ -54,12 +54,12 @@ const STORED_CONCEPTS: ConceptPoint[] = [
   // Nature (Quadrant 3 / Bottom Left)
   { id: "ocean", word: "ocean", category: "nature", x: -0.72, y: -0.32, icon: "", desc: "Vast expanse of salt water" },
   { id: "river", word: "river", category: "nature", x: -0.52, y: -0.48, icon: "️", desc: "Flowing natural freshwater" },
-  { id: "mountain", word: "mountain", category: "nature", x: -0.64, y: 0.08, icon: "⛰️", desc: "Elevated landform pinnacle" },
+  { id: "mountain", word: "mountain", category: "nature", x: -0.64, y: 0.08, icon: "️", desc: "Elevated landform pinnacle" },
   { id: "forest", word: "forest", category: "nature", x: -0.38, y: -0.16, icon: "", desc: "Dense woodland ecosystem" },
 
   // Technology (Quadrant 1 / Center & Upper-Center Right)
   { id: "code", word: "code", category: "tech", x: 0.16, y: -0.08, icon: "", desc: "Programming instructions" },
-  { id: "algorithm", word: "algorithm", category: "tech", x: 0.38, y: -0.04, icon: "⚙️", desc: "Logic computation steps" },
+  { id: "algorithm", word: "algorithm", category: "tech", x: 0.38, y: -0.04, icon: "️", desc: "Logic computation steps" },
   { id: "server", word: "server", category: "tech", x: 0.32, y: -0.28, icon: "️", desc: "Network host infrastructure" },
   { id: "data", word: "data", category: "tech", x: 0.04, y: -0.24, icon: "", desc: "Quantified information records" },
 ];
@@ -827,7 +827,7 @@ export default function VectorDatabases9() {
                       fontWeight="bold"
                       textAnchor="middle"
                     >
-                      ⚠️ SQL Mode Active: Bypasses semantic coordinates. Queries relational string tables.
+                      ️ SQL Mode Active: Bypasses semantic coordinates. Queries relational string tables.
                     </text>
                   </g>
                 )}
