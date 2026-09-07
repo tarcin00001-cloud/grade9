@@ -1,6 +1,5 @@
 "use client";
 import { Timer } from "lucide-react";
-"use client";
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
