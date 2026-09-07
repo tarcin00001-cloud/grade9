@@ -25,7 +25,7 @@ export default function CsrfAttacks9() {
   const [displayBalance, setDisplayBalance] = useState("10,000");
   
   useEffect(() => {
-      return balance.onChange((v) => {
+      return balance.on("change", (v) => {
           setDisplayBalance(Math.round(v).toLocaleString());
       });
   }, [balance]);

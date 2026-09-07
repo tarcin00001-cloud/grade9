@@ -6,11 +6,46 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Lock, Unlock, Key, KeyRound, ShieldAlert, AlertTriangle, ArrowRight, CheckCircle2, ShieldX, Building2 } from "lucide-react";
+import { Lock, Unlock, Key, KeyRound, ShieldAlert, AlertTriangle, ArrowRight, CheckCircle2, ShieldX, Building2, Timer } from "lucide-react";
 
 type Mission1Step = "LEARN" | "TRY" | "FAIL" | "UNDERSTAND" | "IMPROVE" | "COMPLETE" | "OUTCOME";
 type Mission2Step = "INTRO" | "TESTING_A" | "FAILED_A" | "TESTING_B" | "SUCCESS_B" | "OUTCOME";
 
+
+const TIMER_DURATION_SECONDS = 5 * 60;
+
+type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
+
+function getStep(mission: 1 | 2, m1Step: Mission1Step, m2Step: Mission2Step): Step {
+  if (mission === 1) {
+    switch (m1Step) {
+      case 'LEARN':      return 'LEARN';
+      case 'TRY':        return 'TRY_MANUAL';
+      case 'FAIL':       return 'FAIL_OVERLOAD';
+      case 'UNDERSTAND': return 'UNDERSTAND';
+      case 'IMPROVE':    return 'IMPROVE';
+      case 'COMPLETE':   return 'COMPLETE';
+      case 'OUTCOME':    return 'COMPLETE'; // M1 cleared, mid-lab bridge
+      default:           return 'LEARN';
+    }
+  } else {
+    switch (m2Step) {
+      case 'INTRO':      return 'IMPROVE';
+      case 'TESTING_A':  return 'IMPROVE';
+      case 'FAILED_A':   return 'FAIL_OVERLOAD';
+      case 'TESTING_B':  return 'IMPROVE';
+      case 'SUCCESS_B':  return 'COMPLETE';
+      case 'OUTCOME':    return 'OUTCOME';
+      default:           return 'IMPROVE';
+    }
+  }
+}
+
+function marksForProgress(mission: 1 | 2, m1Step: Mission1Step, m2Step: Mission2Step): number {
+  if (mission === 2 && m2Step === "OUTCOME") return 100;
+  if (mission === 2 || m1Step === "OUTCOME") return 50;
+  return 0;
+}
 export default function AsymmetricCrypto9() {
   const { reportComplete } = useLMSBridge("asymmetriccrypto9");
   const { playPop, playSuccess, playZap, playError, playChime } = useLabAudio();
@@ -24,8 +59,17 @@ export default function AsymmetricCrypto9() {
   const [payloadB, setPayloadB] = useState("****************");
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = getStep(mission, m1Step, m2Step);
+  const isLabComplete = m2Step === "OUTCOME";
+
 
   const resetLab = () => {
+    setSecondsLeft(TIMER_DURATION_SECONDS);
+    setTimedOut(false);
     setMission(1);
     setM1Step("LEARN");
     setM2Step("INTRO");
@@ -109,7 +153,7 @@ export default function AsymmetricCrypto9() {
       setM2Step("SUCCESS_B");
       setTimeout(() => {
         setM2Step("OUTCOME");
-        reportComplete();
+        reportComplete({ points: marksForProgress(mission, m1Step, m2Step) });
       }, 2500);
     }, 2000);
   };
@@ -120,6 +164,36 @@ export default function AsymmetricCrypto9() {
     };
   }, []);
 
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      try { playError(); } catch(e) {}
+      reportComplete({ points: marksForProgress(mission, m1Step, m2Step) });
+    }
+  }, [timedOut]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
   return (
     <LabShell 
       labId="asymmetriccrypto9" 
@@ -128,6 +202,18 @@ export default function AsymmetricCrypto9() {
       instruction={mission === 1 ? "Mission 1: Confidentiality. Public keys lock, Private keys unlock." : "Mission 2: Digital Signatures. Prove identity by reversing the math."} 
       compact
       onReset={resetLab}
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
     >
       <Celebration 
         isActive={m2Step === "OUTCOME"} 
@@ -135,7 +221,7 @@ export default function AsymmetricCrypto9() {
         onReplay={resetLab} 
       />
 
-      <div className="flex-1 flex flex-col h-full bg-slate-50 text-slate-800 rounded-2xl p-4 overflow-hidden border border-slate-200 shadow-sm relative z-10 select-none">
+      <div data-step={labCurrentStep} className="flex-1 flex flex-col h-full bg-slate-50 text-slate-800 rounded-2xl p-4 overflow-hidden border border-slate-200 shadow-sm relative z-10 select-none">
         
         {/* Header Section */}
         <div className="flex items-center justify-between mb-6 px-2">
@@ -398,6 +484,24 @@ export default function AsymmetricCrypto9() {
         </div>
 
       </div>
+
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForProgress(mission, m1Step, m2Step)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={resetLab} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
     </LabShell>
   );
 }
