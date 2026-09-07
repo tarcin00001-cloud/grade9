@@ -1,126 +1,59 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Server, Activity, ArrowRightLeft, Skull , Timer} from "lucide-react";
-
-// ─── SVG Load Balancer Visualizer ─────────────────────────────────────────────
-
-type Traffic = { id: number; target: 1 | 2 | 3 };
-
-function LoadBalancingSVG({
-  mode,
-  traffic,
-  serverLoads
-}: {
-  mode: "ROUND_ROBIN" | "LEAST_CONNECTIONS";
-  traffic: Traffic[];
-  serverLoads: { s1: number, s2: number, s3: number };
-}) {
-  return (
-    <svg viewBox="0 0 900 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <filter id="glow-traffic">
-          <feGaussianBlur stdDeviation="2" result="b" />
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="glow-fire">
-          <feGaussianBlur stdDeviation="6" result="b" />
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <pattern id="gridLb" width="40" height="40" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1" fill="#1e293b" />
-        </pattern>
-      </defs>
-
-      <rect width="900" height="500" fill="url(#gridLb)" />
-
-      {/* ── Internet / Incoming Traffic (Left) ── */}
-      <text x="50" y="250" fill="#94a3b8" fontSize="16" fontWeight="bold" textAnchor="middle" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", transformOrigin: "50px 250px" }}>
-        INTERNET
-      </text>
-
-      {/* ── The Load Balancer (Center) ── */}
-      <rect x="250" y="150" width="60" height="200" fill="#1e1b4b" rx="8" stroke="#06b6d4" strokeWidth="4" />
-      <text x="280" y="250" fill="#a5b4fc" fontSize="14" fontWeight="bold" textAnchor="middle" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", transformOrigin: "280px 250px" }}>
-        LOAD BALANCER
-      </text>
-      
-      {/* LB Algorithm text */}
-      <text x="280" y="380" fill="#fbbf24" fontSize="12" fontWeight="bold" textAnchor="middle">
-        {mode === "ROUND_ROBIN" ? "Step by Step" : "Dynamic Weight"}
-      </text>
-
-      {/* ── Backend Servers (Right) ── */}
-      {/* Server 1 */}
-      <g transform="translate(600, 100)">
-        <rect x="0" y="0" width="100" height="60" fill="#0f172a" rx="4" stroke={serverLoads.s1 > 8 ? "#ef4444" : "#10b981"} strokeWidth="2" />
-        <text x="50" y="25" fill="#fff" fontSize="14" fontWeight="bold" textAnchor="middle">Server 1</text>
-        <text x="50" y="45" fill={serverLoads.s1 > 8 ? "#ef4444" : "#a7f3d0"} fontSize="12" fontWeight="bold" textAnchor="middle">Load: {serverLoads.s1}</text>
-        {serverLoads.s1 > 8 && <text x="50" y="-10" fill="#fb7185" fontSize="20" textAnchor="middle" filter="url(#glow-fire)" className="animate-pulse"> CRASHING!</text>}
-      </g>
-
-      {/* Server 2 */}
-      <g transform="translate(600, 220)">
-        <rect x="0" y="0" width="100" height="60" fill="#0f172a" rx="4" stroke={serverLoads.s2 > 8 ? "#ef4444" : "#10b981"} strokeWidth="2" />
-        <text x="50" y="25" fill="#fff" fontSize="14" fontWeight="bold" textAnchor="middle">Server 2</text>
-        <text x="50" y="45" fill={serverLoads.s2 > 8 ? "#ef4444" : "#a7f3d0"} fontSize="12" fontWeight="bold" textAnchor="middle">Load: {serverLoads.s2}</text>
-      </g>
-
-      {/* Server 3 */}
-      <g transform="translate(600, 340)">
-        <rect x="0" y="0" width="100" height="60" fill="#0f172a" rx="4" stroke={serverLoads.s3 > 8 ? "#ef4444" : "#10b981"} strokeWidth="2" />
-        <text x="50" y="25" fill="#fff" fontSize="14" fontWeight="bold" textAnchor="middle">Server 3</text>
-        <text x="50" y="45" fill={serverLoads.s3 > 8 ? "#ef4444" : "#a7f3d0"} fontSize="12" fontWeight="bold" textAnchor="middle">Load: {serverLoads.s3}</text>
-      </g>
-
-      {/* ── Network Lines ── */}
-      <path d="M 310,250 L 600,130" fill="none" stroke="#334155" strokeWidth="2" strokeDasharray="4 4" />
-      <path d="M 310,250 L 600,250" fill="none" stroke="#334155" strokeWidth="2" strokeDasharray="4 4" />
-      <path d="M 310,250 L 600,370" fill="none" stroke="#334155" strokeWidth="2" strokeDasharray="4 4" />
-
-      {/* ── Animated Traffic ── */}
-      <AnimatePresence>
-        {traffic.map(t => {
-          const targetY = t.target === 1 ? 130 : t.target === 2 ? 250 : 370;
-
-          return (
-            <motion.g 
-              key={t.id}
-              initial={{ x: 100, y: 250 }}
-              animate={{ x: [100, 280, 600], y: [250, 250, targetY] }}
-              transition={{ duration: 1.5, ease: "linear" }}
-              exit={{ opacity: 0 }}
-            >
-              <circle cx="0" cy="0" r="6" fill="#22d3ee" filter="url(#glow-traffic)" />
-              <path d="M -10,-10 L 0,0 L -10,10" fill="none" stroke="#fff" strokeWidth="2" />
-            </motion.g>
-          );
-        })}
-      </AnimatePresence>
-
-    </svg>
-  );
-}
-
-// ─── Main Component ─────────────────────────────────────────────────────────────
+import { Activity, ArrowRightLeft, CheckCircle2, XCircle, AlertTriangle, Timer, Globe, PlusCircle, Server, ShieldCheck } from "lucide-react";
 
 const TIMER_DURATION_SECONDS = 5 * 60;
 
-export default function LoadBalancing9() {
-  const { reportComplete: _reportComplete } = useLMSBridge("loadbalancing9");
+type Phase = "INIT_SINGLE" | "SWARM_1" | "CRASHED_1" | "ROUND_ROBIN" | "READY_RR_SWARM" | "SWARM_RR" | "FAILED_RR" | "LEAST_CONNECTIONS" | "SWARM_LC" | "DONE";
+type ServerNode = { id: number; load: number; active: boolean };
+type Traffic = { id: number; target: number; dropped: boolean };
 
+const INSTRUCTIONS: Record<Phase, string> = {
+  "INIT_SINGLE": "A single server can handle low traffic. Click 'Trigger Traffic Swarm' to simulate a sudden surge of users.",
+  "SWARM_1": "Traffic is hitting the single server quickly...",
+  "CRASHED_1": "The single server overloaded and crashed! All further packets are dropped. We need to scale horizontally.",
+  "ROUND_ROBIN": "Load Balancer added! Let's simulate a hardware failure. Click Server 2 to turn it off.",
+  "READY_RR_SWARM": "Server 2 is offline. In 'Blind Round Robin' mode, trigger a swarm and watch what happens.",
+  "SWARM_RR": "Round Robin blindly sends packets 1-2-3, completely ignoring that Server 2 is offline...",
+  "FAILED_RR": "Packets sent to Server 2 were lost forever! We need a smarter algorithm.",
+  "LEAST_CONNECTIONS": "Upgraded to 'Least Connections + Health Checks'. Trigger the final swarm.",
+  "SWARM_LC": "The Load Balancer is dynamically routing traffic around the dead server based on real-time load!",
+  "DONE": "Lab Complete! You've mastered resilient Load Balancing architecture."
+};
+
+export default function LoadBalancing9() {
+  const { reportComplete: _reportComplete } = useLMSBridge();
+  const { playPop, playZap, playError, playSuccess } = useLabAudio();
+
+  const [phase, setPhase] = useState<Phase>("INIT_SINGLE");
+  const [servers, setServers] = useState<ServerNode[]>([{ id: 1, load: 0, active: true }]);
+  const [traffic, setTraffic] = useState<Traffic[]>([]);
+  
+  const serversRef = useRef(servers);
+  const phaseRef = useRef(phase);
+  
+  useEffect(() => { serversRef.current = servers; }, [servers]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+
+  const reqIdRef = useRef(0);
+  const rrIndexRef = useRef(1);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timer logic
   const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
   const [timedOut, setTimedOut] = useState(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isLabComplete, setIsLabComplete] = useState(false);
 
-  const reportComplete = useCallback((args?: any) => {
-    setIsLabComplete(true);
+  const isLabComplete = phase === "DONE";
+  const labCurrentStep = phase;
+
+  const reportComplete = useCallback(() => {
     _reportComplete({ points: 100 });
   }, [_reportComplete]);
 
@@ -148,115 +81,124 @@ export default function LoadBalancing9() {
     if (timedOut) {
       _reportComplete({ points: 0 });
     }
-  }, [timedOut, _reportComplete]);
+    if (isLabComplete) {
+      reportComplete();
+    }
+  }, [timedOut, isLabComplete, _reportComplete, reportComplete]);
 
   const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
-  const { playPop, playZap, playError, playSuccess } = useLabAudio();
 
-  const [mode, setMode] = useState<"ROUND_ROBIN" | "LEAST_CONNECTIONS">("ROUND_ROBIN");
-  const [traffic, setTraffic] = useState<Traffic[]>([]);
-  
-  // We simulate "Heavy" jobs taking longer to clear.
-  // In our simulation, we manually make Server 1 clear jobs very slowly to cause a bottleneck.
-  const [serverLoads, setServerLoads] = useState({ s1: 0, s2: 0, s3: 0 });
-  const [isSwarming, setIsSwarming] = useState(false);
-  const [hasWon, setHasWon] = useState(false);
-
-  const reqIdRef = useRef(0);
-  const rrIndexRef = useRef(1); // For round robin (1,2,3)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const clearRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Background task clearing
+  // Drain server loads every 1s
   useEffect(() => {
-    clearRef.current = setInterval(() => {
-      setServerLoads(prev => ({
-        s1: Math.max(0, prev.s1 - 1), // S1 clears very slowly (bottlenecked)
-        s2: Math.max(0, prev.s2 - 3), // S2 clears fast
-        s3: Math.max(0, prev.s3 - 3)  // S3 clears fast
-      }));
+    const drainInterval = setInterval(() => {
+      setServers(prev => prev.map(s => ({
+        ...s,
+        load: s.active ? Math.max(0, s.load - 2) : s.load
+      })));
     }, 1000);
-
-    return () => {
-      if (clearRef.current) clearInterval(clearRef.current);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => clearInterval(drainInterval);
   }, []);
 
   const triggerSwarm = () => {
-    if (isSwarming) return;
-    setIsSwarming(true);
     playZap();
-
     let count = 0;
     
+    if (phase === "INIT_SINGLE") setPhase("SWARM_1");
+    if (phase === "READY_RR_SWARM") setPhase("SWARM_RR");
+    if (phase === "LEAST_CONNECTIONS") setPhase("SWARM_LC");
+
     intervalRef.current = setInterval(() => {
       count++;
       if (count > 20) {
-        setIsSwarming(false);
         if (intervalRef.current) clearInterval(intervalRef.current);
-        
-        // If they survived using Least Connections
-        if (mode === "LEAST_CONNECTIONS" && !hasWon) {
-           setTimeout(() => {
-             setHasWon(true);
+        // Advance phase
+        setTimeout(() => {
+          const currentP = phaseRef.current;
+          if (currentP === "SWARM_1") {
+             setPhase("CRASHED_1");
+             playError();
+          }
+          if (currentP === "SWARM_RR") {
+             setPhase("FAILED_RR");
+             playError();
+          }
+          if (currentP === "SWARM_LC") {
+             setPhase("DONE");
              playSuccess();
-             setTimeout(reportComplete, 1500);
-           }, 2000);
-        }
+          }
+        }, 2000); // wait for last packets to arrive
         return;
       }
 
-      reqIdRef.current++;
-      const id = reqIdRef.current;
+      const id = ++reqIdRef.current;
       playPop();
 
-      // Determine Target based on Algorithm
-      let target: 1 | 2 | 3 = 1;
+      let targetId = 1;
+      const curPhase = phaseRef.current;
 
-      if (mode === "ROUND_ROBIN") {
-        target = rrIndexRef.current as 1|2|3;
-        rrIndexRef.current = rrIndexRef.current >= 3 ? 1 : rrIndexRef.current + 1;
-      } else {
-        // Least Connections: check current server loads and pick the lowest
-        setServerLoads(prev => {
-          const min = Math.min(prev.s1, prev.s2, prev.s3);
-          if (prev.s3 === min) target = 3;
-          else if (prev.s2 === min) target = 2;
-          else target = 1;
-          return prev; // We don't update state here, just reading
-        });
+      if (curPhase === "SWARM_RR" || curPhase === "READY_RR_SWARM") {
+        targetId = rrIndexRef.current;
+        rrIndexRef.current = targetId >= 3 ? 1 : targetId + 1;
+      } else if (curPhase === "SWARM_LC" || curPhase === "LEAST_CONNECTIONS") {
+        const activeServers = serversRef.current.filter(s => s.active);
+        if (activeServers.length > 0) {
+          activeServers.sort((a,b) => a.load - b.load);
+          targetId = activeServers[0].id;
+        } else {
+          targetId = 1; // Fallback
+        }
       }
 
-      // Spawn visual traffic
-      setTraffic(prev => [...prev, { id, target }]);
+      setTraffic(prev => [...prev, { id, target: targetId, dropped: false }]);
 
-      // Increase load on target server when it arrives (1.5s later)
+      // Arrive at 1500ms
       setTimeout(() => {
-        setServerLoads(prev => {
-          const newLoads = { ...prev };
-          if (target === 1) newLoads.s1 += 2;
-          if (target === 2) newLoads.s2 += 2;
-          if (target === 3) newLoads.s3 += 2;
+        const s = serversRef.current.find(srv => srv.id === targetId);
+        if (!s || !s.active || s.load >= 10) {
+          // Drop packet
+          setTraffic(prev => prev.map(pt => pt.id === id ? { ...pt, dropped: true } : pt));
+          // If in single mode and overload, trigger a single alert sound if we just hit 10
+          if (s && s.load < 10) playError();
           
-          if (newLoads.s1 > 8 || newLoads.s2 > 8 || newLoads.s3 > 8) {
-            playError(); // Fire warning!
+          if (s && s.active) {
+             setServers(prev => prev.map(srv => srv.id === targetId ? { ...srv, load: 10 } : srv));
           }
-          return newLoads;
-        });
-
-        // Clean up visual packet
-        setTraffic(prev => prev.filter(t => t.id !== id));
+          
+          setTimeout(() => setTraffic(prev => prev.filter(pt => pt.id !== id)), 600);
+        } else {
+          // Process packet
+          setServers(prev => prev.map(srv => srv.id === targetId ? { ...srv, load: srv.load + 1 } : srv));
+          setTimeout(() => setTraffic(prev => prev.filter(pt => pt.id !== id)), 200);
+        }
       }, 1500);
 
-    }, 300); // Super fast burst!
+    }, 200);
   };
 
-  const toggleMode = () => {
-    setMode(m => m === "ROUND_ROBIN" ? "LEAST_CONNECTIONS" : "ROUND_ROBIN");
-    setServerLoads({ s1: 0, s2: 0, s3: 0 });
-    rrIndexRef.current = 1;
+  const addLoadBalancer = () => {
+    setServers([
+      { id: 1, load: 0, active: true },
+      { id: 2, load: 0, active: true },
+      { id: 3, load: 0, active: true }
+    ]);
+    setPhase("ROUND_ROBIN");
+    playPop();
   };
+
+  const killServer = (id: number) => {
+    if (phase !== "ROUND_ROBIN") return;
+    setServers(prev => prev.map(s => s.id === id ? { ...s, active: false, load: 0 } : s));
+    setPhase("READY_RR_SWARM");
+    playError();
+  };
+
+  const upgradeAlgorithm = () => {
+    setPhase("LEAST_CONNECTIONS");
+    playSuccess();
+  };
+
+  const hasLB = phase !== "INIT_SINGLE" && phase !== "SWARM_1" && phase !== "CRASHED_1";
+  const isSwarming = phase === "SWARM_1" || phase === "SWARM_RR" || phase === "SWARM_LC";
 
   return (
     <LabShell
@@ -271,41 +213,169 @@ export default function LoadBalancing9() {
             <span>{timedOut ? "Time's Up" : formattedTime}</span>
           </div>
         )
-      } labId="loadbalancing9" theme="ocean" title="Load Balancing Algorithms" subtitle="L31 · Cloud Architecture"
-      instruction="Server 1 is a slower machine. In Round Robin mode, trigger a traffic swarm. The Load Balancer blindly sends traffic 1-2-3, causing Server 1 to overload and catch fire. Switch to Least Connections mode to watch the Load Balancer dynamically route traffic away from the struggling server." compact>
-      
-      <Celebration isActive={hasWon} message="System Saved! 'Least Connections' actively monitors backend health. When Server 1 started backing up, the Load Balancer dynamically shifted the traffic to the idle servers to prevent a crash." onReplay={() => {
-        setHasWon(false); setServerLoads({ s1: 0, s2: 0, s3: 0 });
-      }} />
+      } 
+      labId="loadbalancing9" 
+      theme="ocean" 
+      title="Load Balancing Architecture" 
+      instruction={INSTRUCTIONS[phase]} 
+      compact
+    >
+      <Celebration 
+        isActive={isLabComplete} 
+        message="Architect Certified! You successfully used Least Connections and Health Checks to dynamically route traffic around a dead server, maintaining 100% uptime." 
+        onReplay={() => window.location.reload()} 
+      />
 
-      <div className="w-full flex flex-col flex-1 min-h-0 pt-1 gap-3">
+      <div data-step={labCurrentStep} className="w-full flex flex-col flex-1 min-h-0 pt-1 gap-4">
         
-        {/* Interactive Controls */}
-        <div className="shrink-0 panel-glass rounded-2xl border-cyan-900/50 p-4 flex flex-col md:flex-row items-center justify-center gap-6">
+        {/* Controls Bar */}
+        <div className="shrink-0 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 relative z-20">
           
-          <button 
-            onClick={toggleMode} 
-            disabled={isSwarming}
-            className={`px-6 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-3 transition-all border-2 w-full md:w-auto ${mode === "ROUND_ROBIN" ? "bg-amber-500/20 border-amber-500/50 text-amber-300" : "bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.3)]"} disabled:opacity-50`}
-          >
-            <ArrowRightLeft size={20}/> Algorithm: {mode === "ROUND_ROBIN" ? "Blind Round Robin" : "Least Connections (Dynamic)"}
-          </button>
-          
-          <button 
-            onClick={triggerSwarm} 
-            disabled={isSwarming}
-            className="px-8 py-3 rounded-xl font-black bg-rose-500/20 border-2 border-rose-500/50 text-rose-400 hover:bg-rose-500/30 transition-all hover:scale-[1.02] disabled:opacity-50 flex items-center gap-2"
-          >
-            <Activity size={18}/> Trigger Traffic Swarm
-          </button>
+          <div className="flex items-center gap-3">
+             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500 font-black">
+                {phase === "INIT_SINGLE" || phase === "SWARM_1" || phase === "CRASHED_1" ? "1" : phase === "ROUND_ROBIN" || phase === "READY_RR_SWARM" || phase === "SWARM_RR" || phase === "FAILED_RR" ? "2" : "3"}
+             </div>
+             <div className="flex flex-col">
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Algorithm</span>
+                 <span className="text-sm font-black text-slate-800">
+                     {!hasLB ? "None (Direct to Server)" : (phase === "LEAST_CONNECTIONS" || phase === "SWARM_LC" || phase === "DONE") ? "Least Connections + Health Check" : "Blind Round Robin"}
+                 </span>
+             </div>
+          </div>
 
+          <div className="flex items-center gap-3">
+            {phase === "INIT_SINGLE" || phase === "READY_RR_SWARM" || phase === "LEAST_CONNECTIONS" ? (
+              <button 
+                onClick={triggerSwarm} 
+                className="px-6 py-2.5 rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none active:translate-y-1 flex items-center gap-2"
+              >
+                <Activity size={18}/> Trigger Traffic Swarm
+              </button>
+            ) : phase === "CRASHED_1" ? (
+              <button 
+                onClick={addLoadBalancer} 
+                className="px-6 py-2.5 rounded-xl font-black bg-sky-500 hover:bg-sky-600 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_0_rgba(14,165,233,1)] active:shadow-none active:translate-y-1 flex items-center gap-2 animate-bounce"
+              >
+                <PlusCircle size={18}/> Add Load Balancer
+              </button>
+            ) : phase === "FAILED_RR" ? (
+              <button 
+                onClick={upgradeAlgorithm} 
+                className="px-6 py-2.5 rounded-xl font-black bg-emerald-500 hover:bg-emerald-600 text-white transition-all hover:-translate-y-0.5 shadow-[0_4px_0_rgba(16,185,129,1)] active:shadow-none active:translate-y-1 flex items-center gap-2 animate-bounce"
+              >
+                <ShieldCheck size={18}/> Enable Smart Routing
+              </button>
+            ) : (
+              <button disabled className="px-6 py-2.5 rounded-xl font-black bg-slate-100 text-slate-400 flex items-center gap-2 border border-slate-200">
+                <Activity size={18}/> Processing Swarm...
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Main SVG Area */}
-        <div className="flex-1 panel-glass rounded-3xl overflow-x-auto overflow-y-hidden relative border-cyan-900/40 bg-[#020617] shadow-[inset_0_0_80px_rgba(0,0,0,0.9)] flex items-center justify-center">
-          <div className="w-full max-w-5xl aspect-[2.2] min-w-[800px]">
-            <LoadBalancingSVG mode={mode} traffic={traffic} serverLoads={serverLoads} />
+        {/* Network Canvas */}
+        <div className="flex-1 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner relative overflow-hidden flex items-center justify-center min-h-[350px]">
+          
+          {/* Path Lines */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+              <line x1="10%" y1="50%" x2={hasLB ? "45%" : "85%"} y2="50%" stroke="#CBD5E1" strokeWidth="3" strokeDasharray="6 6" />
+              {hasLB && (
+                  <>
+                      <line x1="45%" y1="50%" x2="85%" y2="20%" stroke="#CBD5E1" strokeWidth="3" strokeDasharray="6 6" />
+                      <line x1="45%" y1="50%" x2="85%" y2="50%" stroke="#CBD5E1" strokeWidth="3" strokeDasharray="6 6" />
+                      <line x1="45%" y1="50%" x2="85%" y2="80%" stroke="#CBD5E1" strokeWidth="3" strokeDasharray="6 6" />
+                  </>
+              )}
+          </svg>
+
+          {/* Internet Node */}
+          <div className="absolute left-[10%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 border-2 border-indigo-200 flex items-center justify-center text-indigo-500 shadow-sm relative">
+                  <Globe size={28} />
+                  {isSwarming && <span className="absolute -top-2 -right-2 flex h-4 w-4"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span><span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500"></span></span>}
+              </div>
+              <span className="font-bold text-[10px] text-slate-500 tracking-widest bg-slate-50 px-1">INTERNET</span>
           </div>
+
+          {/* Load Balancer Node */}
+          {hasLB && (
+          <div className="absolute left-[45%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10">
+              <div className="w-24 h-28 rounded-2xl bg-sky-50 border-2 border-sky-400 flex flex-col items-center justify-center text-sky-600 shadow-sm relative overflow-hidden">
+                  <ArrowRightLeft size={28} className="mb-2"/>
+                  <span className="font-bold text-[10px] text-center leading-tight">LOAD<br/>BALANCER</span>
+                  {/* Traffic flow scan effect */}
+                  {isSwarming && <div className="absolute inset-0 bg-gradient-to-b from-transparent via-sky-300/30 to-transparent w-full h-[200%] animate-[scan_1s_linear_infinite]" style={{ animationName: 'scan' }} />}
+                  <style>{`@keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(50%); } }`}</style>
+              </div>
+          </div>
+          )}
+
+          {/* Server Nodes */}
+          {servers.map(s => {
+              const topPos = hasLB ? (s.id === 1 ? '20%' : s.id === 2 ? '50%' : '80%') : '50%';
+              const isOverloaded = s.load >= 10;
+              
+              return (
+                 <div key={s.id} 
+                    onClick={() => { if (phase === 'ROUND_ROBIN' && s.id === 2) killServer(s.id) }}
+                    className={`absolute left-[85%] -translate-x-1/2 -translate-y-1/2 z-10 p-4 rounded-xl border-2 w-40 sm:w-48 shadow-sm transition-all duration-300 ${
+                      !s.active ? 'bg-slate-100 border-slate-300 opacity-60' : 
+                      isOverloaded ? 'bg-rose-50 border-rose-500' : 
+                      s.load >= 7 ? 'bg-amber-50 border-amber-400' : 
+                      'bg-white border-slate-200'
+                    } ${
+                      phase === 'ROUND_ROBIN' && s.id === 2 ? 'cursor-pointer hover:border-indigo-400 ring-4 ring-indigo-500/20' : ''
+                    }`} 
+                    style={{ 
+                      top: topPos,
+                      animation: isOverloaded ? 'shake 0.4s cubic-bezier(.36,.07,.19,.97) infinite' : 'none' 
+                    }}>
+                     <style>{`@keyframes shake { 10%, 90% { transform: translate(-50%, -50%) translate3d(-1px, 0, 0); } 20%, 80% { transform: translate(-50%, -50%) translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate(-50%, -50%) translate3d(-4px, 0, 0); } 40%, 60% { transform: translate(-50%, -50%) translate3d(4px, 0, 0); } }`}</style>
+                     
+                     <div className="flex justify-between items-center mb-3">
+                         <span className="font-black text-slate-700 flex items-center gap-1.5"><Server size={14}/> Srv {s.id}</span>
+                         {!s.active ? <XCircle size={18} className="text-slate-400"/> : isOverloaded ? <AlertTriangle size={18} className="text-rose-500"/> : <CheckCircle2 size={18} className="text-emerald-500"/>}
+                     </div>
+                     <div className="flex gap-1 h-6">
+                         {[...Array(10)].map((_, i) => (
+                             <div key={i} className={`flex-1 rounded-[2px] transition-colors duration-200 ${
+                               i < s.load ? (isOverloaded ? 'bg-rose-500' : s.load >= 7 ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-100'
+                             }`} />
+                         ))}
+                     </div>
+                     {phase === 'ROUND_ROBIN' && s.id === 2 && (
+                       <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded animate-pulse after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-indigo-600">
+                         Click to Disable
+                       </div>
+                     )}
+                 </div>
+              )
+          })}
+
+          {/* Packet Animations */}
+          <AnimatePresence>
+              {traffic.map(p => {
+                  const targetTop = hasLB ? (p.target === 1 ? '20%' : p.target === 2 ? '50%' : '80%') : '50%';
+                  return (
+                      <motion.div
+                          key={p.id}
+                          initial={{ left: '10%', top: '50%', scale: 0, x: '-50%', y: '-50%' }}
+                          animate={{
+                              left: hasLB ? ['10%', '45%', '85%'] : ['10%', '85%'],
+                              top: hasLB ? ['50%', '50%', targetTop] : ['50%', targetTop],
+                              scale: [0.5, 1, 1],
+                              opacity: p.dropped ? 0 : 1,
+                              y: p.dropped ? '40px' : '-50%' // Fall down if dropped
+                          }}
+                          transition={{ duration: 1.5, ease: "linear", times: hasLB ? [0, 0.4, 1] : [0, 1] }}
+                          className={`absolute w-3.5 h-3.5 rounded-full z-20 ${
+                            p.dropped ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]' : 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.6)]'
+                          }`}
+                      />
+                  )
+              })}
+          </AnimatePresence>
+
         </div>
 
       </div>
