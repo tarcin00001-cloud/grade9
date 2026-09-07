@@ -1,6 +1,7 @@
 "use client";
+import { Timer } from "lucide-react";
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
@@ -39,6 +40,13 @@ const BLOCKS: ContentBlock[] = [
   { id: 'sandbox', icon: <Terminal size={20} strokeWidth={2.5}/>, label: 'Code Sandbox', desc: 'Open practice.', iconClass: 'text-fuchsia-500', bgClass: 'bg-fuchsia-50', borderClass: 'hover:border-fuchsia-400', traits: ['challenge', 'active', 'visual'] },
 ];
 
+
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ['LEARN', 'TRY_MANUAL', 'FAIL_OVERLOAD', 'UNDERSTAND', 'IMPROVE', 'BATCH_SCALE', 'OUTCOME'];
+function marksForStep(s: any): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.round((index / (STEP_ORDER.length - 1)) * 100);
+}
 export default function AiEducation22() {
   const { reportComplete } = useLMSBridge("aieducation22");
   const { playPop, playZap, playError, playSuccess, playChime, playClick, playHeavyThud } = useLabAudio();
@@ -46,9 +54,46 @@ export default function AiEducation22() {
   const [step, setStep] = useState<Step>('LEARN');
   const [activeStudent, setActiveStudent] = useState(0);
   
-  // Array of 3 slots
+  // List of 3 slots
   const [curriculum, setCurriculum] = useState<(string | null)[]>([null, null, null]);
   const [isSimulating, setIsSimulating] = useState(false);
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = step;
+  const isLabComplete = (labCurrentStep as any) === "OUTCOME" || (labCurrentStep as any) === "COMPLETE";
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      try { playError(); } catch(e) {}
+      reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, labCurrentStep, reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
@@ -162,7 +207,7 @@ export default function AiEducation22() {
             setStep('OUTCOME');
             setTimeout(() => {
               if (isMounted.current) {
-                reportComplete();
+                reportComplete({ points: marksForStep(labCurrentStep) });
                 if (playChime) playChime();
               }
             }, 1000);
@@ -177,6 +222,8 @@ export default function AiEducation22() {
   };
 
   const resetLab = () => {
+  setSecondsLeft(TIMER_DURATION_SECONDS);
+  setTimedOut(false);
     if (timerRef.current) clearTimeout(timerRef.current);
     setStep('LEARN');
     setActiveStudent(0);
@@ -195,6 +242,19 @@ export default function AiEducation22() {
   return (
     <LabShell
       labId="aieducation22"
+
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
       title="Learning Path Optimizer"
       instruction="Act as an AI Curriculum Architect to personalize learning paths using adaptive matching."
       bgOverride="bg-gradient-to-b from-sky-50 via-white to-slate-100"
@@ -354,7 +414,8 @@ export default function AiEducation22() {
               </div>
 
               {/* CURRICULUM RECEPTACLES */}
-              <div className="flex-1 flex flex-col justify-end min-h-0 shrink-0">
+              <div data-step={labCurrentStep}
+        className="flex-1 flex flex-col justify-end min-h-0 shrink-0">
                 <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Curriculum Path</div>
                 
                 <div className="flex justify-between gap-2 bg-slate-100 p-3 rounded-xl border-[3px] border-slate-200 shadow-inner relative">
@@ -482,6 +543,24 @@ export default function AiEducation22() {
           </div>
         </div>
       </div>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={resetLab} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
     </LabShell>
   );
 }

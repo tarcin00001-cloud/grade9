@@ -326,7 +326,7 @@ Implementation strategy given: hardware keys for email/banking/password managers
 
 **Activities:** "Privacy Tool Implementation Project" — students actually set up a hardware key/authenticator, install/test a VPN, adopt a password manager, and document before/after privacy audits. "Privacy Defense Simulation Game" — match the right tool to a threat scenario (public Wi-Fi → VPN; phishing → 2FA; weak password breach → password manager; message interception → encryption).
 
-**Matching lab:** No direct 1:1 lab found in `data/labs.ts` for "Advanced Privacy Techniques" (2FA/VPN/password managers) specifically. Related but distinct security labs exist (`sshkeys9`, `symmetriccrypto9`, `asymmetriccrypto9`, `passwordcracking9`, `maninthemiddle9`) but none map cleanly to this VPN/2FA/password-manager consumer-privacy chapter — flag as a possible gap.
+**Matching lab:** `twofactorauth9` ("Multi-Factor Authentication" / n:69) implements the time-based one-time password (TOTP) Authenticator app mechanism exactly as described in the chapter\'s "Authenticator apps (strong)" tier. This closes the 2FA requirement.
 
 ---
 
@@ -1081,7 +1081,7 @@ Book section header: "#Software & Software Engineering — 43 Testing Strategies
 
 **Activities:** "Quality Assurance Laboratory" — build a simple web app, write Selenium-based automated test suites (unit + integration), compare manual vs. automated testing time/efficiency. Design a full testing strategy (unit, integration, security testing) for an online banking application.
 
-**Matching lab:** No direct 1:1 lab found in `data/labs.ts` for "Testing Strategies" / Selenium / test pyramid specifically. Possible gap, closely related to the Chapter 33/34 software-engineering-practice gaps noted above.
+**Matching lab:** `testingstrategies43` ("Testing Strategies & TestingScript" / n:59) covers the test automation pyramid, comparing slow manual QA against automated Selenium test scripts. Directly fulfills the Selenium and test pyramid requirements.
 
 ---
 
@@ -1212,7 +1212,7 @@ No gaps. Pages 177-196 (end of chunk_181-190 and all of chunk_191-196) contain o
 
 **Book chapter numbers do NOT align 1:1 with `data/labs.ts` lab `n` indices** beyond the first dozen or so entries. For example, book Chapter 41 is "Historical Innovations" (a pioneers-of-computing survey), while `data/labs.ts` lab `n:41` is "Quantum Superposition" (`quantumcomputing9`) — an entirely different topic that does not appear anywhere in this book, despite "Quantum Leaps in Tech" being the book's own title/series branding. The book's back-cover blurb (p.196) describes "qubits, superposition, quantum gadgets" as series content, but that content is not present in these 196 pages — it may belong to a different grade level's book in the same Karky/Payil series, or a chapter genuinely absent from this particular edition.
 
-### Labs in `data/labs.ts` with NO corresponding book chapter (14 of 48)
+### Labs in `data/labs.ts` with NO corresponding book chapter (26 of 72)
 
 These labs' `desc`/`lesson` fields reference topics that never appear as a dedicated chapter anywhere in the 48-chapter book. Most cluster around cybersecurity primitives (crypto, web attacks) that the book's own security coverage (Ch.13 Advanced Privacy, Ch.26 Firewall, Ch.38 Spectre/Meltdown, Ch.47 Ethical Hacker, Ch.48 Log4j) never actually reaches at the mechanism level these labs teach:
 
@@ -1231,15 +1231,27 @@ These labs' `desc`/`lesson` fields reference topics that never appear as a dedic
 - `crosssitescripting9` (n:47, "Stored Cross-Site Scripting (XSS)") — no chapter (XSS is *mentioned* in passing inside Ch.10's Cloudflare WAF case study and Ch.26 Firewall's deep-packet-inspection blurb, but never taught as its own topic with a defined attack mechanism).
 - `blockchain9` (n:48, "Cryptographic Blockchain") — no dedicated blockchain-fundamentals chapter (Ch.30 Ethereum DAO Hack covers smart-contract reentrancy specifically, assuming blockchain/smart-contract literacy rather than teaching it from scratch).
 
-**Implication:** for these 14 labs, any future grounding work cannot cite this textbook as the source of the lab's core mechanic — these appear to be either sourced from a different reference, from general CS-curriculum knowledge, or represent areas where the lab was built ahead of/independent from this particular textbook edition.
+- `containerization9` (n:60, "VMs vs Docker Containers") — no chapter (no cloud/VM or containerization fundamentals chapter).
+- `databaseindexing9` (n:61, "Database Indexing Structures") — no chapter (no database architecture or indexing chapter).
+- `digitalsignatures9` (n:62, "Digital Signatures") — no chapter.
+- `edgecomputing9` (n:63, "Edge Computing Latency") — no chapter (no dedicated latency or edge computing architecture chapter).
+- `eventsourcing9` (n:64, "Event Sourcing (CQRS)") — no chapter (no database architecture or event-sourcing chapter).
+- `publickeyinfrastructure9` (n:65, "SSL/TLS Certificates & PKI") — no chapter (no web security or PKI chapter).
+- `serverlessfunctions9` (n:66, "Serverless Computing (Lambda)") — no chapter.
+- `smartcontracts9` (n:67, "Smart Contracts Mechanics") — no dedicated blockchain-fundamentals chapter (Ch.30 covers DAO hack, not smart contract basics).
+- `subnetting9` (n:68, "Subnetting & Broadcast Domains") — no chapter (Ch.17 touches IP addresses but not subnetting/broadcast domains).
+- `vectordatabases9` (n:70, "Vector Databases & Embeddings") — no chapter (AI chapters do not cover vector DBs or embeddings).
+- `websockets9` (n:71, "Real-Time Data: WebSockets vs Polling") — no chapter (Ch.17 covers HTTP but not WebSockets/real-time streaming).
+- `loadbalancing9` (n:72, "Load Balancing Algorithms") — no chapter.
 
-### Book chapters with NO corresponding lab (14 of 48)
+**Implication:** for these 26 labs, any future grounding work cannot cite this textbook as the source of the lab's core mechanic — these appear to be either sourced from a different reference, from general CS-curriculum knowledge, or represent areas where the lab was built ahead of/independent from this particular textbook edition.
+
+### Book chapters with NO corresponding lab (12 of 48)
 
 These chapters were fully documented above but have no direct 1:1 match among the 48 labs in `data/labs.ts` — candidates for new labs if the project wants full 1:1 book coverage:
 
 - Ch.1 **Data Structures** (intro-level: array/list/stack/queue/tree) — no lab.
 - Ch.3 **Digital Ethics in Communities** (integrity/accountability/empathy, restorative justice, moderation) — no lab; closest is `responsibleai23` but that covers a different set of issues (deepfakes/bias/privacy, from Ch.23).
-- Ch.13 **Advanced Privacy Techniques** (2FA tiers, VPNs, encrypted messaging, password managers) — no lab, despite being one of the most practically actionable chapters in the book.
 - Ch.17 **Networking Protocols** (IP/TCP/HTTP/DNS, OSI layers) — no lab teaching the request/response cycle directly (tangential coverage only in `networkinterface31` and CDN labs).
 - Ch.21 **Design Patterns in Software** (UML, MVC, microservices, layered architecture) — no lab.
 - Ch.26 **Firewall and Security** (packet filtering, stateful inspection, DPI) — no lab.
@@ -1248,11 +1260,9 @@ These chapters were fully documented above but have no direct 1:1 match among th
 - Ch.34 **Implementation with IDEs** (professional Git workflows: branching, code review, CI, bisect/rebase/cherry-pick) — no lab.
 - Ch.35 **Data Structures Introduction** (deep-dive: stacks/queues/linked lists/hash tables/binary trees with full code) — no lab; combined with Ch.1's gap, this is the single largest un-labbed content area in the book by code density and foundational importance.
 - Ch.41 **Historical Innovations** (Ada Lovelace, Turing, Hopper, Backus, Ritchie, Stroustrup, van Rossum, Gosling, Berners-Lee survey) — no lab, though other individual-inventor chapters (Musk ch.8, Nadella ch.16, Bhatt ch.25, Pichai ch.37, Guha ch.45) each got their own lab.
-- Ch.43 **Testing Strategies** (Selenium, unit/integration testing, TDD/BDD, test pyramid) — no lab.
 - Ch.47 **Meet the Ethical Hacker!** (career profile: penetration testing, legal/ethical boundaries) — no lab as a career-profile piece specifically (contrast `itsupport18`, which does have one for the IT Support Specialist career chapter).
 - Ch.48 **The Log4j Logging Exploit / Log4Shell** (real 2021 RCE case study, software supply chain) — no lab, despite the book's other three major case studies (Cloudflare, Fastly, Spectre/Meltdown) plus the Ethereum DAO case study all getting direct lab matches.
 
 ### Net picture
 
-34 of 48 book chapters have a clean 1:1 lab match; 34 of 48 labs have a clean 1:1 book-chapter match. The mismatched sets are disjoint in subject matter — the unlabbed chapters skew toward software-engineering practice (Ch.33/34/35/43/21) and one career/case-study pair (Ch.47/48), while the un-sourced labs skew toward applied cybersecurity/cryptography primitives and quantum/blockchain/ML topics the book doesn't teach from first principles. This document should be treated as authoritative for grounding the 34 directly-matched labs, and as evidence that the other 14+14 need either a different source text, general subject-matter knowledge, or a decision to leave them as-is.
-
+36 of 48 book chapters have a clean 1:1 lab match; 36 of 72 labs have a clean 1:1 book-chapter match. The mismatched sets are disjoint in subject matter — the unlabbed chapters still skew toward software-engineering practice (Ch.33/34/35/21) and one career/case-study pair (Ch.47/48) — though closing Ch.43 (Testing Strategies) removes one major engineering gap. The 26 un-sourced labs skew heavily toward applied cybersecurity/cryptography primitives, cloud architecture, and quantum/blockchain/ML topics the book doesn't teach from first principles. This document should be treated as authoritative for grounding the 36 directly-matched labs, and as evidence that the other 12 chapters and 26 labs need either a different source text, general subject-matter knowledge, or a decision to leave them as-is.

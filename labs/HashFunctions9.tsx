@@ -1,6 +1,7 @@
 "use client";
+import { Timer } from "lucide-react";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
@@ -32,6 +33,13 @@ const computeSimHash = (str: string): string => {
 
 type Step = 'LEARN' | 'TRY_ORIGINAL' | 'TRY_SNEAK' | 'FAIL' | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';
 
+
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ['LEARN', 'TRY_MANUAL', 'TRY_SNEAK', 'FAIL_OVERLOAD', 'UNDERSTAND', 'IMPROVE', 'COMPLETE', 'OUTCOME'];
+function marksForStep(s: any): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.round((index / (STEP_ORDER.length - 1)) * 100);
+}
 export default function HashFunctions9() {
   const { reportComplete } = useLMSBridge("hashfunctions9");
   const { playPop, playZap, playError, playSuccess, playChime, playClick } = useLabAudio();
@@ -51,6 +59,43 @@ export default function HashFunctions9() {
   const [isScrambling, setIsScrambling] = useState(false);
   const [scrambleTarget, setScrambleTarget] = useState("");
   const [pulse, setPulse] = useState(false);
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = step;
+  const isLabComplete = (labCurrentStep as any) === "OUTCOME" || (labCurrentStep as any) === "COMPLETE";
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      try { playError(); } catch(e) {}
+      reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, labCurrentStep, reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
 
   useEffect(() => {
     if (isScrambling) {
@@ -140,12 +185,14 @@ export default function HashFunctions9() {
     if (playSuccess) playSuccess();
     setStep('OUTCOME');
     setTimeout(() => {
-      reportComplete();
+      reportComplete({ points: marksForStep(labCurrentStep) });
       if (playChime) playChime();
     }, 4500);
   };
 
   const handleReset = () => {
+  setSecondsLeft(TIMER_DURATION_SECONDS);
+  setTimedOut(false);
     if (playPop) playPop();
     setStep('LEARN');
     setCurrentDoc(contract100);
@@ -203,6 +250,19 @@ export default function HashFunctions9() {
   return (
     <LabShell
       labId="hashfunctions9"
+
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
       title="Cryptographic Hash Functions"
       instruction="A hash is a digital fingerprint. Process documents through the SHA-256 ASIC to verify their integrity."
       bgOverride="bg-gradient-to-b from-sky-50 via-white to-slate-100"
@@ -215,7 +275,8 @@ export default function HashFunctions9() {
         onReplay={handleReset}
       />
 
-      <div className="flex flex-col w-full h-full min-h-0 relative font-sans overflow-hidden px-2 md:px-4 py-1 gap-2 md:gap-3 max-w-6xl mx-auto">
+      <div data-step={labCurrentStep}
+        className="flex flex-col w-full h-full min-h-0 relative font-sans overflow-hidden px-2 md:px-4 py-1 gap-2 md:gap-3 max-w-6xl mx-auto">
         
         {/* Mission HUD */}
         <div className="bg-white border-[3px] border-slate-200/70 shadow-lg shadow-sky-900/5 rounded-2xl px-4 py-2 shrink-0 flex items-center gap-2 self-center w-full max-w-2xl mt-1">
@@ -439,6 +500,24 @@ export default function HashFunctions9() {
         </div>
 
       </div>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={handleReset} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
     </LabShell>
   );
 }

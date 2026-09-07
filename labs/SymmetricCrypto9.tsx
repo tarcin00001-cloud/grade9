@@ -1,6 +1,7 @@
 "use client";
+import { Timer } from "lucide-react";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
@@ -13,6 +14,13 @@ type Step = 'LEARN' | 'TRY_PUBLIC' | 'FAIL_RAW' | 'UNDERSTAND' | 'IMPROVE' | 'CO
 // Token states
 type TokenState = 'empty' | 'base' | 'scrambled_a' | 'scrambled_b' | 'master' | 'encrypted_msg';
 
+
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ['LEARN', 'TRY_MANUAL', 'FAIL_OVERLOAD', 'UNDERSTAND', 'IMPROVE', 'COMPLETE', 'SECURE_CHAT', 'OUTCOME'];
+function marksForStep(s: any): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.round((index / (STEP_ORDER.length - 1)) * 100);
+}
 export default function SymmetricCrypto9() {
   const { reportComplete } = useLMSBridge("symmetriccrypto9");
   const { playPop, playZap, playError, playSuccess, playChime, playClick, playHeavyThud, playGearGrind } = useLabAudio();
@@ -26,6 +34,43 @@ export default function SymmetricCrypto9() {
   const [bobWelded, setBobWelded] = useState(false);
   const [aliceForged, setAliceForged] = useState(false);
   const [bobForged, setBobForged] = useState(false);
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = step;
+  const isLabComplete = (labCurrentStep as any) === "OUTCOME" || (labCurrentStep as any) === "COMPLETE";
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      try { playError(); } catch(e) {}
+      reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, labCurrentStep, reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(true);
@@ -68,7 +113,7 @@ export default function SymmetricCrypto9() {
           if (playSuccess) playSuccess();
           setTimeout(() => {
             if (isMounted.current) {
-              reportComplete();
+              reportComplete({ points: marksForStep(labCurrentStep) });
               if (playChime) playChime();
             }
           }, 2000);
@@ -136,6 +181,8 @@ export default function SymmetricCrypto9() {
   };
 
   const handleReset = () => {
+  setSecondsLeft(TIMER_DURATION_SECONDS);
+  setTimedOut(false);
     if (timerRef.current) clearTimeout(timerRef.current);
     setStep('LEARN');
     setAliceWelded(false);
@@ -182,6 +229,19 @@ export default function SymmetricCrypto9() {
   return (
     <LabShell
       labId="symmetriccrypto9"
+
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
       title="Symmetric Key Exchange"
       instruction="Use the cryptographic forge to securely exchange public keys and derive a shared master key, without ever exposing your private secrets."
       bgOverride="bg-gradient-to-b from-slate-100 via-white to-slate-200"
@@ -291,7 +351,8 @@ export default function SymmetricCrypto9() {
         </div>
 
         {/* WORKSTATION VIEW */}
-        <div className="flex-1 flex flex-col lg:flex-row items-stretch gap-4 lg:gap-8 mt-6">
+        <div data-step={labCurrentStep}
+        className="flex-1 flex flex-col lg:flex-row items-stretch gap-4 lg:gap-8 mt-6">
           
           {/* ALICE NODE */}
           <div className="flex-1 bg-slate-300 border-[6px] border-b-[12px] border-slate-400 rounded-2xl shadow-2xl flex flex-col relative min-w-0 z-20">
@@ -555,6 +616,24 @@ export default function SymmetricCrypto9() {
           </div>
         </div>
       </div>
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={handleReset} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
     </LabShell>
   );
 }

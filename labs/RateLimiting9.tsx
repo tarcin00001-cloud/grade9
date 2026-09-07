@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import { Timer } from "lucide-react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { ShieldCheck, AlertTriangle, XCircle, Trash2, Shield, Settings, Server } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Celebration from '@/components/Celebration';
@@ -27,6 +28,13 @@ function stageToStep(stage: Stage): Step {
   }
 }
 
+
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ['LEARN', 'TRY_MANUAL', 'FAIL_OVERLOAD', 'UNDERSTAND', 'IMPROVE', 'COMPLETE', 'OUTCOME'];
+function marksForStep(s: any): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.round((index / (STEP_ORDER.length - 1)) * 100);
+}
 export default function RateLimiting9() {
   const [stage, setStage] = useState<Stage>(1);
   const [isMounted, setIsMounted] = useState(false);
@@ -55,6 +63,43 @@ export default function RateLimiting9() {
 
   // React state just for painting frames
   const [renderPackets, setRenderPackets] = useState<Packet[]>([]);
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = stageToStep(stage);
+  const isLabComplete = (labCurrentStep as any) === "OUTCOME" || (labCurrentStep as any) === "COMPLETE";
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      try { playError(); } catch(e) {}
+      reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, labCurrentStep, reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
 
     useEffect(() => {
     const FPS = 30;
@@ -182,6 +227,8 @@ export default function RateLimiting9() {
 
 
   const handleReset = () => {
+  setSecondsLeft(TIMER_DURATION_SECONDS);
+  setTimedOut(false);
     setStage(1);
     setShowModal(false);
     setCapacity(10);
@@ -484,6 +531,24 @@ export default function RateLimiting9() {
           </motion.div>
         )}
       </AnimatePresence>
+
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={handleReset} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
 
     </LabShell>
   );

@@ -1,6 +1,7 @@
 "use client";
+import { Timer } from "lucide-react";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Play, ShieldAlert, ShieldCheck, Cpu, Database, AlertOctagon, Repeat, Lock, ArrowDownUp, CheckCircle2, XCircle, Save, Fuel, GitMerge, GitCommit } from 'lucide-react';
 import LabShell from '@/components/LabShell';
@@ -16,6 +17,13 @@ const BLOCKS = [
     { id: 'effect', text: 'balances[msg.sender] = 0;', color: 'text-emerald-300', border: 'border-l-emerald-500', bg: 'bg-emerald-900/20', desc: '3. EFFECT: Update internal balance' }
 ];
 
+
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ['LEARN', 'TRY_MANUAL', 'FAIL_OVERLOAD', 'UNDERSTAND', 'IMPROVE', 'COMPLETE', 'OUTCOME'];
+function marksForStep(s: any): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.round((index / (STEP_ORDER.length - 1)) * 100);
+}
 export default function EthereumDao9() {
     const { playClick, playPop, playError, playSuccess, playZap, playHeavyThud, playChime } = useLabAudio();
     const { reportComplete } = useLMSBridge("ethereumdao9");
@@ -34,6 +42,43 @@ export default function EthereumDao9() {
     // New mechanics state
     const [attempt, setAttempt] = useState(0); // 0 = First hack (low gas), 1 = Second hack (high gas)
     const [gas, setGas] = useState(100);
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = (phase === 'LEARN' ? 'LEARN' : phase === 'ATTACK_RUNNING' ? 'TRY_MANUAL' : phase === 'HACKED' ? 'FAIL_OVERLOAD' : phase === 'PATCHING' ? 'IMPROVE' : phase === 'PATCH_RUNNING' ? 'IMPROVE' : phase === 'SECURED' ? 'COMPLETE' : phase === 'GOVERNANCE' ? 'OUTCOME' : 'OUTCOME');
+  const isLabComplete = (labCurrentStep as any) === "OUTCOME" || (labCurrentStep as any) === "COMPLETE";
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      try { playError(); } catch(e) {}
+      reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, labCurrentStep, reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
 
     const attackRunningRef = useRef(false);
 
@@ -191,6 +236,8 @@ export default function EthereumDao9() {
     };
 
     const handleReset = () => {
+  setSecondsLeft(TIMER_DURATION_SECONDS);
+  setTimedOut(false);
         playClick();
         setPhase('LEARN');
         setAttempt(0);
@@ -227,6 +274,19 @@ export default function EthereumDao9() {
     return (
         <LabShell
             labId="ethereumdao9"
+
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
             title="The Ethereum DAO"
             instruction={phase === 'LEARN' ? "Step 1: Execute the withdrawal function to observe the race condition vulnerability." : phase === 'PATCHING' ? "Step 2: Drag and drop the code blocks to secure the new contract." : "Step 3: Resolve the crisis via community governance."}
             compact={true}
@@ -247,7 +307,8 @@ export default function EthereumDao9() {
                     <div className="flex-1 p-3 sm:p-4 overflow-hidden flex flex-col justify-center">
                         <div className="text-slate-400 font-mono text-sm mb-2 font-bold">function withdraw(uint amount) public {'{'}</div>
                         
-                        <div className="flex-1 flex flex-col gap-2 pl-3">
+                        <div data-step={labCurrentStep}
+        className="flex-1 flex flex-col gap-2 pl-3">
                             {phase === 'PATCHING' && (
                                 <div className="bg-amber-950/50 border border-amber-500/50 rounded-xl py-2 px-3 mb-1 flex items-center justify-center gap-2 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.15)]">
                                     <ArrowDownUp size={18} className="text-amber-400" />
@@ -339,7 +400,7 @@ export default function EthereumDao9() {
                                 <span className={`text-2xl md:text-3xl font-black tracking-tighter mt-1 ${daoBalance > 0 ? "text-indigo-700" : "text-rose-500"}`}>{Math.max(0, daoBalance)}M ETH</span>
                             </div>
 
-                            {/* Conduit */}
+                            {/* Channel */}
                             <div className="flex-1 px-2 md:px-4 relative flex items-center justify-center">
                                 <div className="w-full h-6 bg-slate-200 rounded-full overflow-hidden relative shadow-[inset_0_3px_6px_rgba(0,0,0,0.1)] border-2 border-slate-300">
                                     <AnimatePresence>
@@ -479,6 +540,24 @@ export default function EthereumDao9() {
                 onReplay={handleReset}
             />
 
-        </LabShell>
+        
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={handleReset} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
+    </LabShell>
     );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useMotionValue, useAnimationFrame, useMotionTemplate, useMotionValueEvent } from "framer-motion";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import { motion, AnimatePresence, useMotionValue, useAnimationFrame, useMotionTemplate, useMotionValueEvent , useTransform } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
@@ -140,7 +140,7 @@ export default function RoboticSurgery46() {
       if (latest > 40 && !hasStarted) setHasStarted(true);
   });
 
-  const pillOffsetX = useTransform(x, (val) => {
+  const pillOffsetX = useTransform(x, (val: any) => {
       const minCenter = 85;
       const maxCenter = bounds.w > 0 ? bounds.w - 85 : 1000;
       return Math.max(minCenter, Math.min(maxCenter, val)) - val;

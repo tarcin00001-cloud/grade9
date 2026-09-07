@@ -1,0 +1,212 @@
+<title>State Machine Brief</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #faf9f6; --paper-raised: #ffffff; --ink: #1c1a17; --ink-soft: #57534a; --ink-faint: #8a8477;
+    --line: #e4e0d8; --line-strong: #cfc9bc; --accent: #3730a3; --accent-soft: #eeecfb;
+    --pass: #0f766e; --pass-soft: #e3f3f1; --fail: #b91c1c; --fail-soft: #fbe9e7;
+    --warn: #b45309; --warn-soft: #faf0e0; --code-bg: #f1efe9;
+    --shadow: 0 1px 2px rgba(28,26,23,0.04), 0 8px 24px -12px rgba(28,26,23,0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161513; --paper-raised: #1e1c19; --ink: #f3f1ec; --ink-soft: #c7c1b4; --ink-faint: #8a8477;
+      --line: #322e28; --line-strong: #423d34; --accent: #a5a0f0; --accent-soft: #26234a;
+      --pass: #5eead4; --pass-soft: #14302c; --fail: #fca5a5; --fail-soft: #3a1a17;
+      --warn: #fcd34d; --warn-soft: #3a2a10; --code-bg: #201e1a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #161513; --paper-raised: #1e1c19; --ink: #f3f1ec; --ink-soft: #c7c1b4; --ink-faint: #8a8477;
+    --line: #322e28; --line-strong: #423d34; --accent: #a5a0f0; --accent-soft: #26234a;
+    --pass: #5eead4; --pass-soft: #14302c; --fail: #fca5a5; --fail-soft: #3a1a17;
+    --warn: #fcd34d; --warn-soft: #3a2a10; --code-bg: #201e1a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); }
+  code, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+
+  .masthead { border-bottom: 3px solid var(--ink); padding-bottom: 1.75rem; margin-bottom: 2.5rem; }
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); display: flex; gap: 0.6em; align-items: baseline; margin-bottom: 0.9rem; flex-wrap: wrap; }
+  .eyebrow .dot { color: var(--line-strong); }
+  h1 { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; font-weight: 600; font-size: clamp(2.1rem, 5vw, 2.9rem); line-height: 1.06; letter-spacing: -0.01em; margin: 0 0 0.6rem; text-wrap: balance; }
+  .masthead .dek { color: var(--ink-soft); font-size: 1.08rem; max-width: 66ch; margin: 0; }
+  .to-line { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; margin-top: 1.3rem; font-size: 0.85rem; color: var(--ink-faint); }
+  .to-line b { color: var(--ink-soft); font-weight: 600; }
+
+  .status-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 2rem 0 3rem; }
+  .status-cell { background: var(--paper-raised); padding: 1.1rem 1rem; }
+  .status-cell .num { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.8rem; line-height: 1; display: block; }
+  .status-cell .lbl { font-size: 0.76rem; color: var(--ink-faint); margin-top: 0.35rem; display: block; }
+  .status-cell.pass .num { color: var(--pass); }
+  .status-cell.warn .num { color: var(--warn); }
+  .status-cell.fail .num { color: var(--fail); }
+  @media (max-width: 560px) { .status-strip { grid-template-columns: 1fr 1fr; } }
+
+  section { margin: 3.2rem 0; }
+  .section-head { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.1rem; }
+  .section-num { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+  h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.5rem; margin: 0; letter-spacing: -0.005em; }
+  h3 { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1rem; margin: 1.7rem 0 0.6rem; }
+  p { color: var(--ink-soft); max-width: 70ch; }
+  p.lede { color: var(--ink); font-size: 1.05rem; }
+  strong { color: var(--ink); font-weight: 600; }
+
+  .callout { background: var(--accent-soft); border: 1px solid var(--line-strong); border-left: 4px solid var(--accent); border-radius: 6px; padding: 1.2rem 1.4rem; margin: 1.4rem 0; }
+  .callout p { color: var(--ink); max-width: none; margin: 0; }
+  .callout p + p { margin-top: 0.6rem; }
+  .callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout.fail { background: var(--fail-soft); border-left-color: var(--fail); }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+  th { text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); padding: 0.5rem 0.6rem; border-bottom: 2px solid var(--ink); }
+  td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; }
+  td.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--ink); }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--paper-raised); box-shadow: var(--shadow); }
+  .tbl-wrap table { margin: 0; }
+  .tbl-wrap th:first-child, .tbl-wrap td:first-child { padding-left: 1rem; }
+  .tbl-wrap th:last-child, .tbl-wrap td:last-child { padding-right: 1rem; }
+
+  .tier-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.2rem 0.55rem; border-radius: 999px; display: inline-block; }
+  .tier-tag.a { background: var(--pass-soft); color: var(--pass); }
+  .tier-tag.b { background: var(--accent-soft); color: var(--accent); }
+  .tier-tag.c { background: var(--warn-soft); color: var(--warn); }
+  .tier-tag.d { background: var(--fail-soft); color: var(--fail); }
+
+  ul.plain, ol.steps { padding-left: 1.3rem; color: var(--ink-soft); }
+  ul.plain li, ol.steps li { margin-bottom: 0.5rem; }
+  ol.steps li::marker { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; }
+
+  pre { margin: 0.6rem 0; padding: 0.85rem 1rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.55; }
+
+  .checklist { list-style: none; padding: 0; margin: 1rem 0; }
+  .checklist li { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.55rem 0; border-bottom: 1px solid var(--line); font-size: 0.92rem; color: var(--ink-soft); }
+  .checklist .box { flex-shrink: 0; width: 18px; height: 18px; border: 2px solid var(--line-strong); border-radius: 4px; margin-top: 0.15rem; }
+
+  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--ink-faint); }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Grade 9 Computing Labs <span class="dot">&middot;</span> Phase 3 Draft <span class="dot">&middot;</span> 2026-09-05</div>
+    <h1>One Lab in Fifty-Nine Uses the Type as Written</h1>
+    <p class="dek">The master lab prompt asks for a literal <code>type Step</code> enum with seven exact stages. Only <code>colossus28</code> has it. This brief lays out what the other 58 actually use instead &mdash; and why this is a riskier, lower-priority pass than the theme work already underway.</p>
+    <div class="to-line">
+      <span><b>Status:</b> Drafted, not yet approved &mdash; read the risk section before starting</span>
+      <span><b>Sibling:</b> <a href="https://claude.ai/code/artifact/e33c704e-97e3-4f99-a06c-dd8e7c12f632">Theme &amp; Mobile brief</a> (approved, in progress)</span>
+    </div>
+  </div>
+
+  <div class="status-strip">
+    <div class="status-cell pass"><span class="num">1/59</span><span class="lbl">exact canonical match (<code>colossus28</code>)</span></div>
+    <div class="status-cell warn"><span class="num">11/59</span><span class="lbl">close &mdash; right shape or right name, not both</span></div>
+    <div class="status-cell fail"><span class="num">47/59</span><span class="lbl">no canonical signal detected</span></div>
+    <div class="status-cell fail"><span class="num">3&times;</span><span class="lbl">the file-count risk vs. the theme pass</span></div>
+  </div>
+
+  <section>
+    <div class="section-head"><span class="section-num">00</span><h2>What's actually being asked for</h2></div>
+    <p class="lede">Every lab is supposed to declare one type, named exactly <code>Step</code>, with exactly these seven values in order:</p>
+    <pre>type Step = 'LEARN' | 'TRY_MANUAL' | 'FAIL_OVERLOAD'
+          | 'UNDERSTAND' | 'IMPROVE' | 'COMPLETE' | 'OUTCOME';</pre>
+    <p>This isn't a student-facing requirement &mdash; it's so a future tool or agent can grep for <code>type Step</code> and reliably find every lab's lifecycle. Right now that grep finds one file.</p>
+    <div class="callout">
+      <p><strong>This is a consistency gap, not a broken lab.</strong> Most of the 58 non-matching labs have a real learn&rarr;fail&rarr;fix arc &mdash; just under a different type name, or different stage names, or folded into a mission-board UI. <code>ransomware9</code>'s 6-phase incident-response flow is genuinely solid pedagogy; it's just typed as <code>Phase</code> with values like <code>M1_LEARN</code>, <code>M2_FIREWALL</code>, not <code>Step</code>.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">01</span><h2>The four tiers, as measured</h2></div>
+
+    <h3><span class="tier-tag a">Tier A</span> Exact match &mdash; 1 lab</h3>
+    <p><code>colossus28</code>. Use this file as the reference implementation for what &ldquo;done&rdquo; looks like.</p>
+
+    <h3><span class="tier-tag b">Tier B</span> Named <code>Step</code>, values diverge &mdash; 7 labs</h3>
+    <p>Lowest-risk fix in this brief: the type name is already right, so only the string values change &mdash; no rename needed at any usage site.</p>
+    <div class="tbl-wrap"><table>
+      <tr><th>Slug</th><th>Current values</th></tr>
+      <tr><td class="mono">hashfunctions9</td><td class="mono">LEARN, TRY_ORIGINAL, TRY_SNEAK, FAIL, UNDERSTAND, IMPROVE, COMPLETE, OUTCOME</td></tr>
+      <tr><td class="mono">symmetriccrypto9</td><td class="mono">LEARN, TRY_PUBLIC, FAIL_RAW, UNDERSTAND, IMPROVE, COMPLETE, SECURE_CHAT, OUTCOME</td></tr>
+      <tr><td class="mono">aieducation22</td><td class="mono">LEARN, TRY_MANUAL, FAIL_OVERLOAD, UNDERSTAND, IMPROVE, BATCH_SCALE, OUTCOME</td></tr>
+      <tr><td class="mono">networkinterface31</td><td class="mono">LEARN, INIT_MAC, INIT_MEDIUM, TRY_RAW, FAIL_CPU, UNDERSTAND, IMPROVE, OUTCOME</td></tr>
+      <tr><td class="mono">datavisualization36</td><td class="mono">LEARN, TRY_RAW, FAIL_PIE, UNDERSTAND, IMPROVE, COMPLETE, OUTCOME</td></tr>
+      <tr><td class="mono">computingproject39</td><td class="mono">LEARN, FAIL_SCOPE, IMPROVE, COMPLETE, OUTCOME</td></tr>
+      <tr><td class="mono">jwttokens9</td><td class="mono">EXPLORE, TAMPERED, VERIFYING, REJECTED, ACCEPTED</td></tr>
+    </table></div>
+    <div class="callout warn">
+      <p><strong><code>jwttokens9</code> is a real exception, not a rename.</strong> Its <code>Step</code> type describes JWT-tampering detection &mdash; a genuinely different concept from learn/fail/improve. Forcing canonical values onto it would describe a mechanic that isn't there. This one needs a decision (keep as a differently-named type, or add a separate outer arc), not a find-and-replace.</p>
+    </div>
+
+    <h3><span class="tier-tag c">Tier C</span> Right shape, wrong type name &mdash; 4 labs</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Slug</th><th>Current name</th><th>Values</th></tr>
+      <tr><td class="mono">ethereumdao9</td><td class="mono">Phase</td><td class="mono">LEARN, ATTACK_RUNNING, HACKED, PATCHING, PATCH_RUNNING, SECURED, GOVERNANCE, COMPLETED</td></tr>
+      <tr><td class="mono">quantumcomputing9</td><td class="mono">Phase</td><td class="mono">LEARN, FAIL, UNDERSTAND, IMPROVE, COMPLETE, OUTCOME</td></tr>
+      <tr><td class="mono">asymmetriccrypto9</td><td class="mono">Mission1Step</td><td class="mono">LEARN, TRY, FAIL, UNDERSTAND, IMPROVE, COMPLETE, OUTCOME</td></tr>
+      <tr><td class="mono">gesturecontrol40</td><td class="mono">LabStep</td><td class="mono">LEARN, TRY, FAIL, UNDERSTAND, IMPROVE, COMPLETE, OUTCOME</td></tr>
+    </table></div>
+    <p><code>asymmetriccrypto9</code> also has a second, incompatible <code>Mission2Step</code> type in the same file &mdash; needs reconciling too, or a documented reason the mission split stays separate.</p>
+
+    <h3><span class="tier-tag d">Tier D</span> No canonical signal &mdash; 47 labs</h3>
+    <p>The large, high-effort tier. <strong>Not one uniform batch</strong> &mdash; each lab needs sub-classifying before it's touched:</p>
+    <ol class="steps">
+      <li><strong>Real narrative shape, different vocabulary</strong> &mdash; e.g. <code>ransomware9</code>'s 6-mission incident-response arc, <code>bufferoverflow9</code>'s <code>IDLE&rarr;PROCESSING&rarr;CRASHED&rarr;HIJACKED&rarr;SECURED</code>. These just weren't caught by the automated check because they don't use the word LEARN.</li>
+      <li><strong>Mission-board / multi-track labs</strong> &mdash; e.g. <code>csrfattacks9</code>'s 8-mission board. Per the same guardrail already set for the theme pass: keep the board, route its transitions through an underlying <code>Step</code> type rather than flattening it into one stepper.</li>
+      <li><strong>Genuinely no lifecycle type</strong> &mdash; numeric index, boolean flags, tab strings. Highest effort: introducing a type where none conceptually exists yet.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2>Why this is riskier than the theme pass</h2></div>
+    <div class="callout fail">
+      <p><strong>This touches state logic, not presentation.</strong> Renaming a type and its values means finding every <code>useState&lt;Phase&gt;</code>, every <code>phase === 'X'</code> conditional, every <code>setPhase('Y')</code>, and every UI element reading that value to decide what to show. One missed site is a silent runtime bug &mdash; a lab that gets stuck, a button that never appears &mdash; not a lint warning.</p>
+    </div>
+    <ul class="plain">
+      <li>47 labs in the hardest tier is roughly triple the file count the theme pass touches.</li>
+      <li>Tier D's mission-board labs need a pedagogy judgment call this brief can't make in advance &mdash; deciding exactly where a canonical failure transition fires inside an existing 8-mission sandbox is lab-specific design work.</li>
+      <li>The payoff is tooling consistency, not a student-facing fix. Unlike the broken LMS bridges or the dark-void violations already fixed, no student is affected today by <code>ransomware9</code> using <code>Phase</code> instead of <code>Step</code>. Sequence this after work with direct impact, not instead of it.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2>Scope boundaries</h2></div>
+    <ul class="plain">
+      <li>Renames and reconciles types and values only. No new mechanics, no new failure states, no layout changes.</li>
+      <li>Mission-board labs keep their board &mdash; no flattening into a linear stepper.</li>
+      <li><code>jwttokens9</code> needs a decision, not a value rename (see Tier B).</li>
+      <li>Nothing outside the 59-lab catalog.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">04</span><h2>If approved: suggested order</h2></div>
+    <ol class="steps">
+      <li><strong>Wave 1 &mdash; Tier B (7 labs).</strong> Value-only changes inside an already-correct type name. Lowest risk.</li>
+      <li><strong>Wave 2 &mdash; Tier C (4 labs).</strong> Rename the type at its declaration and every usage site. Don't start until Wave 1 is verified.</li>
+      <li><strong>Wave 3 &mdash; Tier D, sub-batched.</strong> Real-shape-different-vocabulary labs first, then mission-boards, then genuinely-untyped labs last. Don't start until Wave 2 is verified.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">05</span><h2>Verification bar &mdash; higher than the theme pass</h2></div>
+    <ul class="checklist">
+      <li><span class="box"></span> <code>npx tsc --noEmit</code> &mdash; 0 new errors. This is the primary safety net here: a missed rename site surfaces as a type error.</li>
+      <li><span class="box"></span> <code>node scripts/lint-labs.js</code> &mdash; 0 new violations.</li>
+      <li><span class="box"></span> Grep each touched file for the old type name and old value strings &mdash; confirm zero remain, not just that new ones exist.</li>
+      <li><span class="box"></span> <strong>Render and click through the lab's full flow</strong>, not just its resting screen. A renamed value that breaks a loosely-typed conditional won't show up in <code>tsc</code> or a first-screen screenshot.</li>
+      <li><span class="box"></span> Report per lab: old type/values, new type/values, confirmation the full flow was exercised.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Full per-lab detail and the reproducible audit script live in <code>docs/tracking/PHASE3_STATE_MACHINE_BRIEF.md</code>. Not yet approved for execution &mdash; review the risk section (&sect;02) before greenlighting alongside the theme &amp; mobile pass already underway.
+  </footer>
+
+</div>

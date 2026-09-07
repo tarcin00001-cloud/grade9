@@ -1,6 +1,7 @@
 "use client";
+import { Timer } from "lucide-react";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import LabShell from "@/components/LabShell";
 import Colossus3DScene from "@/components/Colossus3DScene";
 import Celebration from "@/components/Celebration";
@@ -24,6 +25,13 @@ const STEPS: { id: Step; label: string }[] = [
   { id: 'OUTCOME', label: '7. Decrypted' }
 ];
 
+
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ['LEARN', 'TRY_MANUAL', 'FAIL_OVERLOAD', 'UNDERSTAND', 'IMPROVE', 'COMPLETE', 'OUTCOME'];
+function marksForStep(s: any): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.round((index / (STEP_ORDER.length - 1)) * 100);
+}
 export default function Colossus28() {
   const { playClick, playSuccess, playError, playGearGrind } = useLabAudio();
   const { reportComplete } = useLMSBridge("colossus28");
@@ -38,6 +46,43 @@ export default function Colossus28() {
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptProgress, setDecryptProgress] = useState(0);
   const [isShaking, setIsShaking] = useState(false);
+
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = step;
+  const isLabComplete = (labCurrentStep as any) === "OUTCOME" || (labCurrentStep as any) === "COMPLETE";
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      try { playError(); } catch(e) {}
+      reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, labCurrentStep, reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
 
   const handleMechanicalSpin = () => {
     if (playGearGrind) playGearGrind();
@@ -77,7 +122,7 @@ export default function Colossus28() {
             setIsDecrypting(false);
             if (playSuccess) playSuccess();
             setStep('OUTCOME');
-            setTimeout(reportComplete, 1500);
+            setTimeout(() => reportComplete({ points: marksForStep(labCurrentStep) }), 1500);
             return 100;
           }
           // Fast progress to simulate speed
@@ -89,6 +134,8 @@ export default function Colossus28() {
   }, [isDecrypting, playSuccess, reportComplete]);
 
   const resetLab = () => {
+  setSecondsLeft(TIMER_DURATION_SECONDS);
+  setTimedOut(false);
     setStep('LEARN');
     setMechanicalTries(0);
     setTapeLoaded(false);
@@ -186,7 +233,8 @@ export default function Colossus28() {
         </div>
 
         {/* Main Split Content */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0">
+        <div data-step={labCurrentStep}
+        className="flex-1 flex flex-col lg:flex-row gap-3 min-h-0">
           
           {/* Left Side: 3D Viewport */}
           <div className="flex-[1.2] lg:flex-[1.4] bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden relative min-h-[250px] lg:min-h-0">
@@ -425,6 +473,24 @@ export default function Colossus28() {
         message="You successfully programmed Colossus and broke the Lorenz cipher!" 
         onReplay={resetLab} 
       />
+    
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={resetLab} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
     </LabShell>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
@@ -796,7 +796,7 @@ export default function SmartRing32() {
       instruction="A Smart Ring has a battery smaller than a grain of rice. Master the tradeoffs of continuous monitoring versus ultra-low-power embedded algorithms." 
       compact
     >
-      <Celebration isActive={completedTabs.every(Boolean)} message="Firmware Certified! You have mastered power-budget tradeoffs for wearable computing." onReplay={() => {}} />
+      <Celebration isActive={completedTabs.every(Boolean)} message="Microcode Certified! You have mastered power-budget tradeoffs for wearable computing." onReplay={() => {}} />
 
       <div className="w-full flex flex-col flex-1 min-h-0 max-w-6xl mx-auto relative z-10 pt-2 gap-4">
         

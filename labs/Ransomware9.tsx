@@ -1,6 +1,7 @@
 "use client";
+import { Timer } from "lucide-react";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import LabShell from '@/components/LabShell';
 import { useLabAudio } from '@/hooks/useLabAudio';
 import { useLMSBridge } from '@/hooks/useLMSBridge';
@@ -21,6 +22,13 @@ type Phase =
     | 'M5_FORENSICS' | 'M5_SUCCESS'
     | 'M6_HARDENING' | 'M6_SUCCESS';
 
+
+const TIMER_DURATION_SECONDS = 5 * 60;
+const STEP_ORDER = ['LEARN', 'TRY_MANUAL', 'FAIL_OVERLOAD', 'UNDERSTAND', 'IMPROVE', 'COMPLETE', 'OUTCOME'];
+function marksForStep(s: any): number {
+  const index = STEP_ORDER.indexOf(s);
+  return Math.round((index / (STEP_ORDER.length - 1)) * 100);
+}
 export default function RansomwareIncidentResponse() {
     const { reportComplete } = useLMSBridge('ransomware9');
     const { playPop, playZap, playError, playSuccess, playClick, playHeavyThud } = useLabAudio();
@@ -54,12 +62,51 @@ export default function RansomwareIncidentResponse() {
     const [chipSwapped, setChipSwapped] = useState(false);
     const [taskProgress, setTaskProgress] = useState(0);
 
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const labCurrentStep = (phase.includes('LEARN') ? 'LEARN' : phase.includes('OUTCOME') ? 'OUTCOME' : phase.includes('FAILED') ? 'FAIL_OVERLOAD' : phase.includes('COMPLETE') ? 'COMPLETE' : phase.includes('CONTAINED') ? 'COMPLETE' : 'IMPROVE');
+  const isLabComplete = (labCurrentStep as any) === "OUTCOME" || (labCurrentStep as any) === "COMPLETE";
+
+  useEffect(() => {
+    if (timedOut || isLabComplete) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, isLabComplete]);
+
+  useEffect(() => {
+    if (timedOut) {
+      try { playError(); } catch(e) {}
+      reportComplete({ points: marksForStep(labCurrentStep) });
+    }
+  }, [timedOut, labCurrentStep, reportComplete]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
+
     const attackIdRef = useRef(0);
     const networkRef = useRef(networkConnected);
     networkRef.current = networkConnected;
     const constraintsRef = useRef(null);
 
     const handleReset = () => {
+  setSecondsLeft(TIMER_DURATION_SECONDS);
+  setTimedOut(false);
         attackIdRef.current += 1;
         setPhase('M1_LEARN');
         setLocalFiles([
@@ -321,7 +368,8 @@ export default function RansomwareIncidentResponse() {
 
     // M1 WORKSPACE
     const renderM1Workspace = () => (
-        <div className="w-full h-full flex flex-col items-center justify-center p-4">
+        <div data-step={labCurrentStep}
+        className="w-full h-full flex flex-col items-center justify-center p-4">
             <div className="flex flex-col lg:flex-row items-center justify-center gap-6 md:gap-8 w-full max-w-4xl">
                 {/* LOCAL DRIVE */}
                 {renderMonitorBase("LOCAL_C:\\", HardDrive, 
@@ -749,7 +797,7 @@ export default function RansomwareIncidentResponse() {
                                 playSuccess();
                                 setChipSwapped(true);
                                 setPhase('M6_SUCCESS');
-                                reportComplete();
+                                reportComplete({ points: marksForStep(labCurrentStep) });
                             }
                         }}
                         className={`w-32 py-4 rounded-xl border-2 flex flex-col items-center justify-center shadow-lg transition-all ${
@@ -770,6 +818,19 @@ export default function RansomwareIncidentResponse() {
     return (
         <LabShell 
             labId="ransomware9"
+
+      navExtra={
+        !isLabComplete && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-700"
+          }`}>
+            <Timer size={16} strokeWidth={2.5} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
             title="Incident Response Lifecycle"
             compact={true}
             theme="ocean"
@@ -849,6 +910,24 @@ export default function RansomwareIncidentResponse() {
                 </div>
 
             </div>
-        </LabShell>
+        
+      {timedOut && !isLabComplete && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
+            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Timer className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-600 mb-4">
+              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+            </p>
+            <button onClick={handleReset} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
+    </LabShell>
     );
 }

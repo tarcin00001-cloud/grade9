@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import { useLMSBridge } from "@/hooks/useLMSBridge";

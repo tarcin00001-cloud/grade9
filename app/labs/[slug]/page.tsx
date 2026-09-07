@@ -137,5 +137,32 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (slug === "propositionallogic42") return <PropositionalLogic42 />;
   if (slug === "testingstrategies43") return <TestingStrategies43 />;
 
+  if (slug === 'containerization9') return <Containerization9 />;
+  if (slug === 'databaseindexing9') return <DatabaseIndexing9 />;
+  if (slug === 'digitalsignatures9') return <DigitalSignatures9 />;
+  if (slug === 'edgecomputing9') return <EdgeComputing9 />;
+  if (slug === 'eventsourcing9') return <EventSourcing9 />;
+  if (slug === 'publickeyinfrastructure9') return <PublicKeyInfrastructure9 />;
+  if (slug === 'serverlessfunctions9') return <ServerlessFunctions9 />;
+  if (slug === 'smartcontracts9') return <SmartContracts9 />;
+  if (slug === 'subnetting9') return <Subnetting9 />;
+  if (slug === 'twofactorauth9') return <TwoFactorAuth9 />;
+  if (slug === 'vectordatabases9') return <VectorDatabases9 />;
+  if (slug === 'websockets9') return <WebSockets9 />;
+  if (slug === 'loadbalancing9') return <LoadBalancing9 />;
   return <PlannedLabPage lab={lab} />;
-}
+}import Containerization9 from '@/labs/Containerization9';
+import DatabaseIndexing9 from '@/labs/DatabaseIndexing9';
+import DigitalSignatures9 from '@/labs/DigitalSignatures9';
+import EdgeComputing9 from '@/labs/EdgeComputing9';
+import EventSourcing9 from '@/labs/EventSourcing9';
+import PublicKeyInfrastructure9 from '@/labs/PublicKeyInfrastructure9';
+import ServerlessFunctions9 from '@/labs/ServerlessFunctions9';
+import SmartContracts9 from '@/labs/SmartContracts9';
+import Subnetting9 from '@/labs/Subnetting9';
+import TwoFactorAuth9 from '@/labs/TwoFactorAuth9';
+import VectorDatabases9 from '@/labs/VectorDatabases9';
+import WebSockets9 from '@/labs/WebSockets9';
+import LoadBalancing9 from '@/labs/LoadBalancing9';
+
+

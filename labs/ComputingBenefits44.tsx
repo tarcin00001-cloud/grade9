@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLabAudio } from '@/hooks/useLabAudio';
 import { useLMSBridge } from '@/hooks/useLMSBridge';
@@ -356,7 +356,7 @@ export default function ComputingBenefits44() {
                     {trafficData === 0 ? "Awaiting live camera feeds..." :
                      trafficData < 50 ? `Aggregating ${trafficData}TB of traffic camera data...` :
                      trafficData < 100 ? "Running combinatorial pathfinding..." :
-                     "💡 INSIGHT: Rerouting 400 cars. Traffic jam averted. Saved 500gal gas."}
+                     " INSIGHT: Rerouting 400 cars. Traffic jam averted. Saved 500gal gas."}
                   </div>
                 </div>
 
@@ -379,7 +379,7 @@ export default function ComputingBenefits44() {
                     {farmData === 0 ? "Awaiting satellite data..." :
                      farmData < 50 ? `Aggregating ${farmData}TB of infrared imagery...` :
                      farmData < 100 ? "Running predictive weather models..." :
-                     "💡 INSIGHT: Sector 4 soil saturated. Shutting off sprinklers. Saved 10,000gal."}
+                     " INSIGHT: Sector 4 soil saturated. Shutting off sprinklers. Saved 10,000gal."}
                   </div>
                 </div>
               </div>

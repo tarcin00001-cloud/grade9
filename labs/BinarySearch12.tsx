@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
@@ -8,7 +8,7 @@ import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
 import { Search, ArrowDownWideNarrow, XCircle, CheckCircle2, Navigation, FastForward, Trophy } from "lucide-react";
 
-// Generate distinct sorted arrays for levels
+// Generate distinct ordered arrays for levels
 const LEVEL1_UNSORTED = [73, 15, 119, 9, 4, 137, 82, 50, 94, 150, 42, 61, 31, 108, 23, 125];
 const LEVEL1_SORTED = [...LEVEL1_UNSORTED].sort((a, b) => a - b);
 const generateSortedArray = (size: number) => {
@@ -86,7 +86,7 @@ export default function BinarySearch12() {
     setHigh(15);
     setMidIndex(null);
     setMoves(0);
-    setFeedback("List is sorted! Now try the Binary Search logic again.");
+    setFeedback("List is ordered! Now try the Binary Search logic again.");
     playZap();
   };
 
@@ -174,7 +174,7 @@ export default function BinarySearch12() {
       hint="Binary search needs ordered data. In pick_mid, find the center of the active white cards."
       bgOverride="bg-slate-50"
       compact={true}
-      instruction={`Level ${level} of 3: ${level === 1 ? "See why sorted data is a strict requirement!" : `Crush ${activeList.length} items in minimal moves.`}`}
+      instruction={`Level ${level} of 3: ${level === 1 ? "See why ordered data is a strict requirement!" : `Crush ${activeList.length} items in minimal moves.`}`}
       onReset={handleReset}
     >
       <Celebration

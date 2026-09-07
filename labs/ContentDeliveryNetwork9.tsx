@@ -3,7 +3,7 @@ Provides a Grade 9 computing lab visualizing a Content Delivery Network (CDN) wi
 */
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import LabShell from "@/components/LabShell";
 import Celebration from "@/components/Celebration";

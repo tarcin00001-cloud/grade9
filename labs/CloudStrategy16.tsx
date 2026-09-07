@@ -1,6 +1,6 @@
 // This file is auto-generated. Do not edit directly.
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import LabShell from "@/components/LabShell";

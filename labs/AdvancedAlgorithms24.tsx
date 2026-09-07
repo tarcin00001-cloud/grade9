@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
@@ -21,10 +21,10 @@ const TABS = [
 
 const ALL_SCENARIOS = [
   // Binary Search
-  { id: 0, text: "Locate a specific user profile instantly within a sorted database of 10 billion records.", correct: 'bs' },
-  { id: 1, text: "Quickly find a word's definition in a digital dictionary that is strictly sorted alphabetically.", correct: 'bs' },
+  { id: 0, text: "Locate a specific user profile instantly within a ordered database of 10 billion records.", correct: 'bs' },
+  { id: 1, text: "Quickly find a word's definition in a digital dictionary that is strictly ordered alphabetically.", correct: 'bs' },
   { id: 2, text: "Guess a secret number between 1 and 1,000,000 using the absolute fewest possible attempts.", correct: 'bs' },
-  { id: 3, text: "Pinpoint the exact timestamp of a specific error in a massive, chronologically sorted server log.", correct: 'bs' },
+  { id: 3, text: "Pinpoint the exact timestamp of a specific error in a massive, chronologically ordered server log.", correct: 'bs' },
   { id: 4, text: "Identify a specific song by its unique catalog ID in a highly structured, ordered music library.", correct: 'bs' },
   
   // Merge Sort
@@ -32,7 +32,7 @@ const ALL_SCENARIOS = [
   { id: 6, text: "Combine and sort millions of decentralized customer records pulled from 50 different retail branches.", correct: 'ms' },
   { id: 7, text: "Organize an e-commerce catalog of 500 million products by price using external memory.", correct: 'ms' },
   { id: 8, text: "Efficiently process and sort massive genome sequencing data files that are too large to fit in RAM.", correct: 'ms' },
-  { id: 9, text: "Systematically stitch together thousands of smaller, sorted log files into one massive timeline.", correct: 'ms' },
+  { id: 9, text: "Systematically stitch together thousands of smaller, ordered log files into one massive timeline.", correct: 'ms' },
   
   // DFS
   { id: 10, text: "Solve a logic maze by completely exploring a single path to a dead-end before backtracking.", correct: 'dfs' },
@@ -388,7 +388,7 @@ export default function AdvancedAlgorithms24() {
          <ArrowDown size={24} className="text-slate-300 animate-bounce sm:w-8 sm:h-8 lg:w-10 lg:h-10" />
        </div>
 
-       {/* Merged Array Tray */}
+       {/* Merged List Tray */}
        <div className="bg-slate-50 border-4 border-slate-200 rounded-2xl lg:rounded-[2rem] p-2 sm:p-4 w-full max-w-4xl flex gap-2 sm:gap-4 justify-center items-center shrink-0">
           {msMerged.map((num) => (
              <motion.div 
