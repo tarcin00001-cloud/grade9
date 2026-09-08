@@ -185,6 +185,7 @@ function toSvgCoord(v: number, min: number, max: number) {
   return min + ((v + 1) / 2) * (max - min);
 }
 
+// Trigger HMR update
 export default function VectorDatabases9() {
   const { reportComplete: _reportComplete } = useLMSBridge("vectordatabases9");
   const { playPop, playZap, playError, playSuccess, playClick, playChime } = useLabAudio();
@@ -917,6 +918,7 @@ export default function VectorDatabases9() {
             </div>
 
             {/* Quick Query Chips */}
+            {!steps.tryVectorSearch && (
             <div className="shrink-0 flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Test:</span>
               {[
@@ -944,9 +946,10 @@ export default function VectorDatabases9() {
                   >
                     "{item.word}"
                   </button>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* 3. Real-Time Result Inspector */}
             <div className="flex-1 min-h-[140px] flex flex-col justify-center">
