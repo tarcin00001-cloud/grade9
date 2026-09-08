@@ -501,19 +501,19 @@ export default function VectorDatabases9() {
         {/* ── Main Workspace: Observatory Canvas (Left) + Workstation Deck (Right) ── */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3">
           {/* ════ LEFT PANE: CELESTIAL SEMANTIC RADAR OBSERVATORY ════ */}
-          <div className="lg:col-span-7 flex flex-col min-h-0 bg-[#050814] rounded-2xl border border-slate-800/90 shadow-lg relative overflow-hidden">
+          <div className="lg:col-span-7 flex flex-col min-h-0 bg-white rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden">
             {/* Observatory Header Strip */}
-            <div className="shrink-0 px-3 py-1.5 bg-[#0a1024]/90 border-b border-slate-800 flex items-center justify-between text-xs">
+            <div className="shrink-0 px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-slate-700">
                   Semantic Radar Space [2D Projection]
                 </span>
               </div>
               <div className="flex items-center gap-1.5 font-mono text-[10px]">
                 <span className="text-slate-400">Dimensions:</span>
-                <span className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 font-bold">X: Category</span>
-                <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-bold">Y: Concrete/Abstract</span>
+                <span className="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 font-bold">X: Category</span>
+                <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">Y: Concrete/Abstract</span>
               </div>
             </div>
 
@@ -594,16 +594,16 @@ export default function VectorDatabases9() {
                 />
 
                 {/* Axis Labels */}
-                <text x={SVG_W - PAD + 4} y={SVG_H / 2 + 3} fill="#64748b" fontSize="9" fontFamily="monospace">
+                <text x={SVG_W - PAD + 4} y={SVG_H / 2 + 3} fill="#94a3b8" fontSize="9" fontFamily="monospace">
                   +X
                 </text>
-                <text x={PAD - 18} y={SVG_H / 2 + 3} fill="#64748b" fontSize="9" fontFamily="monospace">
+                <text x={PAD - 18} y={SVG_H / 2 + 3} fill="#94a3b8" fontSize="9" fontFamily="monospace">
                   -X
                 </text>
-                <text x={SVG_W / 2 + 4} y={PAD - 4} fill="#64748b" fontSize="9" fontFamily="monospace">
+                <text x={SVG_W / 2 + 4} y={PAD - 4} fill="#94a3b8" fontSize="9" fontFamily="monospace">
                   +Y
                 </text>
-                <text x={SVG_W / 2 + 4} y={SVG_H - PAD + 14} fill="#64748b" fontSize="9" fontFamily="monospace">
+                <text x={SVG_W / 2 + 4} y={SVG_H - PAD + 14} fill="#94a3b8" fontSize="9" fontFamily="monospace">
                   -Y
                 </text>
 
@@ -840,7 +840,7 @@ export default function VectorDatabases9() {
                 {Object.entries(CATEGORY_META).map(([catKey, meta]) => (
                   <div key={catKey} className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: meta.color }} />
-                    <span className="text-slate-300 font-mono">{meta.label}</span>
+                    <span className="text-slate-700 font-mono">{meta.label}</span>
                   </div>
                 ))}
               </div>
@@ -938,7 +938,7 @@ export default function VectorDatabases9() {
                     onClick={() => handleSelectPreset(item.word)}
                     className={`px-2 py-0.5 rounded-lg text-[11px] font-mono font-bold transition-all border cursor-pointer ${
                       isRecommended
-                        ? "bg-amber-100 border-amber-400 text-amber-900 animate-pulse ring-2 ring-amber-300"
+                        ? "bg-amber-200 border-amber-500 text-amber-950 animate-pulse ring-2 ring-amber-300/50"
                         : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
                     }`}
                   >
@@ -1079,7 +1079,8 @@ export default function VectorDatabases9() {
             </div>
 
             {/* 4. Pedagogical Concept Assessment Card */}
-            <div className="shrink-0 border-t border-slate-200 pt-2 flex flex-col gap-1.5">
+            {steps.tryVectorSearch && (
+            <div className="shrink-0 border-t border-slate-200 pt-3 mt-1 flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
                   <HelpCircle size={13} className="text-indigo-600" />
@@ -1137,6 +1138,7 @@ export default function VectorDatabases9() {
                 </button>
               )}
             </div>
+            )}
           </div>
         </div>
       </div>
