@@ -629,7 +629,7 @@ export default function VectorDatabases9() {
                     const qx = toSvgCoord(vectorResult.coords[0], PAD, SVG_W - PAD);
                     const qy = toSvgCoord(-vectorResult.coords[1], PAD, SVG_H - PAD);
                     const nx = toSvgCoord(vectorResult.nearest.x, PAD, SVG_W - PAD);
-                    const ny = toSvgCoord(-vectorResult.nearest.y, PAD, SVG_W - PAD);
+                    const ny = toSvgCoord(-vectorResult.nearest.y, PAD, SVG_H - PAD);
                     const midX = (qx + nx) / 2;
                     const midY = (qy + ny) / 2;
 
@@ -892,7 +892,7 @@ export default function VectorDatabases9() {
                   placeholder={
                     mode === "SQL" ? 'Type exact word, e.g. "cat" or "automobile"' : 'Search concept, e.g. "automobile", "kitten"'
                   }
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-900 font-medium placeholder-slate-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-2 py-1.5 text-xs sm:text-xs text-slate-900 font-medium placeholder-slate-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
                 />
               </div>
 
@@ -936,7 +936,7 @@ export default function VectorDatabases9() {
                   <button
                     key={item.word}
                     onClick={() => handleSelectPreset(item.word)}
-                    className={`px-2 py-0.5 rounded-lg text-[11px] font-mono font-bold transition-all border cursor-pointer ${
+                    className={`px-1.5 py-0 rounded-md text-[10px] font-mono font-bold transition-all border cursor-pointer ${
                       isRecommended
                         ? "bg-amber-200 border-amber-500 text-amber-950 animate-pulse ring-2 ring-amber-300/50"
                         : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
@@ -1018,7 +1018,7 @@ export default function VectorDatabases9() {
                     key="vector-result"
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-3 rounded-xl bg-indigo-50/90 border border-indigo-200 text-indigo-950 flex flex-col gap-2"
+                    className="p-2 rounded-xl bg-indigo-50/90 border border-indigo-200 text-indigo-950 flex flex-col gap-1.5"
                   >
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="flex items-center gap-1.5 text-indigo-700">
@@ -1030,7 +1030,7 @@ export default function VectorDatabases9() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-2 gap-1.5 text-xs">
                       <div className="p-2 rounded-lg bg-white border border-indigo-100 flex flex-col">
                         <span className="text-[10px] text-slate-500 font-bold uppercase">Query Embedding</span>
                         <span className="font-bold text-rose-600 font-mono">"{vectorResult.queryWord}"</span>
@@ -1080,7 +1080,7 @@ export default function VectorDatabases9() {
 
             {/* 4. Pedagogical Concept Assessment Card */}
             {steps.tryVectorSearch && (
-            <div className="shrink-0 border-t border-slate-200 pt-3 mt-1 flex flex-col gap-1.5">
+            <div className="shrink-0 border-t border-slate-200 pt-2 mt-0 flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
                   <HelpCircle size={13} className="text-indigo-600" />
@@ -1107,7 +1107,7 @@ export default function VectorDatabases9() {
                     key={optIdx}
                     onClick={() => handleAnswerQuiz(optIdx)}
                     disabled={steps.passedQuiz}
-                    className={`p-2 rounded-lg text-left text-xs font-medium border transition-all cursor-pointer ${
+                    className={`p-1.5 rounded-lg text-left text-[11px] leading-tight font-medium border transition-all cursor-pointer ${
                       quizSelectedOption === optIdx
                         ? optIdx === 1
                           ? "bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-2 ring-emerald-200"
@@ -1132,7 +1132,7 @@ export default function VectorDatabases9() {
                 <button
                   onClick={handleSubmitQuiz}
                   disabled={quizSelectedOption === null}
-                  className="mt-1 w-full py-2 bg-indigo-600 hover:bg-indigo-700 active:translate-y-0.5 disabled:opacity-40 text-white rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer"
+                  className="mt-1 w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-0.5 disabled:opacity-40 text-white rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer"
                 >
                   Verify Answer & Complete Lab
                 </button>
