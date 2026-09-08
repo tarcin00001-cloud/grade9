@@ -185,7 +185,7 @@ function toSvgCoord(v: number, min: number, max: number) {
   return min + ((v + 1) / 2) * (max - min);
 }
 
-// Trigger HMR update
+// Trigger HMR update 2
 export default function VectorDatabases9() {
   const { reportComplete: _reportComplete } = useLMSBridge("vectordatabases9");
   const { playPop, playZap, playError, playSuccess, playClick, playChime } = useLabAudio();
@@ -918,7 +918,7 @@ export default function VectorDatabases9() {
             </div>
 
             {/* Quick Query Chips */}
-            {!steps.tryVectorSearch && (
+            {(mode === "SQL" || !steps.tryVectorSearch) && (
             <div className="shrink-0 flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick Test:</span>
               {[
@@ -1082,7 +1082,7 @@ export default function VectorDatabases9() {
             </div>
 
             {/* 4. Pedagogical Concept Assessment Card */}
-            {steps.tryVectorSearch && (
+            {steps.tryVectorSearch && mode === "VECTOR" && vectorResult && (
             <div className="shrink-0 border-t border-slate-200 pt-2 mt-0 flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
