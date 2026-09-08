@@ -60,7 +60,7 @@ export default function ServerlessFunctions9() {
   });
 
   const _reportComplete = useCallback(() => {
-    reportComplete(100, "serverlessfunctions9");
+    reportComplete({ points: 100, labId: "serverlessfunctions9" });
   }, [reportComplete]);
 
   // Handle Simulation Loop
