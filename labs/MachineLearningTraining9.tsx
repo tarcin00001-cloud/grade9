@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Brain, Play, RotateCcw, Activity, HelpCircle, Compass, Timer, 
   ArrowRight, Sparkles, AlertTriangle, CheckCircle2, TrendingDown, 
-  Target, Sliders, Zap, Check
+  Target, Sliders, Zap, Check, Lock
 } from "lucide-react";
 import LabShell from "@/components/LabShell";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
@@ -21,9 +21,6 @@ const TRAINING_DATA = [
   { id: 5, speed: 60, distance: 220, svgX: 340, svgY: 35 },
 ];
 
-// Unseen Test Point for Stage 7 Inference Task (70 mph -> ~270 ft)
-const TEST_POINT = { speed: 70, expectedDistance: 270, svgX: 410, svgY: -10 };
-
 type LearningRatePreset = "SLOW" | "OPTIMAL" | "EXPLOSIVE";
 
 const LR_CONFIG: Record<LearningRatePreset, { label: string; alpha: number; tag: string }> = {
@@ -32,23 +29,19 @@ const LR_CONFIG: Record<LearningRatePreset, { label: string; alpha: number; tag:
   EXPLOSIVE: { label: "Explosive (α = 1.30)", alpha: 1.30, tag: "Causes overshoot" },
 };
 
-// Target optimal parameters: slope m* = 3.6, bias b* = -30
-// Parameter weight w represents deviation from optimal: w* = 1.0 (Optimal)
-// Initial bad state: w = -1.2 (horizontal line with massive error)
+// Parameter weight w: w* = 1.0 (Optimal best-fit line)
+// Initial bad state: w = -1.2 (flat horizontal line with massive loss)
 const OPTIMAL_W = 1.0;
 const INITIAL_W = -1.2;
 
 const calculateLoss = (w: number) => {
-  // Parabolic loss curve: J(w) = 240 * (w - 1.0)^2 + 12.5
   return 240 * Math.pow(w - OPTIMAL_W, 2) + 12.5;
 };
 
 // SVG line coordinates based on weight w
 const getLineEndpoints = (w: number) => {
-  // At w = 1.0: y1 = 200 (at x=40), y2 = 20 (at x=440) -> Line of best fit
-  // At w = -1.2: y1 = 70, y2 = 70 -> Flat horizontal line
-  const t = (w + 1.2) / (OPTIMAL_W + 1.2); // 0 at initial, 1 at optimal
-  const clampedT = Math.max(-0.6, Math.min(2.0, t));
+  const t = (w + 1.2) / (OPTIMAL_W + 1.2);
+  const clampedT = Math.max(-0.6, Math.min(2.2, t));
   const yStart = 70 + clampedT * (205 - 70);
   const yEnd = 70 + clampedT * (15 - 70);
   return { x1: 40, y1: yStart, x2: 440, y2: yEnd };
@@ -70,6 +63,15 @@ export default function MachineLearningTraining9() {
   const { reportComplete } = useLMSBridge();
   const { playPop, playError, playSuccess, playChime } = useLabAudio();
 
+  // ── STRICT STAGE STATE MACHINE (1 through 6) ──
+  // Stage 1: First Step (Inspect initial error -> Take 1 step)
+  // Stage 2: Overshoot Crash (Select Explosive rate -> Step to trigger divergence)
+  // Stage 3: Understand Why (Post-mortem explanation -> Switch to Optimal)
+  // Stage 4: Auto-Train to Global Minimum
+  // Stage 5: Test Inference (Tap 70 mph unseen test point)
+  // Stage 6: Concept Assessment Quiz
+  const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+
   // Model Parameter State
   const [w, setW] = useState(INITIAL_W);
   const [learningRate, setLearningRate] = useState<LearningRatePreset>("OPTIMAL");
@@ -78,22 +80,10 @@ export default function MachineLearningTraining9() {
   const [isOvershot, setIsOvershot] = useState(false);
   const [hasTestedInference, setHasTestedInference] = useState(false);
 
-  // History ledger for progressive loss tracking
+  // History ledger for loss tracking
   const [lossHistory, setLossHistory] = useState<Array<{ epoch: number; loss: number; note: string }>>([
     { epoch: 0, loss: calculateLoss(INITIAL_W), note: "Initial Random Guess" }
   ]);
-
-  // Pedagogical Progression Steps
-  const [steps, setSteps] = useState({
-    inspectedInitial: true,
-    tookFirstStep: false,
-    overshotCrash: false,
-    understoodWhy: false,
-    tunedOptimal: false,
-    converged: false,
-    testedInference: false,
-    passedQuiz: false,
-  });
 
   // Concept Assessment Quiz State
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -103,77 +93,108 @@ export default function MachineLearningTraining9() {
   const currentLoss = calculateLoss(w);
   const isOptimal = Math.abs(w - OPTIMAL_W) < 0.08;
 
-  // Single Step of Gradient Descent
+  // ── STAGE-GATED STEP FUNCTION ──
   const handleStepDescent = useCallback(() => {
-    const alpha = LR_CONFIG[learningRate].alpha;
-
-    if (learningRate === "EXPLOSIVE") {
-      // Trigger intentional Overshoot Crash (Fail Safely)
-      playError();
-      setIsOvershot(true);
-      const newW = w > OPTIMAL_W ? w + 0.9 : w + 2.4; // Jump across valley
+    // STAGE 1: FIRST STEP
+    if (currentStage === 1) {
+      playPop();
+      const newW = -0.35; // One clean step downhill
       setW(newW);
-      setEpoch(prev => prev + 1);
+      setEpoch(1);
       const newLoss = calculateLoss(newW);
       setLossHistory(prev => [
-        { epoch: prev.length, loss: newLoss, note: "⚠️ OVERSHOOT DIVERGENCE!" },
-        ...prev.slice(0, 3)
+        { epoch: 1, loss: newLoss, note: "First Step Downhill" },
+        ...prev
       ]);
-      setSteps(prev => ({ ...prev, overshotCrash: true }));
+      setCurrentStage(2); // Automatically advance to Stage 2
       return;
     }
 
-    // Normal or Slow Descent step
-    playPop();
-    setIsOvershot(false);
-    
-    // Gradient descent step: w_new = w + alpha * 3.2 * (w_opt - w)
-    const stepMultiplier = learningRate === "SLOW" ? 0.15 : 0.42;
-    const newW = w + (OPTIMAL_W - w) * stepMultiplier;
-    setW(newW);
-    setEpoch(prev => prev + 1);
-
-    const newLoss = calculateLoss(newW);
-    const note = Math.abs(newW - OPTIMAL_W) < 0.08 ? "✓ Converged at Minimum!" : `Step (Loss: ${Math.round(newLoss)})`;
-    setLossHistory(prev => [
-      { epoch: prev.length, loss: newLoss, note },
-      ...prev.slice(0, 3)
-    ]);
-
-    setSteps(prev => {
-      const updated = { ...prev, tookFirstStep: true };
-      if (Math.abs(newW - OPTIMAL_W) < 0.08) {
-        updated.converged = true;
-      }
-      return updated;
-    });
-
-    if (Math.abs(newW - OPTIMAL_W) < 0.08) {
-      playSuccess();
+    // STAGE 2: THE OVERSHOOT CRASH
+    if (currentStage === 2) {
+      playError();
+      setIsOvershot(true);
+      const newW = 2.45; // Jump completely across the valley
+      setW(newW);
+      setEpoch(2);
+      const newLoss = calculateLoss(newW);
+      setLossHistory(prev => [
+        { epoch: 2, loss: newLoss, note: "⚠️ OVERSHOOT DIVERGENCE!" },
+        ...prev
+      ]);
+      setCurrentStage(3); // Advance to Stage 3 (Understand Why)
+      return;
     }
-  }, [w, learningRate, playError, playPop, playSuccess]);
 
-  // Auto-Train Continuous Loop
+    // STAGE 4: MANUAL OR AUTO STEP
+    if (currentStage === 4) {
+      playPop();
+      const stepMultiplier = learningRate === "SLOW" ? 0.15 : 0.42;
+      const newW = w + (OPTIMAL_W - w) * stepMultiplier;
+      setW(newW);
+      setEpoch(prev => prev + 1);
+
+      const newLoss = calculateLoss(newW);
+      const reachedMin = Math.abs(newW - OPTIMAL_W) < 0.08;
+      const note = reachedMin ? "✓ Converged at Minimum!" : `Step (Loss: ${Math.round(newLoss)})`;
+      setLossHistory(prev => [
+        { epoch: prev.length, loss: newLoss, note },
+        ...prev.slice(0, 3)
+      ]);
+
+      if (reachedMin) {
+        setIsAutoTraining(false);
+        setW(OPTIMAL_W);
+        playSuccess();
+        playChime();
+        setCurrentStage(5); // Advance to Stage 5 (Test Inference)
+      }
+    }
+  }, [currentStage, learningRate, w, playError, playPop, playSuccess, playChime]);
+
+  // Auto-Train Continuous Loop (Only active during Stage 4)
   useEffect(() => {
-    if (!isAutoTraining) return;
+    if (!isAutoTraining || currentStage !== 4) return;
 
-    if (Math.abs(w - OPTIMAL_W) < 0.05 || epoch >= 10) {
+    if (Math.abs(w - OPTIMAL_W) < 0.08 || epoch >= 10) {
       setIsAutoTraining(false);
       setW(OPTIMAL_W);
-      setSteps(prev => ({ ...prev, converged: true }));
       playSuccess();
       playChime();
+      setCurrentStage(5); // Advance to Stage 5
       return;
     }
 
     const timer = setTimeout(() => {
       handleStepDescent();
-    }, 450);
+    }, 400);
 
     return () => clearTimeout(timer);
-  }, [isAutoTraining, w, epoch, handleStepDescent, playSuccess, playChime]);
+  }, [isAutoTraining, currentStage, w, epoch, handleStepDescent, playSuccess, playChime]);
+
+  // STAGE 3 RECOVERY ACTION
+  const handleRecoverFromOvershoot = () => {
+    playPop();
+    setLearningRate("OPTIMAL");
+    setIsOvershot(false);
+    setW(0.15); // Return to a safe downhill position
+    setLossHistory(prev => [
+      { epoch: prev.length, loss: calculateLoss(0.15), note: "Recovered: Optimal Rate" },
+      ...prev.slice(0, 3)
+    ]);
+    setCurrentStage(4); // Advance to Stage 4 (Auto-Train)
+  };
+
+  // STAGE 5 INFERENCE ACTION
+  const handleTestInference = () => {
+    if (currentStage < 5) return;
+    playSuccess();
+    setHasTestedInference(true);
+    setCurrentStage(6); // Advance to Stage 6 (Quiz)
+  };
 
   const handleReset = () => {
+    setCurrentStage(1);
     setW(INITIAL_W);
     setLearningRate("OPTIMAL");
     setEpoch(0);
@@ -186,16 +207,6 @@ export default function MachineLearningTraining9() {
     setLossHistory([
       { epoch: 0, loss: calculateLoss(INITIAL_W), note: "Initial Random Guess" }
     ]);
-    setSteps({
-      inspectedInitial: true,
-      tookFirstStep: false,
-      overshotCrash: false,
-      understoodWhy: false,
-      tunedOptimal: false,
-      converged: false,
-      testedInference: false,
-      passedQuiz: false,
-    });
   };
 
   const handleAnswerQuiz = (idx: number) => {
@@ -208,7 +219,6 @@ export default function MachineLearningTraining9() {
     if (selectedOption === QUIZ_DATA.correct) {
       setQuizSubmitted(true);
       setQuizError(false);
-      setSteps(prev => ({ ...prev, passedQuiz: true }));
       playSuccess();
       playChime();
       reportComplete({ points: 100, labId: "machinelearningtraining9" });
@@ -222,18 +232,28 @@ export default function MachineLearningTraining9() {
   const lineCoords = getLineEndpoints(w);
 
   // Compute SVG coordinates of Marble on the Parabola J(w)
-  // Curve domain: x from 40 to 440, center at x = 240
-  // w = 1.0 maps to x = 240, y = 92 (bowl bottom)
   const marbleX = Math.max(45, Math.min(435, 240 + (w - OPTIMAL_W) * 110));
-  // Parabola height equation: y = 92 - 0.0018 * (x - 240)^2
   const marbleY = Math.max(20, Math.min(94, 92 - 0.0019 * Math.pow(marbleX - 240, 2)));
 
-  const completedCount = 
-    (steps.tookFirstStep ? 1 : 0) +
-    (steps.overshotCrash ? 1 : 0) +
-    (steps.converged ? 1 : 0) +
-    (steps.testedInference ? 1 : 0) +
-    (steps.passedQuiz ? 1 : 0);
+  // STAGE-SPECIFIC MISSION INSTRUCTIONS
+  const getStageMissionText = () => {
+    switch (currentStage) {
+      case 1:
+        return "Step 1 of 6: Inspect the high initial error springs, then click [Take First Step] to begin.";
+      case 2:
+        return "Step 2 of 6: Switch Learning Rate to 'Explode (1.30)' and step to witness an Overshoot Crash!";
+      case 3:
+        return "Step 3 of 6: Overshoot Crash! Click [Fix: Switch to Optimal Rate] to stabilize.";
+      case 4:
+        return "Step 4 of 6: Now click [⚡ Auto-Train Model] to guide the model into the Global Minimum.";
+      case 5:
+        return "Step 5 of 6: Tap the pulsing pink 70 mph point on the graph to test braking prediction.";
+      case 6:
+        return quizSubmitted 
+          ? "All Steps Complete! Model Trained & Concept Certified 100/100."
+          : "Step 6 of 6: Complete the Concept Assessment Quiz to finalize your certification.";
+    }
+  };
 
   return (
     <LabShell
@@ -250,62 +270,61 @@ export default function MachineLearningTraining9() {
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-sky-100/80 shadow-xs text-xs font-bold text-sky-800">
             <Timer size={14} className="text-sky-600" />
-            <span>Epoch {epoch}/10</span>
+            <span>Step {currentStage}/6</span>
           </div>
         </div>
       }
     >
       <Celebration 
-        isActive={steps.passedQuiz} 
+        isActive={quizSubmitted} 
         message="AI Engineer Certified! You mastered Gradient Descent: balancing learning rates to guide models down the loss landscape without overshooting into divergence."
         onReplay={handleReset}
       />
 
       <div className="w-full flex flex-col flex-1 min-h-0 gap-1.5 sm:gap-2 max-w-7xl mx-auto overflow-hidden">
         
-        {/* ── Top Pedagogical Progress Strip (7-Stage Journey) ── */}
+        {/* ── Top Pedagogical Progress Strip (Explicit Step Stepper) ── */}
         <div className="shrink-0 bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-2xl px-3 py-1.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100 shrink-0">
               <Compass size={13} className="text-indigo-600" />
-              <span>Lab Mission</span>
+              <span>Mission Stepper</span>
             </div>
             <span className="text-xs font-bold text-slate-800 truncate">
-              {completedCount === 5
-                ? "All Missions Complete! AI Optimization Mastered."
-                : !steps.tookFirstStep
-                ? "Step 1: Inspect starting error springs, then click [Step Descent] to take 1 step downhill"
-                : !steps.overshotCrash
-                ? "Step 2: Switch to 'Explosive (1.30)' Learning Rate and step to witness an Overshoot Crash!"
-                : !steps.converged
-                ? "Step 3: Switch back to 'Optimal (0.12)' and click [⚡ Auto-Train Model] to find the minimum"
-                : !steps.testedInference
-                ? "Step 4: Tap the purple 70 mph test point to test autonomous vehicle braking inference"
-                : "Step 5: Complete the AI Gradient Descent Concept Assessment"}
+              {getStageMissionText()}
             </span>
           </div>
 
+          {/* 6 Sequential Step Pills */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {[
-              { id: "s1", done: steps.tookFirstStep, label: "First Step" },
-              { id: "s2", done: steps.overshotCrash, label: "Overshoot Crash" },
-              { id: "s3", done: steps.converged, label: "Global Min" },
-              { id: "s4", done: steps.testedInference, label: "Test Inference" },
-              { id: "s5", done: steps.passedQuiz, label: "Quiz" },
-            ].map((s, idx) => (
-              <div
-                key={s.id}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${
-                  s.done
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                    : "bg-slate-100 text-slate-400 border border-slate-200"
-                }`}
-                title={s.label}
-              >
-                {s.done ? <CheckCircle2 size={11} className="text-emerald-600" /> : <span>{idx + 1}</span>}
-                <span className="hidden md:inline">{s.label}</span>
-              </div>
-            ))}
+              { num: 1, label: "First Step" },
+              { num: 2, label: "Overshoot Crash" },
+              { num: 3, label: "Understand" },
+              { num: 4, label: "Auto-Train" },
+              { num: 5, label: "Inference" },
+              { num: 6, label: "Quiz" },
+            ].map((s) => {
+              const isDone = currentStage > s.num || (s.num === 6 && quizSubmitted);
+              const isCurrent = currentStage === s.num && !(s.num === 6 && quizSubmitted);
+
+              return (
+                <div
+                  key={s.num}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+                    isDone
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      : isCurrent
+                      ? "bg-indigo-600 text-white shadow-xs animate-pulse"
+                      : "bg-slate-100 text-slate-400 border border-slate-200"
+                  }`}
+                  title={`Step ${s.num}: ${s.label}`}
+                >
+                  {isDone ? <CheckCircle2 size={11} className="text-emerald-600" /> : <span>{s.num}</span>}
+                  <span className="hidden md:inline">{s.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -358,9 +377,8 @@ export default function MachineLearningTraining9() {
                   </g>
                 ))}
 
-                {/* Vertical Residual Error Springs (Difference between actual data and prediction line) */}
+                {/* Vertical Residual Error Springs */}
                 {TRAINING_DATA.map((pt) => {
-                  // Interpolate Y position on AI prediction line at point's X
                   const lineT = (pt.svgX - lineCoords.x1) / (lineCoords.x2 - lineCoords.x1);
                   const predY = lineCoords.y1 + lineT * (lineCoords.y2 - lineCoords.y1);
                   const errDist = Math.abs(pt.svgY - predY);
@@ -369,7 +387,6 @@ export default function MachineLearningTraining9() {
 
                   return (
                     <g key={pt.id}>
-                      {/* Residual Spring Line */}
                       <line 
                         x1={pt.svgX} 
                         y1={pt.svgY} 
@@ -379,8 +396,6 @@ export default function MachineLearningTraining9() {
                         strokeWidth={isGood ? 1.5 : 2.5}
                         strokeDasharray={isGood ? "2 2" : "3 3"} 
                       />
-                      
-                      {/* Spring Measurement Tick */}
                       {!isGood && (
                         <circle cx={pt.svgX} cy={predY} r="2.5" fill="#f43f5e" />
                       )}
@@ -410,28 +425,26 @@ export default function MachineLearningTraining9() {
                   </g>
                 ))}
 
-                {/* Unseen Test Point for Stage 7 Inference Task */}
-                {steps.converged && (
+                {/* Stage 5: Unseen 70 mph Test Point */}
+                {currentStage >= 5 && (
                   <g 
                     transform="translate(410, 30)" 
-                    onClick={() => {
-                      playSuccess();
-                      setHasTestedInference(true);
-                      setSteps(prev => ({ ...prev, testedInference: true }));
-                    }}
+                    onClick={handleTestInference}
                     className="cursor-pointer group"
                   >
-                    <circle r="12" fill="#ec4899" fillOpacity="0.2" className="animate-ping" />
+                    {!hasTestedInference && (
+                      <circle r="14" fill="#ec4899" fillOpacity="0.25" className="animate-ping" />
+                    )}
                     <circle r="8.5" fill="#ec4899" stroke="#ffffff" strokeWidth="2" />
                     <text y="-12" fill="#be185d" fontSize="9" fontWeight="bold" textAnchor="middle">
-                      {hasTestedInference ? "✓ Test Prediction: 250 ft (Safe)" : "Tap to Predict (70 mph)"}
+                      {hasTestedInference ? "✓ Test Prediction: 250 ft (Safe Stop)" : "Tap to Predict (70 mph)"}
                     </text>
                   </g>
                 )}
               </svg>
             </div>
 
-            {/* BOTTOM HALF (40%): Parameter Loss Landscape J(w) - "Error Mountain" */}
+            {/* BOTTOM HALF (40%): Parameter Loss Landscape J(w) */}
             <div className="shrink-0 h-28 sm:h-32 bg-slate-50/90 border-t border-slate-200 relative flex flex-col justify-between px-3 py-1.5">
               <div className="flex justify-between items-center text-[10px] font-bold text-slate-600">
                 <span className="flex items-center gap-1 uppercase tracking-wider text-slate-500 font-black">
@@ -446,7 +459,6 @@ export default function MachineLearningTraining9() {
               {/* Parabolic Loss Curve SVG */}
               <div className="relative w-full h-20">
                 <svg viewBox="0 0 480 110" className="w-full h-full" preserveAspectRatio="none">
-                  {/* Parabolic Curve Path */}
                   <path 
                     d="M 40,20 Q 240,165 440,20" 
                     fill="none" 
@@ -461,7 +473,7 @@ export default function MachineLearningTraining9() {
                     Min Error (J*)
                   </text>
 
-                  {/* The Physical Model Marble Rolling Downhill */}
+                  {/* The Physical Model Marble */}
                   <motion.g
                     initial={false}
                     animate={{ x: marbleX, y: marbleY }}
@@ -474,10 +486,10 @@ export default function MachineLearningTraining9() {
 
                 {/* Overshoot Divergence Warning Badge */}
                 {isOvershot && (
-                  <div className="absolute inset-0 bg-rose-50/90 backdrop-blur-xs flex items-center justify-center rounded-lg border border-rose-300 gap-2">
+                  <div className="absolute inset-0 bg-rose-50/95 backdrop-blur-xs flex items-center justify-center rounded-lg border border-rose-300 gap-2">
                     <AlertTriangle size={15} className="text-rose-600 animate-bounce shrink-0" />
                     <span className="text-[11px] font-black text-rose-800">
-                      OVERSHOOT DIVERGENCE! Step jumped over the valley floor into high error.
+                      OVERSHOOT DIVERGENCE! Step jumped past the valley floor.
                     </span>
                   </div>
                 )}
@@ -492,7 +504,7 @@ export default function MachineLearningTraining9() {
 
           </div>
 
-          {/* RIGHT PANEL: AI Hyperparameter Tuning Dashboard (Zero Scrollbar Guaranteed) */}
+          {/* RIGHT PANEL: Stage-Gated AI Hyperparameter Dashboard */}
           <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between p-2.5 sm:p-3 min-h-0 overflow-hidden">
             
             {/* 1. Telemetry Card: Mean Squared Error (Loss) & Epoch */}
@@ -532,7 +544,7 @@ export default function MachineLearningTraining9() {
               </div>
             </div>
 
-            {/* 2. Hyperparameter Controls: Learning Rate & Action Buttons */}
+            {/* 2. Hyperparameter Controls: Stage-Gated Learning Rate & Actions */}
             <div className="shrink-0 flex flex-col gap-1.5 my-1.5">
               <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 px-0.5">
                 <span className="flex items-center gap-1 font-black uppercase tracking-wider text-slate-500">
@@ -542,26 +554,29 @@ export default function MachineLearningTraining9() {
                 <span className="text-indigo-700 font-mono text-[9px]">{LR_CONFIG[learningRate].tag}</span>
               </div>
 
-              {/* 3 Tactile Preset Buttons */}
+              {/* 3 Preset Buttons (Gated by Stage) */}
               <div className="grid grid-cols-3 gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
                 {(["SLOW", "OPTIMAL", "EXPLOSIVE"] as LearningRatePreset[]).map((preset) => {
                   const isSelected = learningRate === preset;
+                  const isAllowed = 
+                    (currentStage === 1 && preset === "OPTIMAL") ||
+                    (currentStage === 2) ||
+                    (currentStage >= 3 && preset !== "EXPLOSIVE");
+
                   return (
                     <button
                       key={preset}
+                      disabled={!isAllowed}
                       onClick={() => {
                         playPop();
                         setLearningRate(preset);
                         setIsOvershot(false);
-                        if (preset === "OPTIMAL") {
-                          setSteps(prev => ({ ...prev, tunedOptimal: true }));
-                        }
                       }}
                       className={`py-1.5 px-1 rounded-lg text-[10px] font-black transition-all text-center truncate ${
                         isSelected 
                           ? (preset === "EXPLOSIVE" ? "bg-rose-600 text-white shadow-xs" : "bg-white text-slate-800 shadow-xs border border-slate-200") 
-                          : "text-slate-500 hover:text-slate-800"
-                      }`}
+                          : isAllowed ? "text-slate-600 hover:text-slate-900" : "text-slate-300 cursor-not-allowed"
+                      } ${currentStage === 2 && preset === "EXPLOSIVE" && !isSelected ? "ring-2 ring-rose-500 animate-pulse" : ""}`}
                     >
                       {preset === "SLOW" ? "Slow (0.02)" : preset === "OPTIMAL" ? "Optimal (0.12)" : "Explode (1.30)"}
                     </button>
@@ -569,37 +584,74 @@ export default function MachineLearningTraining9() {
                 })}
               </div>
 
-              {/* Main Action CTAs */}
-              <div className="flex gap-1.5 pt-0.5">
-                <button
-                  onClick={handleStepDescent}
-                  disabled={isAutoTraining || isOptimal}
-                  className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98"
-                >
-                  <Play size={12} fill="currentColor" />
-                  <span>Step Descent (1x)</span>
-                </button>
+              {/* STAGE-AWARE PRIMARY ACTION BUTTON */}
+              <div className="pt-0.5">
+                {currentStage === 1 && (
+                  <button
+                    onClick={handleStepDescent}
+                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98 animate-pulse"
+                  >
+                    <Play size={13} fill="currentColor" />
+                    <span>Take First Descent Step (Step 1 of 6)</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => setIsAutoTraining(prev => !prev)}
-                  disabled={isOptimal}
-                  className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 shadow-sm transition-all active:scale-98 ${
-                    isAutoTraining 
-                      ? "bg-amber-600 text-white animate-pulse" 
-                      : isOptimal 
-                      ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-default" 
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                  }`}
-                  title="Automatically step descent until minimum loss is reached"
-                >
-                  <Zap size={13} fill="currentColor" />
-                  <span>{isAutoTraining ? "Pausing..." : isOptimal ? "Converged" : "Auto-Train"}</span>
-                </button>
+                {currentStage === 2 && (
+                  <button
+                    onClick={handleStepDescent}
+                    disabled={learningRate !== "EXPLOSIVE"}
+                    className={`w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98 ${
+                      learningRate === "EXPLOSIVE"
+                        ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse"
+                        : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                    }`}
+                  >
+                    <AlertTriangle size={13} />
+                    <span>{learningRate === "EXPLOSIVE" ? "Step with Explosive Rate (Step 2 of 6)" : "Select 'Explode (1.30)' Above"}</span>
+                  </button>
+                )}
+
+                {currentStage === 3 && (
+                  <button
+                    onClick={handleRecoverFromOvershoot}
+                    className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98 animate-pulse"
+                  >
+                    <ArrowRight size={13} />
+                    <span>Fix: Switch to Optimal Rate (Step 3 of 6)</span>
+                  </button>
+                )}
+
+                {currentStage === 4 && (
+                  <button
+                    onClick={() => setIsAutoTraining(true)}
+                    disabled={isAutoTraining}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98 animate-pulse"
+                  >
+                    <Zap size={13} fill="currentColor" />
+                    <span>{isAutoTraining ? "Auto-Training..." : "⚡ Auto-Train Model to Minimum (Step 4 of 6)"}</span>
+                  </button>
+                )}
+
+                {currentStage === 5 && (
+                  <button
+                    onClick={handleTestInference}
+                    className="w-full py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98 animate-pulse"
+                  >
+                    <Sparkles size={13} />
+                    <span>Tap 70 mph Point on Graph (Step 5 of 6)</span>
+                  </button>
+                )}
+
+                {currentStage === 6 && (
+                  <div className="w-full py-1.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-900 text-[11px] font-bold text-center">
+                    {quizSubmitted ? "✓ Model Verified 100/100" : "Complete Quiz Below to Finish (Step 6 of 6)"}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* 3. Lower Section: Loss Ledger OR Concept Assessment Quiz */}
-            {!steps.converged ? (
+            {/* 3. Lower Section: Stage-Driven Loss Ledger OR Concept Assessment Quiz */}
+            {currentStage < 6 ? (
               
               // STEP LOSS REDUCTION LEDGER
               <div className="flex-1 flex flex-col justify-between p-2.5 bg-slate-50/90 border border-slate-200 rounded-xl font-mono text-[10px] sm:text-[11px] min-h-0 shadow-2xs">
@@ -615,46 +667,43 @@ export default function MachineLearningTraining9() {
                   {lossHistory.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center text-slate-600 text-[10px]">
                       <span>{item.note}:</span>
-                      <span className={`font-bold ${item.loss > 400 ? "text-rose-600" : item.loss < 50 ? "text-emerald-600" : "text-slate-800"}`}>
+                      <span className={`font-bold ${item.loss > 400 ? "text-rose-600 font-black" : item.loss < 50 ? "text-emerald-600" : "text-slate-800"}`}>
                         J = {Math.round(item.loss)}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                {/* Overshoot Recovery Callout */}
-                {isOvershot ? (
-                  <div className="mt-1 p-1.5 rounded-lg bg-rose-100/90 border border-rose-300 text-rose-900 text-[10px] font-sans font-bold flex items-center justify-between gap-1">
-                    <span>Overshoot crash! Learning rate too big.</span>
-                    <button
-                      onClick={() => {
-                        setLearningRate("OPTIMAL");
-                        setIsOvershot(false);
-                        setSteps(prev => ({ ...prev, tunedOptimal: true, understoodWhy: true }));
-                        playPop();
-                      }}
-                      className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[9px] font-black shrink-0"
-                    >
-                      Fix: Select Optimal α
-                    </button>
+                {/* Stage 3 Post-Mortem Card */}
+                {currentStage === 3 ? (
+                  <div className="mt-1 p-2 rounded-lg bg-rose-100 border border-rose-300 text-rose-950 text-[10px] font-sans font-medium leading-tight">
+                    <div className="font-black text-rose-900 flex items-center gap-1 mb-0.5">
+                      <AlertTriangle size={12} className="text-rose-600" />
+                      <span>The Overshoot Dilemma:</span>
+                    </div>
+                    When α is too large, the mathematical step leaps completely over the valley minimum and lands high on the opposite cliff!
+                  </div>
+                ) : currentStage === 5 ? (
+                  <div className="mt-1 p-1.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-950 text-[10px] font-sans font-medium">
+                    ✓ Global minimum reached! Tap the pink point on the graph to test your trained model.
                   </div>
                 ) : (
                   <div className="mt-1 p-1 rounded bg-indigo-50/80 border border-indigo-100 text-indigo-900 text-[9px] font-sans font-semibold text-center">
-                    Click &apos;Step Descent&apos; or test &apos;Explosive (1.30)&apos; to explore overshoot.
+                    Follow the stepper above to experience learning, divergence, and convergence.
                   </div>
                 )}
               </div>
 
             ) : (
 
-              // STEP 5: CONCEPT ASSESSMENT CARD (Takes lower panel seamlessly with zero scrolling)
+              // STAGE 6: CONCEPT ASSESSMENT CARD
               <div className="flex-1 flex flex-col justify-between p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl min-h-0 shadow-2xs">
                 <div className="flex items-center justify-between pb-1 border-b border-indigo-200/80">
                   <span className="text-[11px] font-black uppercase tracking-wider text-indigo-950 flex items-center gap-1.5 font-sans">
                     <HelpCircle size={13} className="text-indigo-600" />
                     <span>Concept Assessment</span>
                   </span>
-                  {steps.passedQuiz ? (
+                  {quizSubmitted ? (
                     <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                       Passed 100/100
                     </span>
@@ -676,12 +725,12 @@ export default function MachineLearningTraining9() {
                       <button
                         key={idx}
                         onClick={() => handleAnswerQuiz(idx)}
-                        disabled={steps.passedQuiz}
+                        disabled={quizSubmitted}
                         className={`text-left text-[10px] p-1.5 rounded-lg border transition-all leading-tight ${
                           isSelected
                             ? "bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs"
                             : "bg-white text-slate-700 border-slate-200 hover:bg-indigo-50/50"
-                        } ${steps.passedQuiz ? "opacity-75 cursor-default" : ""}`}
+                        } ${quizSubmitted ? "opacity-75 cursor-default" : ""}`}
                       >
                         <span className="font-mono mr-1">{String.fromCharCode(65 + idx)})</span>
                         {option}
@@ -696,13 +745,13 @@ export default function MachineLearningTraining9() {
                   </div>
                 )}
 
-                {steps.passedQuiz && (
+                {quizSubmitted && (
                   <div className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 p-1.5 rounded leading-tight">
                     {QUIZ_DATA.explanation}
                   </div>
                 )}
 
-                {!steps.passedQuiz && (
+                {!quizSubmitted && (
                   <button
                     onClick={handleSubmitQuiz}
                     disabled={selectedOption === null}
