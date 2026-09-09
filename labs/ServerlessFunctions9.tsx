@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Server, Zap, Users, AlertTriangle, FileText, CheckCircle2, 
   Play, RotateCcw, Activity, HelpCircle, Compass, Timer, 
-  ArrowRight, Cpu, Layers, ShieldCheck, Flame, CreditCard, Sparkles
+  ArrowRight, Cpu, Layers, CreditCard, Sparkles, Terminal, Info
 } from "lucide-react";
 import LabShell from "@/components/LabShell";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
@@ -31,6 +31,14 @@ interface Packet {
   id: string;
   status: "success" | "dropped";
   arcOffset: number;
+}
+
+interface InspectedTelemetry {
+  title: string;
+  detail: string;
+  latency: string;
+  cost: string;
+  status: string;
 }
 
 const QUIZ_DATA = {
@@ -62,10 +70,11 @@ export default function ServerlessFunctions9() {
   const [costIdle, setCostIdle] = useState(0);
   const [costCompute, setCostCompute] = useState(0);
 
-  // Animation State
+  // Animation & Telemetry State
   const [activePackets, setActivePackets] = useState<Packet[]>([]);
   const [activeLambdas, setActiveLambdas] = useState(0);
   const [isShaking, setIsShaking] = useState(false);
+  const [inspectedNode, setInspectedNode] = useState<InspectedTelemetry | null>(null);
 
   // Lab Progression Steps
   const [steps, setSteps] = useState({
@@ -182,6 +191,7 @@ export default function ServerlessFunctions9() {
     setActivePackets([]);
     setActiveLambdas(0);
     setManualSurge(0);
+    setInspectedNode(null);
     if (architecture === "MONOLITH") {
       setSteps(prev => ({ ...prev, tryMonolith: true }));
     }
@@ -202,6 +212,7 @@ export default function ServerlessFunctions9() {
     setSelectedOption(null);
     setQuizSubmitted(false);
     setQuizError(false);
+    setInspectedNode(null);
     setSteps({
       tryMonolith: false,
       monolithFailed: false,
@@ -324,7 +335,7 @@ export default function ServerlessFunctions9() {
         {/* ── Main Interactive Layout Grid ── */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-2.5 overflow-hidden">
           
-          {/* LEFT PANEL: Rich Architectural Cloud Workspace (Zero Empty Space) */}
+          {/* LEFT PANEL: Rich Architectural Cloud Workspace */}
           <div className="lg:col-span-7 bg-gradient-to-br from-slate-50/95 via-white/90 to-sky-50/40 backdrop-blur border border-slate-200/90 rounded-2xl shadow-sm flex flex-col relative overflow-hidden min-h-0">
             
             {/* Textured Engineering Grid Lines */}
@@ -373,12 +384,36 @@ export default function ServerlessFunctions9() {
             {/* Canvas Workspace: 3-Node Architecture Pipeline */}
             <div className="flex-1 relative flex items-center justify-between px-3 sm:px-6 py-2 min-h-0">
               
-              {/* Background Network Conduit Lines */}
+              {/* Animated SVG Network Conduit Lines with Flowing Laser Pulses */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                {/* Users to Gateway line */}
-                <line x1="16%" y1="50%" x2="48%" y2="50%" stroke="#94a3b8" strokeWidth="2.5" strokeDasharray="5 5" className="opacity-60" />
-                {/* Gateway to Destination line */}
-                <line x1="52%" y1="50%" x2="82%" y2="50%" stroke="#94a3b8" strokeWidth="2.5" strokeDasharray="5 5" className="opacity-60" />
+                <defs>
+                  <linearGradient id="laserPulse" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity="0.2" />
+                    <stop offset="50%" stopColor="#818cf8" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity="0.2" />
+                  </linearGradient>
+                </defs>
+
+                {/* Users to Gateway Conduit */}
+                <line x1="14%" y1="50%" x2="48%" y2="50%" stroke="#cbd5e1" strokeWidth="2.5" strokeDasharray="5 5" />
+                {simState === "RUNNING" && (
+                  <line x1="14%" y1="50%" x2="48%" y2="50%" stroke="url(#laserPulse)" strokeWidth="3.5" className="animate-pulse" />
+                )}
+
+                {/* Gateway to Compute Destination Conduit */}
+                <line x1="52%" y1="50%" x2="82%" y2="50%" stroke="#cbd5e1" strokeWidth="2.5" strokeDasharray="5 5" />
+                {simState === "RUNNING" && (
+                  <line 
+                    x1="52%" 
+                    y1="50%" 
+                    x2="82%" 
+                    y2="50%" 
+                    stroke={architecture === "MONOLITH" ? "#f59e0b" : "#a855f7"} 
+                    strokeWidth="3.5" 
+                    strokeOpacity="0.8" 
+                    className="animate-pulse" 
+                  />
+                )}
               </svg>
 
               {/* NODE 1 (Left): Global Clients / Users */}
@@ -398,24 +433,24 @@ export default function ServerlessFunctions9() {
                 <span className="text-[9px] text-slate-500 font-semibold">{currentTraffic} active</span>
               </div>
 
-              {/* NODE 2 (Center): Cloud API Gateway & Router */}
+              {/* NODE 2 (Center): Cloud API Gateway & Router (Responsive on Mobile) */}
               <div className="relative z-10 flex flex-col items-center shrink-0">
-                <div className={`w-14 h-16 sm:w-16 sm:h-18 rounded-2xl border-2 flex flex-col items-center justify-center p-1 shadow-md transition-all ${
+                <div className={`w-13 h-15 sm:w-16 sm:h-18 rounded-2xl border-2 flex flex-col items-center justify-center p-1 shadow-md transition-all ${
                   isSpike 
                     ? "bg-amber-50/95 border-amber-400 shadow-amber-100" 
                     : "bg-white/95 border-slate-300 shadow-slate-100"
                 }`}>
-                  <Layers size={18} className={isSpike ? "text-amber-600 animate-pulse" : "text-slate-600"} />
-                  <span className="text-[9px] font-black text-slate-800 uppercase tracking-tight text-center leading-tight mt-1">
+                  <Layers size={17} className={isSpike ? "text-amber-600 animate-pulse" : "text-slate-600"} />
+                  <span className="text-[9px] font-black text-slate-800 uppercase tracking-tight text-center leading-tight mt-0.5">
                     API<br/>Gateway
                   </span>
-                  <span className="text-[8px] font-mono text-slate-400 mt-0.5">Route</span>
+                  <span className="text-[8px] font-mono text-indigo-600 font-bold mt-0.5">Route</span>
                 </div>
-                <span className="mt-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Traffic Ingress</span>
+                <span className="mt-1 text-[8px] sm:text-[9px] font-bold text-slate-500 uppercase tracking-wider">Traffic Ingress</span>
               </div>
 
               {/* FLIGHT PATH: Moving Packets Across Conduit */}
-              <div className="absolute left-[16%] right-[18%] top-0 bottom-0 pointer-events-none z-20">
+              <div className="absolute left-[14%] right-[18%] top-0 bottom-0 pointer-events-none z-20">
                 <AnimatePresence>
                   {activePackets.map((p) => (
                     <motion.div
@@ -462,12 +497,12 @@ export default function ServerlessFunctions9() {
                       </span>
                     </div>
 
-                    {/* Physical Hardware Queue Slots */}
+                    {/* Physical Hardware Queue Slots (Clickable/Inspectable) */}
                     <div className="my-auto flex flex-col gap-1 py-1">
                       <div className="flex justify-between items-center text-[9px] font-bold text-slate-300">
                         <span className="flex items-center gap-1">
                           <Cpu size={11} className="text-slate-400" />
-                          <span>CPU Slots:</span>
+                          <span>CPU Slots (Tap to Inspect):</span>
                         </span>
                         <span className={currentSlotsFilled >= 5 ? "text-rose-400 font-black" : "text-emerald-400 font-mono"}>
                           {currentSlotsFilled}/5 Max
@@ -478,16 +513,27 @@ export default function ServerlessFunctions9() {
                         {[0, 1, 2, 3, 4].map((slotIdx) => {
                           const isFilled = slotIdx < currentSlotsFilled;
                           return (
-                            <div 
+                            <button 
                               key={slotIdx}
-                              className={`h-4 rounded flex items-center justify-center text-[8px] font-black transition-all ${
+                              onClick={() => {
+                                playPop();
+                                setInspectedNode({
+                                  title: `Monolith CPU Core #${slotIdx + 1}`,
+                                  detail: isFilled ? "Hardware Thread Busy" : "Idle Thread (Billed)",
+                                  latency: isFilled ? (currentSlotsFilled >= 5 ? "Queue Overflow" : "48ms") : "0ms",
+                                  cost: "$4.00/sec Fixed Lease",
+                                  status: currentSlotsFilled >= 5 && isFilled ? "503 Saturated" : (isFilled ? "200 Processing" : "Idle (Billed)")
+                                });
+                              }}
+                              className={`h-4 rounded flex items-center justify-center text-[8px] font-black transition-all cursor-pointer hover:ring-1 hover:ring-amber-400 active:scale-95 ${
                                 isFilled 
                                   ? (currentSlotsFilled >= 5 ? "bg-rose-500 text-white shadow-[0_0_8px_rgba(244,63,94,0.6)]" : "bg-emerald-500 text-white shadow-[0_0_6px_rgba(16,185,129,0.5)]") 
                                   : "bg-slate-800/80 text-slate-600"
                               }`}
+                              title={`CPU Core Slot #${slotIdx + 1}`}
                             >
                               {isFilled ? "ON" : "—"}
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -512,7 +558,7 @@ export default function ServerlessFunctions9() {
 
                 ) : (
 
-                  // 2. Elastic Serverless (AWS Lambda Fleet)
+                  // 2. Elastic Serverless (AWS Lambda Fleet) (Clickable/Inspectable)
                   <div className="w-full h-full rounded-2xl border-2 border-dashed border-violet-400/80 bg-gradient-to-b from-violet-950/90 via-slate-900 to-indigo-950 text-white flex flex-col justify-between p-3 relative shadow-xl">
                     
                     {/* Fleet Header */}
@@ -536,21 +582,31 @@ export default function ServerlessFunctions9() {
                       ) : (
                         <div className="w-full">
                           <div className="flex justify-between items-center mb-1 text-[9px] font-bold text-violet-300">
-                            <span>Auto-Scaled Fleet:</span>
+                            <span>Auto-Scaled (Tap to Inspect):</span>
                             <span className="text-violet-200 font-mono font-black">{activeLambdas} MicroVMs</span>
                           </div>
                           <div className="grid grid-cols-5 gap-1 max-h-20 overflow-hidden bg-slate-950/60 p-1 rounded-lg border border-violet-900">
                             {Array.from({ length: Math.min(activeLambdas, 15) }).map((_, i) => (
-                              <motion.div
+                              <motion.button
                                 key={`lambda-${i}`}
+                                onClick={() => {
+                                  playPop();
+                                  setInspectedNode({
+                                    title: `AWS Lambda #fn-${i + 1}`,
+                                    detail: "On-Demand MicroVM Execution",
+                                    latency: `${28 + (i % 6) * 3}ms runtime`,
+                                    cost: "$0.00015 execution",
+                                    status: "200 OK (Zero Idle)"
+                                  });
+                                }}
                                 initial={{ scale: 0, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0, opacity: 0 }}
-                                className="h-5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded flex items-center justify-center shadow-[0_0_8px_rgba(139,92,246,0.5)] text-white"
-                                title={`Lambda Instance #${i + 1}`}
+                                className="h-5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded flex items-center justify-center shadow-[0_0_8px_rgba(139,92,246,0.5)] text-white hover:ring-1 hover:ring-violet-300 active:scale-95 cursor-pointer"
+                                title={`Tap to inspect Lambda #${i + 1}`}
                               >
                                 <Zap size={10} className="fill-white" />
-                              </motion.div>
+                              </motion.button>
                             ))}
                           </div>
                           <div className="text-[8px] text-center font-bold text-emerald-400 mt-0.5">
@@ -570,6 +626,29 @@ export default function ServerlessFunctions9() {
                 )}
               </div>
 
+            </div>
+
+            {/* LIVE TELEMETRY INSPECTOR BAR */}
+            <div className="shrink-0 px-3 py-1 bg-slate-900 text-white text-[10px] font-mono flex items-center justify-between border-t border-slate-800 shadow-inner">
+              <div className="flex items-center gap-1.5 font-bold min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                <span className="text-indigo-300 truncate">
+                  {inspectedNode ? inspectedNode.title : `Telemetry: ${architecture === "MONOLITH" ? "Hardware Slots 5/5 max" : "Elastic Auto-Scale Fleet"}`}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-300 shrink-0 text-[9px]">
+                {inspectedNode ? (
+                  <>
+                    <span className="text-slate-400">{inspectedNode.latency}</span>
+                    <span className="text-emerald-400 font-bold">{inspectedNode.cost}</span>
+                    <span className={inspectedNode.status.includes("503") ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>
+                      {inspectedNode.status}
+                    </span>
+                  </>
+                ) : (
+                  <span>Tap any slot or microVM to inspect</span>
+                )}
+              </div>
             </div>
 
             {/* Real-World Industry Context Chip */}
@@ -633,6 +712,7 @@ export default function ServerlessFunctions9() {
                       setArchitecture("MONOLITH");
                       setSimState("IDLE");
                       setBudget(START_BUDGET);
+                      setInspectedNode(null);
                     }
                   }}
                   disabled={simState === "RUNNING"}
@@ -652,6 +732,7 @@ export default function ServerlessFunctions9() {
                       setArchitecture("SERVERLESS");
                       setSimState("IDLE");
                       setBudget(START_BUDGET);
+                      setInspectedNode(null);
                       setSteps(prev => ({ ...prev, switchedServerless: true }));
                     }
                   }}
@@ -675,6 +756,7 @@ export default function ServerlessFunctions9() {
                     setArchitecture("SERVERLESS");
                     setSimState("IDLE");
                     setBudget(START_BUDGET);
+                    setInspectedNode(null);
                     setSteps(prev => ({ ...prev, switchedServerless: true }));
                   }}
                   className="w-full py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98 animate-pulse"
