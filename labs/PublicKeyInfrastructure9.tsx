@@ -1,187 +1,53 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Lock, FileBadge, CheckCircle, RefreshCcw , Timer} from "lucide-react";
-
-// ─── SVG PKI & Certificate Visualizer ─────────────────────────────────────────
-
-type Phase = "IDLE" | "SEND_CSR" | "CA_STAMPS" | "CERT_ISSUED" | "CLIENT_CONNECTS" | "VERIFIED";
-
-function PkiSVG({ phase }: { phase: Phase }) {
-  return (
-    <svg viewBox="0 0 900 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <filter id="glow-cert">
-          <feGaussianBlur stdDeviation="3" result="b" />
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-
-      {/* ── Certificate Authority (Top Center) ── */}
-      <g transform="translate(450, 80)">
-        <rect x="-80" y="-40" width="160" height="80" fill="#0f172a" rx="8" stroke="#f59e0b" strokeWidth="4" />
-        <text x="0" y="-10" fill="#fcd34d" fontSize="16" fontWeight="black" textAnchor="middle">Global CA</text>
-        <text x="0" y="10" fill="#f59e0b" fontSize="10" textAnchor="middle">(Trusted by Browsers)</text>
-        
-        {/* CA's Signing Press */}
-        <motion.rect 
-          x="-20" y="40" width="40" height="30" fill="#78350f" rx="4" 
-          animate={{ y: phase === "CA_STAMPS" ? 60 : 40 }}
-          transition={{ type: "spring", bounce: 0.8 }}
-        />
-        <text x="0" y={phase === "CA_STAMPS" ? 80 : 60} fill="#fff" fontSize="10" textAnchor="middle" style={{ transition: "all 0.3s" }}>SIGN</text>
-      </g>
-
-      {/* ── Web Server (Left) ── */}
-      <g transform="translate(150, 350)">
-        <rect x="-60" y="-50" width="120" height="100" fill="#1e1b4b" rx="8" stroke="#f59e0b" strokeWidth="4" />
-        <text x="0" y="-20" fill="#a5b4fc" fontSize="16" fontWeight="black" textAnchor="middle">Web Server</text>
-        <text x="0" y="0" fill="#f59e0b" fontSize="10" textAnchor="middle">"I am tarcin.in"</text>
-      </g>
-
-      {/* ── Client Browser (Right) ── */}
-      <g transform="translate(750, 350)">
-        <rect x="-60" y="-50" width="120" height="100" fill="#064e3b" rx="8" stroke="#10b981" strokeWidth="4" />
-        <text x="0" y="-20" fill="#a7f3d0" fontSize="16" fontWeight="black" textAnchor="middle">Browser</text>
-        <text x="0" y="0" fill="#34d399" fontSize="10" textAnchor="middle">(Trusts Global CA)</text>
-        
-        {/* Padlock Icon */}
-        <AnimatePresence>
-          {phase === "VERIFIED" && (
-            <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", bounce: 0.6 }} transform="translate(0, 30)">
-              <rect x="-10" y="-5" width="20" height="15" fill="#34d399" rx="2" filter="url(#glow-cert)" />
-              <path d="M -6,-5 L -6,-10 C -6,-15 6,-15 6,-10 L 6,-5" fill="none" stroke="#10b981" strokeWidth="3" filter="url(#glow-cert)" />
-            </motion.g>
-          )}
-        </AnimatePresence>
-      </g>
-
-      {/* ── The Certificate (Animated Actor) ── */}
-      <AnimatePresence>
-        {phase !== "IDLE" && (
-          <motion.g
-            initial={{ x: 150, y: 250 }}
-            animate={{ 
-              x: phase === "SEND_CSR" ? 450 : 
-                 phase === "CA_STAMPS" ? 450 : 
-                 phase === "CERT_ISSUED" ? 150 : 
-                 phase === "CLIENT_CONNECTS" ? 750 : 
-                 750,
-              y: phase === "SEND_CSR" ? 180 : 
-                 phase === "CA_STAMPS" ? 180 : 
-                 phase === "CERT_ISSUED" ? 250 : 
-                 phase === "CLIENT_CONNECTS" ? 250 : 
-                 250
-            }}
-            transition={{ duration: 1, type: "spring", bounce: 0.1 }}
-          >
-            <rect x="-40" y="-30" width="80" height="60" fill="#f8fafc" rx="4" stroke="#cbd5e1" strokeWidth="2" />
-            <text x="0" y="-10" fill="#0f172a" fontSize="10" fontWeight="bold" textAnchor="middle">tarcin.in</text>
-            <text x="0" y="5" fill="#fbbf24" fontSize="10" fontWeight="bold" textAnchor="middle">Public Key</text>
-            
-            {/* The CA's Wax Seal Signature (Only appears after stamping) */}
-            {(phase === "CERT_ISSUED" || phase === "CLIENT_CONNECTS" || phase === "VERIFIED") && (
-              <g transform="translate(20, 15)">
-                <circle cx="0" cy="0" r="12" fill="#f59e0b" filter="url(#glow-cert)" />
-                <text x="0" y="3" fill="#fff" fontSize="8" fontWeight="black" textAnchor="middle">CA</text>
-              </g>
-            )}
-            
-            {/* Client Verification Laser */}
-            {phase === "VERIFIED" && (
-              <motion.path 
-                d="M -50,0 L 50,0" 
-                fill="none" stroke="#10b981" strokeWidth="4" 
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }}
-                filter="url(#glow-cert)"
-              />
-            )}
-          </motion.g>
-        )}
-      </AnimatePresence>
-
-    </svg>
-  );
-}
-
-// ─── Main Component ─────────────────────────────────────────────────────────────
+import { Timer, ShieldCheck, Globe, Server, AlertTriangle, Lock, Unlock, FileBadge, ArrowRight, ShieldAlert, FileKey, HelpCircle } from "lucide-react";
 
 const TIMER_DURATION_SECONDS = 5 * 60;
-const STEP_ORDER = ["IDLE", "SEND_CSR", "CA_STAMPS", "CERT_ISSUED", "CLIENT_CONNECTS", "VERIFIED"];
-function marksForStep(s: string): number {
-  const index = STEP_ORDER.indexOf(s);
-  return Math.max(0, Math.round((index / (STEP_ORDER.length - 1)) * 100));
-}
+
+type Phase = 
+  | "LEARN" 
+  | "TRY_CONNECT" 
+  | "FAIL_INTERCEPT" 
+  | "UNDERSTAND" 
+  | "IMPROVE_REQUEST" 
+  | "IMPROVE_STAMP" 
+  | "IMPROVE_DELIVER" 
+  | "READY_SECURE"
+  | "COMPLETE_CONNECT" 
+  | "OUTCOME";
 
 export default function PublicKeyInfrastructure9() {
   const { reportComplete: _reportComplete } = useLMSBridge("publickeyinfrastructure9");
+  const { playPop, playZap, playError, playSuccess, playChime } = useLabAudio();
 
-  
-  const { playPop, playZap, playSuccess } = useLabAudio();
-
-  const [phase, setPhase] = useState<Phase>("IDLE");
-  const [hasWon, setHasWon] = useState(false);
-
-  const startFlow = () => {
-    if (phase !== "IDLE" && phase !== "VERIFIED") return;
-    
-    // Server sends Public Key to CA
-    setPhase("SEND_CSR");
-    playPop();
-
-    setTimeout(() => {
-      // CA Signs it
-      setPhase("CA_STAMPS");
-      playZap();
-
-      setTimeout(() => {
-        // Certificate is born and sent to server
-        setPhase("CERT_ISSUED");
-        playSuccess(); // Sparkle
-
-        setTimeout(() => {
-           // Client connects and gets the certificate
-           setPhase("CLIENT_CONNECTS");
-           playPop();
-
-           setTimeout(() => {
-              // Client verifies the CA signature and locks the padlock
-              setPhase("VERIFIED");
-              playZap();
-              
-              if (!hasWon) {
-                 setHasWon(true);
-                 setTimeout(reportComplete, 1500);
-              }
-           }, 1500);
-        }, 1500);
-      }, 1000);
-    }, 1000);
-  };
-
-  const reset = () => {
-    setPhase("IDLE");
-    setHasWon(false);
-  };
-
-const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [phase, setPhase] = useState<Phase>("LEARN");
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
   const [timedOut, setTimedOut] = useState(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
 
-  const labCurrentStep = phase;
-  const isLabComplete = phase === STEP_ORDER[STEP_ORDER.length - 1];
-
-  const reportComplete = useCallback((args?: any) => {
-    _reportComplete({ points: marksForStep(labCurrentStep) });
-  }, [_reportComplete, labCurrentStep]);
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
 
   useEffect(() => {
-    if (timedOut || isLabComplete) {
+    return () => clearTimers();
+  }, [clearTimers]);
+
+  const reportComplete = useCallback(() => {
+    _reportComplete({ points: 100 });
+  }, [_reportComplete]);
+
+  // Global Timer
+  useEffect(() => {
+    if (timedOut || phase === "OUTCOME") {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       return;
     }
@@ -198,84 +64,328 @@ const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [timedOut, isLabComplete]);
+  }, [timedOut, phase]);
 
   useEffect(() => {
     if (timedOut) {
-      _reportComplete({ points: marksForStep(labCurrentStep) });
+      _reportComplete({ points: 0 });
     }
-  }, [timedOut, _reportComplete, labCurrentStep]);
-
-  useEffect(() => {
-    if (isLabComplete) {
-      _reportComplete({ points: marksForStep(labCurrentStep) });
-    }
-  }, [isLabComplete, _reportComplete, labCurrentStep]);
+  }, [timedOut, _reportComplete]);
 
   const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
 
+  const handleInsecureConnect = () => {
+    if (phase !== "LEARN") return;
+    setPhase("TRY_CONNECT");
+    playPop();
+
+    timersRef.current.push(setTimeout(() => {
+      setPhase("FAIL_INTERCEPT");
+      playError();
+      
+      timersRef.current.push(setTimeout(() => {
+        setPhase("UNDERSTAND");
+      }, 3000));
+    }, 1500));
+  };
+
+  const handleRequestCertificate = () => {
+    if (phase !== "UNDERSTAND") return;
+    setPhase("IMPROVE_REQUEST");
+    playPop();
+
+    timersRef.current.push(setTimeout(() => {
+      setPhase("IMPROVE_STAMP");
+      playZap(); // Stamping sound
+
+      timersRef.current.push(setTimeout(() => {
+        setPhase("IMPROVE_DELIVER");
+        playChime();
+
+        timersRef.current.push(setTimeout(() => {
+          setPhase("READY_SECURE");
+          playSuccess();
+        }, 1500));
+      }, 1500));
+    }, 1500));
+  };
+
+  const handleSecureConnect = () => {
+    if (phase !== "READY_SECURE") return;
+    setPhase("COMPLETE_CONNECT");
+    playPop();
+
+    timersRef.current.push(setTimeout(() => {
+      setPhase("OUTCOME");
+      playSuccess();
+      reportComplete();
+    }, 2000));
+  };
+
+  const getInstruction = () => {
+    switch (phase) {
+      case "LEARN": return "Mission: Your Browser wants to connect to tarcin.in. How does it know it's not an imposter? Try connecting directly.";
+      case "TRY_CONNECT": return "Initiating connection to tarcin.in...";
+      case "FAIL_INTERCEPT": return "DANGER! A hacker intercepted the connection! The browser couldn't verify the server's identity.";
+      case "UNDERSTAND": return "Without a Digital Passport (Certificate), anyone can pretend to be the server. We need a trusted third party.";
+      case "IMPROVE_REQUEST": return "The Web Server sends a Certificate Signing Request (CSR) to the Global CA.";
+      case "IMPROVE_STAMP": return "The Global CA verifies the Server's identity and digitally SIGNS the certificate with its official stamp.";
+      case "IMPROVE_DELIVER": return "The stamped Digital Certificate is sent back to the Web Server to be presented to browsers.";
+      case "READY_SECURE": return "Certificate installed! Now, try connecting from the Browser again.";
+      case "COMPLETE_CONNECT": return "The Browser receives the Certificate and verifies the Global CA's signature...";
+      case "OUTCOME": return "Success! The signature is verified. A secure, encrypted TLS Tunnel is established.";
+      default: return "";
+    }
+  };
+
+  const hasCertificate = phase === "IMPROVE_DELIVER" || phase === "READY_SECURE" || phase === "COMPLETE_CONNECT" || phase === "OUTCOME";
+  
   return (
     <LabShell
       navExtra={
-        !isLabComplete && (
-          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+        phase !== "OUTCOME" && (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm backdrop-blur-md transition-colors font-mono ${
             timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
-            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-            "bg-white border-sky-100/80 text-sky-700"
+            secondsLeft <= 60 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-slate-200 text-slate-700"
           }`}>
-            <Timer size={16} strokeWidth={2.5} />
-            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+            <Timer size={16} strokeWidth={2.5} className={secondsLeft <= 60 && !timedOut ? "animate-spin" : ""} />
+            <span>{timedOut ? "0:00" : formattedTime}</span>
           </div>
         )
-      } labId="publickeyinfrastructure9" theme="forge" title="SSL/TLS Certificates & PKI" subtitle="L24 · Cryptography"
-      instruction="How do you know a website is real? Watch the Web Server send its Public Key to a trusted Certificate Authority (CA). The CA signs it, creating a Certificate. When your browser connects, it verifies that CA Signature to enable the Green Padlock." compact>
-      
-      <Celebration isActive={hasWon} message="Secure Connection Established! The browser trusts the CA, and the CA trusts the Server. By verifying the CA's signature on the Certificate, the browser knows the Server is completely legitimate." onReplay={reset} />
+      }
+      labId="publickeyinfrastructure9"
+      theme="ocean"
+      title="SSL/TLS Certificates & PKI"
+      subtitle="L24 · Cryptography"
+      instruction={getInstruction()}
+      compact
+      onReset={() => {
+        setPhase("LEARN");
+        setTimedOut(false);
+        setSecondsLeft(TIMER_DURATION_SECONDS);
+        clearTimers();
+      }}
+    >
+      <Celebration
+        isActive={phase === "OUTCOME"}
+        message="Chain of Trust Verified! The browser trusted the CA, and the CA vouched for the Server. The encrypted TLS Tunnel is active."
+        onReplay={() => {
+          setPhase("LEARN");
+          setTimedOut(false);
+          setSecondsLeft(TIMER_DURATION_SECONDS);
+          clearTimers();
+        }}
+      />
 
-      <div className="w-full flex flex-col flex-1 min-h-0 pt-1 gap-3">
+      <div className="w-full flex flex-col flex-1 min-h-0 pt-24 md:pt-28 px-4 pb-4 gap-4 relative z-10 items-center">
         
-        {/* Interactive Controls */}
-        <div className="shrink-0 panel-glass rounded-2xl border-amber-900/50 p-4 flex flex-col md:flex-row items-center justify-center gap-6">
+        {/* Unified Main Workspace Box */}
+        <div className="flex-1 w-full max-w-5xl bg-slate-50 border border-slate-200 rounded-[2.5rem] shadow-inner relative overflow-hidden flex flex-col pt-8 px-8 pb-12">
           
-          <button 
-            onClick={startFlow} 
-            disabled={phase !== "IDLE" && phase !== "VERIFIED"}
-            className="px-8 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all border-2 bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/30 disabled:opacity-50"
-          >
-            <FileBadge size={18}/> Request SSL Certificate (PKI Flow)
-          </button>
+          {/* Subtle Background Elements */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 10px 10px, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-          <button onClick={reset} className="px-4 py-3 rounded-xl font-black bg-gray-800/80 border-2 border-gray-700 text-gray-300 hover:bg-gray-700 transition-all">
-            <RefreshCcw size={18}/>
-          </button>
-
-        </div>
-
-        {/* Main SVG Area */}
-        <div data-step={labCurrentStep} className="flex-1 panel-glass rounded-3xl overflow-x-auto overflow-y-hidden relative border-amber-900/40 bg-[#030712] shadow-[inset_0_0_80px_rgba(0,0,0,0.9)] flex items-center justify-center">
-          <div className="w-full max-w-5xl aspect-[2.2] min-w-[800px]">
-            <PkiSVG phase={phase} />
-          </div>
-        </div>
-
-      </div>
-    
-      {timedOut && !isLabComplete && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
-            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-              <Timer className="w-7 h-7" />
+          {/* Integrated Instruction Banner & Controls */}
+          <div className="w-full shrink-0 flex flex-col items-center gap-4 relative z-50 mb-8">
+            <div className="w-full max-w-2xl bg-white border border-slate-200 shadow-sm rounded-2xl p-5 text-center">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-1">
+                Mission Objective
+              </h3>
+              <p className="text-sm font-medium text-slate-600">
+                {getInstruction()}
+              </p>
             </div>
-            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
-            <p className="text-sm font-medium text-slate-600 mb-4">
-              You reached {marksForStep(labCurrentStep)} / 100 marks before the 5:00 timer ran out.
+
+            <div className="flex items-center justify-center min-h-[3rem]">
+              {phase === "LEARN" && (
+                  <button onClick={handleInsecureConnect} className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2">
+                    <Globe size={18} /> Connect to Web Server
+                  </button>
+              )}
+              {phase === "UNDERSTAND" && (
+                  <button onClick={handleRequestCertificate} className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 border-2 border-indigo-400 text-white font-bold rounded-xl active:scale-95 transition-all shadow-[0_0_20px_rgba(79,70,229,0.4)] flex items-center gap-2 animate-pulse">
+                    <FileBadge size={18} /> Request Certificate (PKI Flow)
+                  </button>
+              )}
+              {phase === "READY_SECURE" && (
+                  <button onClick={handleSecureConnect} className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 border-2 border-emerald-400 text-white font-bold rounded-xl active:scale-95 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center gap-2 animate-pulse">
+                    <Lock size={18} /> Connect Securely
+                  </button>
+              )}
+            </div>
+          </div>
+
+          {/* Network Diagram Area - occupies remaining space */}
+          <div className="flex-1 w-full relative flex flex-col justify-between items-center mt-4">
+
+          {/* TLS TUNNEL (Visible only at the end) */}
+          <AnimatePresence>
+            {phase === "OUTCOME" && (
+              <motion.div 
+                initial={{ opacity: 0, scaleY: 0 }}
+                animate={{ opacity: 1, scaleY: 1 }}
+                className="absolute bottom-20 left-1/4 right-1/4 h-8 bg-emerald-100 border-y-4 border-emerald-400 z-0 origin-left"
+              >
+                <div className="w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(16,185,129,0.3)_50%,transparent_100%)] animate-[pulse_2s_linear_infinite]" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Hacker Node */}
+          <AnimatePresence>
+            {(phase === "TRY_CONNECT" || phase === "FAIL_INTERCEPT" || phase === "UNDERSTAND") && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                className={`absolute bottom-20 left-1/2 -translate-x-1/2 w-24 h-24 bg-rose-50 border-2 border-rose-300 rounded-2xl flex flex-col items-center justify-center z-10 ${phase === "FAIL_INTERCEPT" ? "shadow-[0_0_30px_rgba(244,63,94,0.4)] border-rose-500" : ""}`}
+              >
+                <ShieldAlert className={`w-8 h-8 ${phase === "FAIL_INTERCEPT" ? "text-rose-600 animate-pulse" : "text-rose-400"}`} />
+                <span className="text-[10px] font-bold text-rose-600 mt-1 uppercase">Hacker</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Top Layer: Global CA */}
+          <div className="w-full flex justify-center relative z-20">
+            <div className="w-48 h-32 bg-white border-2 border-amber-300 rounded-2xl shadow-[0_10px_30px_rgba(245,158,11,0.1)] flex flex-col items-center justify-center relative">
+              <ShieldCheck className="w-10 h-10 text-amber-500 mb-2" />
+              <div className="text-sm font-black text-slate-800 uppercase tracking-wide">Global CA</div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase">Trusted Authority</div>
+
+              {/* Stamp Animation */}
+              <AnimatePresence>
+                {phase === "IMPROVE_STAMP" && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 3, rotate: -20 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl backdrop-blur-sm z-30"
+                  >
+                    <div className="text-amber-600 border-4 border-amber-600 font-black text-xl px-4 py-1 rounded-lg transform -rotate-12 uppercase tracking-widest shadow-lg">
+                      SIGNED
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Bottom Layer: Web Server & Browser */}
+          <div className="w-full flex justify-between relative z-20">
+            
+            {/* Web Server */}
+            <div className="w-48 h-32 bg-white border-2 border-indigo-200 rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.1)] flex flex-col items-center justify-center relative">
+              <Server className="w-10 h-10 text-indigo-500 mb-2" />
+              <div className="text-sm font-black text-slate-800 uppercase tracking-wide">tarcin.in</div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase">Web Server</div>
+              
+              {/* Server's Certificate display */}
+              <AnimatePresence>
+                {hasCertificate && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute -top-4 -right-4 w-12 h-12 bg-emerald-100 border-2 border-emerald-400 rounded-full flex items-center justify-center shadow-lg"
+                  >
+                    <FileBadge className="w-6 h-6 text-emerald-600" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Browser */}
+            <div className="w-48 h-32 bg-white border-2 border-emerald-200 rounded-2xl shadow-[0_10px_30px_rgba(16,185,129,0.1)] flex flex-col items-center justify-center relative">
+              <Globe className="w-10 h-10 text-emerald-500 mb-2" />
+              <div className="text-sm font-black text-slate-800 uppercase tracking-wide">Browser</div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase">Trusts Global CA</div>
+              
+              {/* Browser's Lock Status */}
+              <div className="absolute -top-3 -left-3 w-12 h-12 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center shadow-md">
+                {phase === "OUTCOME" ? (
+                   <Lock className="w-6 h-6 text-emerald-500" />
+                ) : phase === "FAIL_INTERCEPT" || phase === "UNDERSTAND" ? (
+                   <Unlock className="w-6 h-6 text-rose-500" />
+                ) : (
+                   <div className="w-2 h-2 rounded-full bg-slate-300" />
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Animated Packets (Absolute positioned overlay) */}
+          {/* Packet 1: Unsecure Connection */}
+          {phase === "TRY_CONNECT" && (
+            <motion.div
+              initial={{ left: "20%", bottom: "20%" }}
+              animate={{ left: "50%", bottom: "20%" }} // moves to hacker in center
+              transition={{ duration: 1.5, ease: "linear" }}
+              className="absolute w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center z-40 border border-slate-400"
+            >
+              <FileKey className="w-4 h-4 text-slate-600" />
+            </motion.div>
+          )}
+
+          {/* Packet 2: CSR to CA */}
+          {phase === "IMPROVE_REQUEST" && (
+            <motion.div
+              initial={{ left: "20%", bottom: "25%" }}
+              animate={{ left: "50%", bottom: "70%" }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
+              className="absolute w-10 h-12 bg-indigo-50 border-2 border-indigo-300 rounded-md flex items-center justify-center z-40"
+            >
+              <div className="text-[8px] font-bold text-indigo-500">CSR</div>
+            </motion.div>
+          )}
+
+          {/* Packet 3: Stamped Cert to Server */}
+          {phase === "IMPROVE_DELIVER" && (
+            <motion.div
+              initial={{ left: "50%", bottom: "70%" }}
+              animate={{ left: "20%", bottom: "25%" }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
+              className="absolute w-10 h-12 bg-emerald-50 border-2 border-emerald-400 rounded-md flex items-center justify-center z-40"
+            >
+              <FileBadge className="w-5 h-5 text-emerald-500" />
+            </motion.div>
+          )}
+
+          {/* Packet 4: Secure Connection */}
+          {phase === "COMPLETE_CONNECT" && (
+            <motion.div
+              initial={{ left: "20%", bottom: "20%" }}
+              animate={{ left: "80%", bottom: "20%" }} 
+              transition={{ duration: 2, ease: "linear" }}
+              className="absolute w-10 h-12 bg-emerald-50 border-2 border-emerald-400 rounded-md flex items-center justify-center z-40"
+            >
+               <FileBadge className="w-5 h-5 text-emerald-500" />
+            </motion.div>
+          )}
+
+        </div>
+      </div>
+    </div>
+    
+      {/* Failure Modals */}
+      {(timedOut) && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md rounded-2xl">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 max-w-sm text-center mx-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
+            <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 text-rose-500 flex items-center justify-center mx-auto mb-4">
+              <Timer className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 mb-2">Time's Up!</h3>
+            <p className="text-sm font-medium text-slate-500 mb-6 leading-relaxed">
+              You did not complete the lab in time.
             </p>
-            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
-              Try Again
+            <button onClick={() => window.location.reload()} className="w-full px-6 py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-sm font-black uppercase tracking-widest transition-all cursor-pointer shadow-md">
+              Initialize Retry
             </button>
           </div>
         </div>
       )}
-</LabShell>
+    </LabShell>
   );
 }
