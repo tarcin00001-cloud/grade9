@@ -1,8 +1,11 @@
+"use client";
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Server, Zap, Users, AlertTriangle, FileText, CheckCircle, 
-  Coins, Play, RefreshCcw, Activity
+  Server, Zap, Users, AlertTriangle, FileText, CheckCircle2, 
+  Play, RotateCcw, Activity, HelpCircle, Compass, Timer, 
+  Sparkles, ArrowRight, ShieldAlert, Cpu
 } from "lucide-react";
 import LabShell from "@/components/LabShell";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
@@ -18,10 +21,10 @@ const MONO_COST_PER_TICK = 4.00;
 const MONO_CAPACITY = 5;
 const SERV_COST_PER_REQ = 0.15;
 
-// Traffic profile for the 15-second simulation (Tick 0 to 14)
+// Standardized 15-second benchmark traffic curve (0 to 14 seconds)
 const getTrafficForTick = (tick: number) => {
-  if (tick >= 5 && tick <= 9) return 15; // Viral Spike!
-  return 1; // Normal idle traffic
+  if (tick >= 5 && tick <= 9) return 15; // Viral Traffic Spike!
+  return 1; // Idle traffic
 };
 
 interface Packet {
@@ -29,6 +32,18 @@ interface Packet {
   status: "success" | "dropped";
   arcOffset: number;
 }
+
+const QUIZ_DATA = {
+  question: "Why did Serverless cost $0.00 during idle periods, while the Monolith lost over $20.00?",
+  options: [
+    "Serverless runs on slower, cheaper computers that consume less power.",
+    "Serverless only spins up code when triggered by an event, so you never pay for idle hardware.",
+    "Cloud providers offer free unlimited servers for the first 15 seconds.",
+    "The Monolith server had a hardware virus that drained cryptocurrency."
+  ],
+  correct: 1,
+  explanation: "Correct! Traditional servers bill you 24/7 for dedicated capacity even when 0 users visit. Serverless (Lambda) executes code on-demand and immediately terminates, costing exactly $0.00 when idle!"
+};
 
 export default function ServerlessFunctions9() {
   const { reportComplete } = useLMSBridge();
@@ -38,6 +53,7 @@ export default function ServerlessFunctions9() {
   const [architecture, setArchitecture] = useState<Architecture>("MONOLITH");
   const [simState, setSimState] = useState<SimState>("IDLE");
   const [tick, setTick] = useState(0);
+  const [manualSurge, setManualSurge] = useState(0);
   
   // Financial & Metrics State
   const [budget, setBudget] = useState(START_BUDGET);
@@ -57,34 +73,42 @@ export default function ServerlessFunctions9() {
     monolithFailed: false,
     switchedServerless: false,
     serverlessSuccess: false,
+    passedQuiz: false,
   });
 
-  const _reportComplete = useCallback(() => {
-    reportComplete({ points: 100, labId: "serverlessfunctions9" });
-  }, [reportComplete]);
+  // Quiz State
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizError, setQuizError] = useState(false);
 
-  // Handle Simulation Loop
+  // Reset manual surge after tick
+  useEffect(() => {
+    if (manualSurge > 0) {
+      const t = setTimeout(() => setManualSurge(0), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [manualSurge]);
+
+  // Main Simulation Loop
   useEffect(() => {
     if (simState !== "RUNNING") return;
 
     const timer = setTimeout(() => {
-      // End of simulation check
+      // Check for end of simulation or budget exhaustion
       if (tick >= TOTAL_TICKS || budget <= 0) {
         if (architecture === "MONOLITH") {
           setSimState("MONOLITH_FAILED");
-          setSteps(prev => ({ ...prev, monolithFailed: true }));
+          setSteps(prev => ({ ...prev, tryMonolith: true, monolithFailed: true }));
           playError();
         } else {
           setSimState("SERVERLESS_SUCCESS");
           setSteps(prev => ({ ...prev, serverlessSuccess: true }));
           playSuccess();
-          playChime();
-          _reportComplete();
         }
         return;
       }
 
-      const traffic = getTrafficForTick(tick);
+      const rawTraffic = getTrafficForTick(tick) + manualSurge;
       let newProcessed = 0;
       let newDropped = 0;
       let newIdleCost = 0;
@@ -92,26 +116,26 @@ export default function ServerlessFunctions9() {
 
       if (architecture === "MONOLITH") {
         newIdleCost = MONO_COST_PER_TICK;
-        newProcessed = Math.min(traffic, MONO_CAPACITY);
-        newDropped = Math.max(0, traffic - MONO_CAPACITY);
+        newProcessed = Math.min(rawTraffic, MONO_CAPACITY);
+        newDropped = Math.max(0, rawTraffic - MONO_CAPACITY);
         
         if (newDropped > 0) {
           setIsShaking(true);
           playError();
-          setTimeout(() => setIsShaking(false), 400);
+          setTimeout(() => setIsShaking(false), 350);
         } else {
           playPop();
         }
       } else {
-        // SERVERLESS
-        newProcessed = traffic;
+        // SERVERLESS (Lambda)
+        newProcessed = rawTraffic;
         newDropped = 0;
-        newComputeCost = traffic * SERV_COST_PER_REQ;
-        setActiveLambdas(traffic);
+        newComputeCost = rawTraffic * SERV_COST_PER_REQ;
+        setActiveLambdas(rawTraffic);
         playPop();
       }
 
-      // Update financials
+      // Financial balance updates
       const totalTickCost = newIdleCost + newComputeCost;
       setBudget(prev => Math.max(0, prev - totalTickCost));
       setCostIdle(prev => prev + newIdleCost);
@@ -119,33 +143,35 @@ export default function ServerlessFunctions9() {
       setReqProcessed(prev => prev + newProcessed);
       setReqDropped(prev => prev + newDropped);
 
-      // Generate visual packets
+      // Spawn visual packet dots
       const packets: Packet[] = [];
-      for (let i = 0; i < newProcessed; i++) {
-        packets.push({ id: `p-${tick}-${i}`, status: "success", arcOffset: Math.random() * 40 - 20 });
+      const packetRenderCount = Math.min(newProcessed, 8);
+      for (let i = 0; i < packetRenderCount; i++) {
+        packets.push({ id: `p-${tick}-${i}`, status: "success", arcOffset: (i - packetRenderCount / 2) * 12 });
       }
-      for (let i = 0; i < newDropped; i++) {
-        packets.push({ id: `d-${tick}-${i}`, status: "dropped", arcOffset: Math.random() * 60 - 30 });
+      const dropRenderCount = Math.min(newDropped, 6);
+      for (let i = 0; i < dropRenderCount; i++) {
+        packets.push({ id: `d-${tick}-${i}`, status: "dropped", arcOffset: (i - dropRenderCount / 2) * 16 });
       }
       setActivePackets(packets);
 
-      // Advance time
+      // Increment simulation tick
       setTick(prev => prev + 1);
 
-    }, 1000); // 1 second per tick
+    }, 1000);
 
     return () => clearTimeout(timer);
-  }, [simState, tick, budget, architecture, playError, playPop, playSuccess, playChime, _reportComplete]);
+  }, [simState, tick, budget, architecture, manualSurge, playError, playPop, playSuccess]);
 
-  // Clear lambdas quickly after they spawn
+  // Clear lambdas quickly
   useEffect(() => {
-    if (activeLambdas > 0) {
-      const t = setTimeout(() => setActiveLambdas(0), 600);
+    if (activeLambdas > 0 && simState === "RUNNING") {
+      const t = setTimeout(() => setActiveLambdas(0), 650);
       return () => clearTimeout(t);
     }
-  }, [activeLambdas]);
+  }, [activeLambdas, simState]);
 
-  const startSimulation = () => {
+  const handleStartSimulation = () => {
     setSimState("RUNNING");
     setTick(0);
     setBudget(START_BUDGET);
@@ -155,6 +181,7 @@ export default function ServerlessFunctions9() {
     setCostCompute(0);
     setActivePackets([]);
     setActiveLambdas(0);
+    setManualSurge(0);
     if (architecture === "MONOLITH") {
       setSteps(prev => ({ ...prev, tryMonolith: true }));
     }
@@ -171,282 +198,593 @@ export default function ServerlessFunctions9() {
     setCostCompute(0);
     setActivePackets([]);
     setActiveLambdas(0);
+    setManualSurge(0);
+    setSelectedOption(null);
+    setQuizSubmitted(false);
+    setQuizError(false);
     setSteps({
       tryMonolith: false,
       monolithFailed: false,
       switchedServerless: false,
       serverlessSuccess: false,
+      passedQuiz: false,
     });
   };
 
-  // UI Helpers
-  const currentTraffic = simState === "RUNNING" ? getTrafficForTick(tick) : 0;
+  const handleAnswerQuiz = (idx: number) => {
+    setSelectedOption(idx);
+    setQuizError(false);
+  };
+
+  const handleSubmitQuiz = () => {
+    if (selectedOption === null) return;
+    if (selectedOption === QUIZ_DATA.correct) {
+      setQuizSubmitted(true);
+      setQuizError(false);
+      setSteps(prev => ({ ...prev, passedQuiz: true }));
+      playSuccess();
+      playChime();
+      reportComplete({ points: 100, labId: "serverlessfunctions9" });
+    } else {
+      setQuizError(true);
+      playError();
+    }
+  };
+
+  // UI Metrics Helpers
+  const currentTraffic = simState === "RUNNING" ? getTrafficForTick(tick) + manualSurge : 0;
   const isSpike = currentTraffic > 5;
-  
-  let instructionText = "Click 'Start 15s Simulation' to see how traditional Monolith servers bill you 24/7.";
-  if (simState === "RUNNING" && architecture === "MONOLITH") {
-    instructionText = "Simulation running. Watch the budget drain and wait for the viral traffic spike!";
-  } else if (simState === "MONOLITH_FAILED") {
-    instructionText = "The monolith crashed and burned your budget! Review the invoice below, then switch to Serverless.";
-  } else if (simState === "IDLE" && architecture === "SERVERLESS") {
-    instructionText = "Serverless selected. Start the simulation to see how on-demand functions handle the spike.";
-  } else if (simState === "RUNNING" && architecture === "SERVERLESS") {
-    instructionText = "Watch carefully! The budget only drops when Lambdas actually process requests.";
-  } else if (simState === "SERVERLESS_SUCCESS") {
-    instructionText = "Success! The Serverless functions handled the viral spike flawlessly and saved your startup budget.";
-  }
+  const currentSlotsFilled = architecture === "MONOLITH" && simState === "RUNNING" 
+    ? Math.min(MONO_CAPACITY, currentTraffic) 
+    : 0;
+
+  const completedCount = 
+    (steps.tryMonolith ? 1 : 0) +
+    (steps.monolithFailed ? 1 : 0) +
+    (steps.switchedServerless ? 1 : 0) +
+    (steps.serverlessSuccess ? 1 : 0) +
+    (steps.passedQuiz ? 1 : 0);
 
   return (
     <LabShell
       labId="serverlessfunctions9"
       title="Serverless Computing (Lambda)"
-      instruction={instructionText}
+      instruction="Compare traditional fixed servers against on-demand Serverless Functions: pay-for-time vs pay-per-execution!"
       theme="ocean"
       compact={true}
       onReset={handleReset}
+      navExtra={
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-sky-100/80 shadow-xs text-xs font-bold text-sky-800">
+            <span>L43 • Cloud Architecture</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-sky-100/80 shadow-xs text-xs font-bold text-sky-800">
+            <Timer size={14} className="text-sky-600" />
+            <span>00:{String(15 - tick).padStart(2, "0")}</span>
+          </div>
+        </div>
+      }
     >
-      <Celebration isActive={steps.serverlessSuccess} />
+      <Celebration 
+        isActive={steps.passedQuiz} 
+        message="Cloud Architect Mastered! You proved that Serverless (AWS Lambda) eliminates idle server costs and scales automatically during viral traffic spikes."
+        onReplay={handleReset}
+      />
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 p-3">
+      <div className="w-full flex flex-col flex-1 min-h-0 gap-2 sm:gap-2.5 max-w-7xl mx-auto">
         
-        {/* LEFT PANEL: Visual Canvas */}
-        <div className="lg:col-span-7 bg-slate-900 rounded-2xl border-2 border-slate-800 shadow-inner flex flex-col relative overflow-hidden">
-          
-          {/* Subtle Canvas Grid */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-
-          {/* Canvas Header */}
-          <div className="shrink-0 p-3 flex justify-between items-center z-10 bg-slate-900/80 backdrop-blur-sm border-b border-slate-800">
-            <div className="flex items-center gap-2 text-slate-300 font-bold text-sm tracking-widest uppercase">
-              <Activity size={16} className={isSpike ? "text-rose-500 animate-pulse" : "text-emerald-400"} />
-              Traffic: {currentTraffic} Req/s
+        {/* ── Top Pedagogical Progress Strip ── */}
+        <div className="shrink-0 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl px-3 py-1.5 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-slate-500 shrink-0">
+              <Compass size={14} className="text-indigo-600" />
+              <span>Lab Mission</span>
             </div>
-            <div className="text-slate-400 font-mono text-xs">
-              Time: 00:{String(tick).padStart(2, "0")} / 00:15
-            </div>
+            <span className="text-xs font-bold text-slate-800 truncate">
+              {completedCount === 5
+                ? "All Missions Complete! Cloud Architecture Mastered."
+                : !steps.tryMonolith
+                ? "Step 1: Start simulation on Monolith Server to test idle costs ($4/sec)"
+                : !steps.monolithFailed
+                ? "Step 2: Watch Monolith crash under Viral Traffic Spike (15 req/s > 5 cap)"
+                : !steps.switchedServerless
+                ? "Step 3: Review the Invoice below, then switch to Serverless Architecture"
+                : !steps.serverlessSuccess
+                ? "Step 4: Run Serverless benchmark to observe zero-idle cost and auto-scaling"
+                : "Step 5: Complete the Cloud Economics Concept Assessment"}
+            </span>
           </div>
 
-          {/* Canvas Play Area */}
-          <div className="flex-1 relative flex items-center justify-between px-8 py-4 min-h-0">
-            
-            {/* The Internet (Source) */}
-            <div className="relative z-10 flex flex-col items-center">
-              <motion.div 
-                className={`w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-xl ${isSpike ? 'bg-rose-950 border-rose-500' : 'bg-slate-800 border-slate-600'}`}
-                animate={isSpike ? { scale: [1, 1.1, 1], boxShadow: ["0px 0px 0px rgba(244,63,94,0)", "0px 0px 40px rgba(244,63,94,0.6)", "0px 0px 0px rgba(244,63,94,0)"] } : {}}
-                transition={{ duration: 0.5, repeat: isSpike ? Infinity : 0 }}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {[
+              { id: "s1", done: steps.tryMonolith, label: "Monolith" },
+              { id: "s2", done: steps.monolithFailed, label: "Traffic Crash" },
+              { id: "s3", done: steps.switchedServerless, label: "Switch Lambda" },
+              { id: "s4", done: steps.serverlessSuccess, label: "Auto-Scale" },
+              { id: "s5", done: steps.passedQuiz, label: "Quiz" },
+            ].map((s, idx) => (
+              <div
+                key={s.id}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+                  s.done
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    : "bg-slate-100 text-slate-400 border border-slate-200"
+                }`}
+                title={s.label}
               >
-                <Users size={32} className={isSpike ? "text-rose-400" : "text-slate-400"} />
-              </motion.div>
-              <span className="mt-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Global Users</span>
+                {s.done ? <CheckCircle2 size={11} className="text-emerald-600" /> : <span>{idx + 1}</span>}
+                <span className="hidden md:inline">{s.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Main Interactive Layout Grid ── */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3">
+          
+          {/* LEFT PANEL: High-Contrast Cloud Infrastructure Canvas */}
+          <div className="lg:col-span-7 bg-white/95 backdrop-blur border border-slate-200/90 rounded-2xl shadow-sm flex flex-col relative overflow-hidden min-h-0">
+            
+            {/* Engineering Blueprint Grid Background */}
+            <div 
+              className="absolute inset-0 opacity-40 pointer-events-none" 
+              style={{ 
+                backgroundImage: "radial-gradient(#cbd5e1 1.2px, transparent 1.2px)", 
+                backgroundSize: "20px 20px" 
+              }} 
+            />
+
+            {/* Canvas Sub-Header & Live Metrics */}
+            <div className="shrink-0 p-2.5 sm:p-3 flex justify-between items-center z-10 bg-slate-50/90 backdrop-blur-sm border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                  isSpike ? "bg-rose-100 text-rose-700 border border-rose-200 animate-pulse" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                }`}>
+                  <Activity size={14} className={isSpike ? "text-rose-600" : "text-emerald-600"} />
+                  <span>{currentTraffic} Req/Sec {isSpike ? "(Viral Surge!)" : "(Idle)"}</span>
+                </div>
+              </div>
+
+              {/* Interactive Student Agency: Manual Surge Trigger */}
+              <div className="flex items-center gap-2">
+                {simState === "RUNNING" && (
+                  <button
+                    onClick={() => {
+                      setManualSurge(prev => prev + 5);
+                      playPop();
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-bold shadow-2xs transition-all active:scale-95"
+                    title="Simulate an instant burst of 5 extra user requests"
+                  >
+                    <Zap size={12} className="text-amber-600" />
+                    <span>+5 Surge Burst</span>
+                  </button>
+                )}
+                <div className="text-slate-500 font-mono text-xs font-bold bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                  {tick}s / 15s
+                </div>
+              </div>
             </div>
 
-            {/* Packet Animations */}
-            <div className="absolute left-28 right-40 top-0 bottom-0 pointer-events-none">
-              <AnimatePresence>
-                {activePackets.map((p) => (
-                  <motion.div
-                    key={p.id}
-                    initial={{ left: "0%", top: "50%", opacity: 0, scale: 0.5 }}
-                    animate={
-                      p.status === "success" 
-                      ? { left: "100%", top: `calc(50% + ${p.arcOffset}px)`, opacity: [0, 1, 1, 0], scale: 1 }
-                      : { left: "60%", top: `calc(50% + ${p.arcOffset + 60}px)`, opacity: [0, 1, 0], scale: [0.5, 1.2, 0], backgroundColor: "#ef4444" }
-                    }
-                    transition={{ duration: 0.8, ease: "easeIn" }}
-                    className={`absolute w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] ${p.status === "success" ? (architecture === "MONOLITH" ? "bg-emerald-400 text-emerald-400" : "bg-violet-400 text-violet-400") : "bg-rose-500 text-rose-500"}`}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-
-            {/* Target Architecture */}
-            <div className="relative z-10 w-48 h-64 flex items-center justify-center">
-              {architecture === "MONOLITH" ? (
-                // Monolith Box
+            {/* Canvas Workspace */}
+            <div className="flex-1 relative flex items-center justify-between px-4 sm:px-8 py-3 min-h-0">
+              
+              {/* SOURCE NODE: Global Users */}
+              <div className="relative z-10 flex flex-col items-center shrink-0">
                 <motion.div 
-                  className={`w-full h-full rounded-xl border-4 flex flex-col items-center justify-center p-4 bg-slate-800 shadow-2xl ${isShaking ? "border-rose-500" : "border-slate-600"}`}
-                  animate={isShaking ? { x: [-10, 10, -10, 10, 0], backgroundColor: ["#1e293b", "#4c0519", "#1e293b"] } : {}}
-                  transition={{ duration: 0.4 }}
+                  className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center border-2 shadow-md transition-all ${
+                    isSpike 
+                      ? "bg-rose-50 border-rose-400 shadow-rose-200" 
+                      : "bg-indigo-50/80 border-indigo-200 shadow-indigo-100"
+                  }`}
+                  animate={isSpike ? { scale: [1, 1.06, 1] } : {}}
+                  transition={{ duration: 0.6, repeat: isSpike ? Infinity : 0 }}
                 >
-                  <Server size={48} className={isShaking ? "text-rose-500" : "text-slate-400"} />
-                  <span className="mt-4 text-sm font-black text-slate-300 uppercase tracking-widest text-center">Monolith Server</span>
-                  <div className="mt-auto px-3 py-1 bg-slate-950 rounded text-[10px] font-mono text-slate-400">
-                    Cap: 5 req/s
-                  </div>
-                  {isShaking && (
-                    <div className="absolute -top-4 bg-rose-500 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg animate-bounce">
-                      OVERLOAD!
-                    </div>
-                  )}
+                  <Users size={28} className={isSpike ? "text-rose-600" : "text-indigo-600"} />
                 </motion.div>
-              ) : (
-                // Serverless Grid
-                <div className="w-full h-full rounded-xl border-2 border-dashed border-violet-500/30 flex flex-col items-center justify-center relative bg-violet-950/20">
-                  <span className="absolute top-2 text-[10px] font-black text-violet-400/50 uppercase tracking-widest">AWS Lambda Region</span>
+                <span className="mt-2 text-[11px] font-black text-slate-700 uppercase tracking-wider">Global Users</span>
+                <span className="text-[10px] text-slate-400 font-semibold">{currentTraffic} active clients</span>
+              </div>
+
+              {/* FLIGHT PATH: Moving Packets */}
+              <div className="absolute left-24 right-44 sm:left-32 sm:right-56 top-0 bottom-0 pointer-events-none z-20">
+                <AnimatePresence>
+                  {activePackets.map((p) => (
+                    <motion.div
+                      key={p.id}
+                      initial={{ left: "0%", top: "50%", opacity: 0, scale: 0.6 }}
+                      animate={
+                        p.status === "success" 
+                        ? { left: "100%", top: `calc(50% + ${p.arcOffset}px)`, opacity: [0, 1, 1, 0], scale: 1 }
+                        : { left: "70%", top: `calc(50% + ${p.arcOffset + 45}px)`, opacity: [0, 1, 0], scale: [0.6, 1.3, 0], backgroundColor: "#e11d48" }
+                      }
+                      transition={{ duration: 0.75, ease: "easeOut" }}
+                      className={`absolute w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-sm ${
+                        p.status === "success" 
+                          ? (architecture === "MONOLITH" ? "bg-emerald-500 shadow-emerald-200" : "bg-violet-500 shadow-violet-200") 
+                          : "bg-rose-600 shadow-rose-300"
+                      }`}
+                    >
+                      {p.status === "dropped" && <span className="text-[8px] font-bold text-white leading-none">✕</span>}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {/* TARGET NODE: Computing Architecture */}
+              <div className="relative z-10 w-44 sm:w-56 h-56 sm:h-64 flex items-center justify-center shrink-0">
+                {architecture === "MONOLITH" ? (
                   
-                  {/* Lambda Spawns */}
-                  <div className="w-full h-full p-4 grid grid-cols-4 gap-2 content-center justify-items-center">
-                    {Array.from({ length: Math.min(activeLambdas, 16) }).map((_, i) => (
-                      <motion.div
-                        key={`lambda-${i}`}
-                        initial={{ scale: 0, opacity: 0, rotate: -45 }}
-                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="w-8 h-8 bg-violet-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.5)]"
-                      >
-                        <Zap size={16} className="text-white" />
-                      </motion.div>
-                    ))}
+                  // 1. Traditional Monolith Server Rack
+                  <motion.div 
+                    className={`w-full h-full rounded-2xl border-2 flex flex-col justify-between p-3.5 bg-slate-50/95 shadow-md relative transition-all ${
+                      isShaking ? "border-rose-500 bg-rose-50/30" : "border-slate-300"
+                    }`}
+                    animate={isShaking ? { x: [-6, 6, -6, 6, 0] } : {}}
+                    transition={{ duration: 0.35 }}
+                  >
+                    {/* Rack Header */}
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                      <div className="flex items-center gap-1.5">
+                        <Server size={18} className={isShaking ? "text-rose-600" : "text-slate-700"} />
+                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Monolith</span>
+                      </div>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                        Always On
+                      </span>
+                    </div>
+
+                    {/* Segmented Hardware Queue / Capacity Meter */}
+                    <div className="my-auto flex flex-col gap-1.5 py-1">
+                      <div className="flex justify-between items-center text-[10px] font-bold text-slate-600">
+                        <span className="flex items-center gap-1">
+                          <Cpu size={12} className="text-slate-500" />
+                          <span>Hardware Slots:</span>
+                        </span>
+                        <span className={currentSlotsFilled >= 5 ? "text-rose-600 font-black" : "text-slate-800"}>
+                          {currentSlotsFilled}/5 Max
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-5 gap-1 bg-white p-1.5 rounded-lg border border-slate-200">
+                        {[0, 1, 2, 3, 4].map((slotIdx) => {
+                          const isFilled = slotIdx < currentSlotsFilled;
+                          return (
+                            <div 
+                              key={slotIdx}
+                              className={`h-5 rounded flex items-center justify-center text-[9px] font-black transition-all ${
+                                isFilled 
+                                  ? (currentSlotsFilled >= 5 ? "bg-rose-500 text-white shadow-xs" : "bg-emerald-500 text-white") 
+                                  : "bg-slate-100 text-slate-300"
+                              }`}
+                            >
+                              {isFilled ? "REQ" : ""}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {isShaking && (
+                        <div className="text-[10px] font-black text-rose-600 text-center animate-bounce pt-1">
+                          ⚠️ SERVER OVERLOAD: DROPPING {currentTraffic - MONO_CAPACITY} REQ/S!
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Rack Footer Note */}
+                    <div className="pt-2 border-t border-slate-200 text-center">
+                      <span className="text-[10px] font-mono text-slate-500 font-bold block">
+                        Rent: $4.00/sec (Always Billed)
+                      </span>
+                      <span className="text-[9px] text-slate-400">Fixed capacity: 5 req/s</span>
+                    </div>
+                  </motion.div>
+
+                ) : (
+
+                  // 2. Elastic Serverless (AWS Lambda) Fleet
+                  <div className="w-full h-full rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50/50 flex flex-col justify-between p-3.5 relative shadow-inner">
+                    
+                    {/* Fleet Header */}
+                    <div className="flex items-center justify-between pb-2 border-b border-violet-200/80">
+                      <div className="flex items-center gap-1.5">
+                        <Zap size={18} className="text-violet-600 fill-violet-600" />
+                        <span className="text-xs font-black text-violet-950 uppercase tracking-tight">AWS Lambda Fleet</span>
+                      </div>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        On-Demand
+                      </span>
+                    </div>
+
+                    {/* Dynamic Lambda Spawns */}
+                    <div className="my-auto flex-1 flex flex-col justify-center">
+                      {activeLambdas === 0 ? (
+                        <div className="flex flex-col items-center justify-center text-center p-2">
+                          <span className="text-xs font-bold text-violet-700">0 Active MicroVMs</span>
+                          <span className="text-[10px] text-slate-500 mt-0.5 font-medium">Idle cost = $0.00 • Waiting for events...</span>
+                        </div>
+                      ) : (
+                        <div className="w-full">
+                          <div className="flex justify-between items-center mb-1.5 text-[10px] font-bold text-violet-900">
+                            <span>Auto-Scaled Fleet:</span>
+                            <span className="text-violet-700 font-mono font-black">{activeLambdas} Functions Running</span>
+                          </div>
+                          <div className="grid grid-cols-5 gap-1 max-h-24 overflow-hidden">
+                            {Array.from({ length: Math.min(activeLambdas, 15) }).map((_, i) => (
+                              <motion.div
+                                key={`lambda-${i}`}
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0, opacity: 0 }}
+                                className="h-6 bg-violet-600 rounded flex items-center justify-center shadow-xs text-white"
+                                title={`Lambda Instance #${i + 1}`}
+                              >
+                                <Zap size={12} className="fill-white" />
+                              </motion.div>
+                            ))}
+                          </div>
+                          <div className="text-[9px] text-center font-bold text-emerald-600 mt-1">
+                            ✓ 100% Traffic Processed • 0 Dropped
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fleet Footer Note */}
+                    <div className="pt-2 border-t border-violet-200/80 text-center">
+                      <span className="text-[10px] font-mono text-violet-800 font-bold block">
+                        Cost: $0.15 / execution (Zero Idle)
+                      </span>
+                      <span className="text-[9px] text-slate-500">Auto-scales: 0 → 1,000 instantly</span>
+                    </div>
                   </div>
 
-                  {activeLambdas > 16 && (
-                    <div className="absolute -bottom-4 bg-violet-600 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg">
-                      + {activeLambdas - 16} MORE SCALED!
+                )}
+              </div>
+
+            </div>
+
+            {/* Real-World Industry Context Chip */}
+            <div className="shrink-0 px-3 py-1.5 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-600 flex items-center justify-between">
+              <span className="font-semibold text-slate-700">Real-World Tech:</span>
+              <span className="truncate">AWS Lambda, Google Cloud Functions, and Azure Functions power Netflix & Spotify.</span>
+            </div>
+          </div>
+
+          {/* RIGHT PANEL: FinTech Dashboard, Live Invoice & Assessment */}
+          <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col min-h-0 overflow-y-auto">
+            
+            {/* Header & Large Budget Counter */}
+            <div className="shrink-0 p-3.5 sm:p-4 bg-slate-50/80 border-b border-slate-200 flex flex-col items-center justify-center">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-0.5">Startup Budget</span>
+              <div className={`text-4xl sm:text-5xl font-black font-mono tracking-tighter transition-colors ${
+                budget <= 0 ? "text-rose-600" : budget < 20 ? "text-amber-600" : "text-emerald-600"
+              }`}>
+                ${budget.toFixed(2)}
+              </div>
+              <span className="text-[10px] font-semibold text-slate-400 mt-0.5">Starting Capital: $50.00</span>
+            </div>
+
+            {/* Architecture Toggle & Simulation Controls */}
+            <div className="shrink-0 p-3 flex flex-col gap-2 border-b border-slate-100">
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => {
+                    if (simState !== "RUNNING") {
+                      setArchitecture("MONOLITH");
+                      setSimState("IDLE");
+                      setBudget(START_BUDGET);
+                    }
+                  }}
+                  disabled={simState === "RUNNING"}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                    architecture === "MONOLITH" 
+                      ? "bg-white text-slate-800 shadow-xs border border-slate-200" 
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <Server size={13} className={architecture === "MONOLITH" ? "text-amber-600" : ""} />
+                  <span>Monolith Server</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (steps.monolithFailed && simState !== "RUNNING") {
+                      setArchitecture("SERVERLESS");
+                      setSimState("IDLE");
+                      setBudget(START_BUDGET);
+                      setSteps(prev => ({ ...prev, switchedServerless: true }));
+                    }
+                  }}
+                  disabled={!steps.monolithFailed || simState === "RUNNING"}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 text-xs font-bold rounded-lg transition-all ${
+                    architecture === "SERVERLESS" 
+                      ? "bg-white text-violet-900 shadow-xs border border-slate-200" 
+                      : "text-slate-400"
+                  } ${!steps.monolithFailed ? "opacity-40 cursor-not-allowed" : "hover:text-slate-700"}`}
+                  title={!steps.monolithFailed ? "Run Monolith simulation first to unlock Serverless mode" : ""}
+                >
+                  <Zap size={13} className={architecture === "SERVERLESS" ? "text-violet-600 fill-violet-600" : ""} />
+                  <span>Serverless (Lambda)</span>
+                </button>
+              </div>
+
+              {simState === "IDLE" || simState === "MONOLITH_FAILED" || simState === "SERVERLESS_SUCCESS" ? (
+                <button
+                  onClick={handleStartSimulation}
+                  className={`w-full py-2.5 rounded-xl text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98 ${
+                    architecture === "MONOLITH" 
+                      ? "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20" 
+                      : "bg-violet-600 hover:bg-violet-700 shadow-violet-600/20"
+                  }`}
+                >
+                  <Play size={15} fill="currentColor" />
+                  <span>Start 15s Benchmark ({architecture === "MONOLITH" ? "Monolith" : "Serverless"})</span>
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="w-full py-2.5 rounded-xl text-xs sm:text-sm font-black text-slate-400 bg-slate-100 uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-200"
+                >
+                  <RotateCcw size={14} className="animate-spin" />
+                  <span>Benchmark Running ({tick}s / 15s)...</span>
+                </button>
+              )}
+            </div>
+
+            {/* LIVE INVOICE AREA (Never Occluded) */}
+            <div className="p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <FileText size={15} className="text-slate-600" />
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">Live Cloud Invoice</span>
+                </div>
+                <span className="text-[10px] font-mono font-bold text-slate-400">ITEMIZED RECEIPT</span>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono text-xs flex flex-col gap-1.5 shadow-2xs">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Requests Processed:</span>
+                  <span className="font-bold text-slate-800">{reqProcessed}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Requests Dropped:</span>
+                  <span className={`font-bold ${reqDropped > 0 ? "text-rose-600 font-black" : "text-slate-800"}`}>
+                    {reqDropped} {reqDropped > 0 ? "(OVER CAPACITY)" : ""}
+                  </span>
+                </div>
+                
+                <hr className="border-dashed border-slate-300 my-0.5" />
+                
+                <div className="flex justify-between items-center text-slate-600">
+                  <span className="flex items-center gap-1">
+                    24/7 Server Rent (Idle):
+                    {architecture === "MONOLITH" && simState === "RUNNING" && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />}
+                  </span>
+                  <span className="text-amber-700 font-bold">-${costIdle.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span className="flex items-center gap-1">
+                    On-Demand Compute:
+                    {architecture === "SERVERLESS" && activeLambdas > 0 && <span className="w-1.5 h-1.5 rounded-full bg-violet-600 animate-ping" />}
+                  </span>
+                  <span className="text-violet-700 font-bold">-${costCompute.toFixed(2)}</span>
+                </div>
+
+                <hr className="border-dashed border-slate-300 my-0.5" />
+
+                <div className="flex justify-between items-center font-black text-sm pt-0.5">
+                  <span className="text-slate-800">TOTAL BILLED:</span>
+                  <span className="text-slate-900 font-mono">${(costIdle + costCompute).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Explicit Outcome Feedback Cards (Placed BELOW invoice, never occluding line items!) */}
+              {simState === "MONOLITH_FAILED" && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-rose-800 font-black text-xs uppercase tracking-tight">
+                    <AlertTriangle size={16} className="text-rose-600 shrink-0" />
+                    <span>Monolith Failed: Budget Wasted & Server Crashed</span>
+                  </div>
+                  <p className="text-[11px] text-rose-900 leading-relaxed font-medium">
+                    You paid <strong>${costIdle.toFixed(2)}</strong> for idle rent, and the fixed 5 req/s capacity couldn't handle the viral surge. <strong>{reqDropped} requests were dropped!</strong>
+                  </p>
+                  <button
+                    onClick={() => {
+                      setArchitecture("SERVERLESS");
+                      setSimState("IDLE");
+                      setBudget(START_BUDGET);
+                      setSteps(prev => ({ ...prev, switchedServerless: true }));
+                    }}
+                    className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-98"
+                  >
+                    <span>Switch to Serverless (Lambda) Architecture</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              )}
+
+              {simState === "SERVERLESS_SUCCESS" && !steps.passedQuiz && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 text-emerald-900 font-black text-xs uppercase tracking-tight">
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <span>Serverless Success: Zero Waste & 100% Elasticity</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-950 leading-relaxed font-medium">
+                    You paid <strong>$0.00</strong> during idle time and only <strong>${costCompute.toFixed(2)}</strong> for the spike. Zero requests dropped with <strong>${budget.toFixed(2)}</strong> saved!
+                  </p>
+                </div>
+              )}
+
+              {/* ── STEP 5: Concept Assessment Card ── */}
+              {steps.serverlessSuccess && (
+                <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl flex flex-col gap-2 mt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-indigo-950 flex items-center gap-1.5">
+                      <HelpCircle size={14} className="text-indigo-600" />
+                      <span>Concept Assessment</span>
+                    </span>
+                    {steps.passedQuiz && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Passed 100/100
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs font-bold text-slate-800">
+                    {QUIZ_DATA.question}
+                  </p>
+
+                  <div className="flex flex-col gap-1.5">
+                    {QUIZ_DATA.options.map((option, idx) => {
+                      const isSelected = selectedOption === idx;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleAnswerQuiz(idx)}
+                          disabled={steps.passedQuiz}
+                          className={`text-left text-[11px] p-2 rounded-lg border transition-all ${
+                            isSelected
+                              ? "bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-indigo-50/50"
+                          } ${steps.passedQuiz ? "opacity-75 cursor-default" : ""}`}
+                        >
+                          <span className="font-mono mr-1.5">{String.fromCharCode(65 + idx)})</span>
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {quizError && (
+                    <div className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 p-2 rounded-lg">
+                      Incorrect. Think about why serverless functions only run when triggered by an incoming event!
                     </div>
                   )}
-                  {activeLambdas === 0 && simState === "RUNNING" && (
-                     <div className="text-violet-400/30 text-xs font-mono">0 Instances Running</div>
+
+                  {steps.passedQuiz && (
+                    <div className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 p-2 rounded-lg">
+                      {QUIZ_DATA.explanation}
+                    </div>
+                  )}
+
+                  {!steps.passedQuiz && (
+                    <button
+                      onClick={handleSubmitQuiz}
+                      disabled={selectedOption === null}
+                      className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-black uppercase tracking-wider shadow-xs transition-all active:scale-98"
+                    >
+                      Verify Answer & Complete Lab
+                    </button>
                   )}
                 </div>
               )}
+
             </div>
 
           </div>
         </div>
 
-        {/* RIGHT PANEL: FinTech Dashboard */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xl flex flex-col min-h-0 overflow-y-auto">
-          
-          {/* Header & Budget */}
-          <div className="shrink-0 p-5 bg-slate-50 border-b border-slate-200 flex flex-col items-center justify-center">
-            <span className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Startup Budget</span>
-            <div className={`text-6xl font-black font-mono tracking-tighter transition-colors duration-300 ${budget <= 0 ? "text-rose-500" : budget < 20 ? "text-amber-500" : "text-emerald-500"}`}>
-              ${budget.toFixed(2)}
-            </div>
-          </div>
-
-          {/* Controls & Architecture Toggle */}
-          <div className="shrink-0 p-4 flex flex-col gap-3">
-            <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner border border-slate-200">
-              <button
-                onClick={() => {
-                  if (simState === "IDLE" || simState === "MONOLITH_FAILED" || simState === "SERVERLESS_SUCCESS") {
-                    setArchitecture("MONOLITH");
-                    setSimState("IDLE");
-                    setBudget(START_BUDGET);
-                  }
-                }}
-                disabled={simState === "RUNNING"}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-2 text-xs font-bold rounded-lg transition-all ${architecture === "MONOLITH" ? "bg-white text-slate-800 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 disabled:opacity-50"}`}
-              >
-                <Server size={14} className={architecture === "MONOLITH" ? "text-amber-500" : ""} />
-                Monolith Server
-              </button>
-              <button
-                onClick={() => {
-                  if (steps.monolithFailed && (simState === "IDLE" || simState === "MONOLITH_FAILED" || simState === "SERVERLESS_SUCCESS")) {
-                    setArchitecture("SERVERLESS");
-                    setSimState("IDLE");
-                    setBudget(START_BUDGET);
-                    setSteps(prev => ({ ...prev, switchedServerless: true }));
-                  }
-                }}
-                disabled={!steps.monolithFailed || simState === "RUNNING"}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-2 text-xs font-bold rounded-lg transition-all ${architecture === "SERVERLESS" ? "bg-white text-slate-800 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 disabled:opacity-50"} ${!steps.monolithFailed ? "opacity-30 cursor-not-allowed" : ""}`}
-                title={!steps.monolithFailed ? "Run the Monolith simulation first to unlock Serverless" : ""}
-              >
-                <Zap size={14} className={architecture === "SERVERLESS" ? "text-violet-500" : ""} />
-                Serverless (Lambda)
-              </button>
-            </div>
-
-            {simState === "IDLE" || simState === "MONOLITH_FAILED" || simState === "SERVERLESS_SUCCESS" ? (
-              <button
-                onClick={startSimulation}
-                className={`w-full py-3 rounded-xl text-sm font-black text-white uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all ${architecture === "MONOLITH" ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20" : "bg-violet-600 hover:bg-violet-700 shadow-violet-600/20"}`}
-              >
-                <Play size={16} fill="currentColor" />
-                Start 15s Simulation
-              </button>
-            ) : (
-              <button
-                disabled
-                className="w-full py-3 rounded-xl text-sm font-black text-slate-400 bg-slate-100 uppercase tracking-wider flex items-center justify-center gap-2 border border-slate-200"
-              >
-                <RefreshCcw size={16} className="animate-spin" />
-                Simulation Running...
-              </button>
-            )}
-          </div>
-
-          {/* Invoice / Receipt Area */}
-          <div className="flex-1 p-4 bg-slate-50 border-t border-slate-200 flex flex-col min-h-0">
-            <div className="flex items-center gap-2 mb-3 shrink-0">
-              <FileText size={16} className="text-slate-500" />
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Live Invoice</h3>
-            </div>
-            
-            <div className="flex-1 bg-white border border-slate-200 rounded-xl p-4 shadow-sm font-mono text-xs flex flex-col gap-2 relative overflow-hidden min-h-0 justify-center">
-              
-              {/* Receipt Content */}
-              <div className="flex justify-between items-center text-slate-600">
-                <span>Requests Processed:</span>
-                <span className="font-bold text-slate-800">{reqProcessed}</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-600">
-                <span>Requests Dropped:</span>
-                <span className={`font-bold ${reqDropped > 0 ? "text-rose-500" : "text-slate-800"}`}>{reqDropped}</span>
-              </div>
-              
-              <hr className="border-dashed border-slate-200 my-1" />
-              
-              <div className="flex justify-between items-center text-slate-600">
-                <span className="flex items-center gap-1">
-                  Fixed Server Rent (Idle):
-                  {architecture === "MONOLITH" && simState === "RUNNING" && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-                </span>
-                <span className="text-amber-600 font-bold">-${costIdle.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-600">
-                <span className="flex items-center gap-1">
-                  Compute Cost (Per Req):
-                  {architecture === "SERVERLESS" && activeLambdas > 0 && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />}
-                </span>
-                <span className="text-violet-600 font-bold">-${costCompute.toFixed(2)}</span>
-              </div>
-
-              <hr className="border-dashed border-slate-300 my-1" />
-
-              <div className="flex justify-between items-center font-black text-sm">
-                <span className="text-slate-800">TOTAL BILLED:</span>
-                <span className="text-slate-800">${(costIdle + costCompute).toFixed(2)}</span>
-              </div>
-
-              {/* Status Stamps */}
-              {simState === "MONOLITH_FAILED" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 backdrop-blur-[1px] p-4 text-center z-10">
-                  <AlertTriangle size={32} className="text-rose-500 mb-2" />
-                  <span className="font-black text-rose-600 uppercase tracking-widest mb-1">Server Crashed</span>
-                  <p className="text-[10px] text-rose-800 leading-tight">
-                    You paid $30.00 just to rent the server while idle, leaving no budget to handle the massive traffic spike. Requests were dropped!
-                  </p>
-                </div>
-              )}
-              {simState === "SERVERLESS_SUCCESS" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/95 backdrop-blur-[1px] p-4 text-center z-10">
-                  <CheckCircle size={32} className="text-emerald-500 mb-2" />
-                  <span className="font-black text-emerald-600 uppercase tracking-widest mb-1">Perfect Efficiency</span>
-                  <p className="text-[10px] text-emerald-800 leading-tight">
-                    You paid $0.00 for idle time. Lambdas instantly scaled to handle 100% of the spike, and you only paid for exactly what you used!
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-        </div>
       </div>
     </LabShell>
   );
