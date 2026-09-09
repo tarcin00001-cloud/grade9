@@ -62,6 +62,19 @@ import SemanticWeb45 from "@/labs/SemanticWeb45";
 import RoboticSurgery46 from "@/labs/RoboticSurgery46";
 import PropositionalLogic42 from "@/labs/PropositionalLogic42";
 import TestingStrategies43 from "@/labs/TestingStrategies43";
+import Containerization9 from "@/labs/Containerization9";
+import DatabaseIndexing9 from "@/labs/DatabaseIndexing9";
+import DigitalSignatures9 from "@/labs/DigitalSignatures9";
+import EdgeComputing9 from "@/labs/EdgeComputing9";
+import EventSourcing9 from "@/labs/EventSourcing9";
+import PublicKeyInfrastructure9 from "@/labs/PublicKeyInfrastructure9";
+import ServerlessFunctions9 from "@/labs/ServerlessFunctions9";
+import SmartContracts9 from "@/labs/SmartContracts9";
+import Subnetting9 from "@/labs/Subnetting9";
+import TwoFactorAuth9 from "@/labs/TwoFactorAuth9";
+import VectorDatabases9 from "@/labs/VectorDatabases9";
+import WebSockets9 from "@/labs/WebSockets9";
+import LoadBalancing9 from "@/labs/LoadBalancing9";
 
 export function generateStaticParams() {
   // Next.js 16 can race while rewriting the development prerender manifest
@@ -151,18 +164,6 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (slug === 'websockets9') return <WebSockets9 />;
   if (slug === 'loadbalancing9') return <LoadBalancing9 />;
   return <PlannedLabPage lab={lab} />;
-}import Containerization9 from '@/labs/Containerization9';
-import DatabaseIndexing9 from '@/labs/DatabaseIndexing9';
-import DigitalSignatures9 from '@/labs/DigitalSignatures9';
-import EdgeComputing9 from '@/labs/EdgeComputing9';
-import EventSourcing9 from '@/labs/EventSourcing9';
-import PublicKeyInfrastructure9 from '@/labs/PublicKeyInfrastructure9';
-import ServerlessFunctions9 from '@/labs/ServerlessFunctions9';
-import SmartContracts9 from '@/labs/SmartContracts9';
-import Subnetting9 from '@/labs/Subnetting9';
-import TwoFactorAuth9 from '@/labs/TwoFactorAuth9';
-import VectorDatabases9 from '@/labs/VectorDatabases9';
-import WebSockets9 from '@/labs/WebSockets9';
-import LoadBalancing9 from '@/labs/LoadBalancing9';
+}
 
 
