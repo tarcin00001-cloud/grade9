@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { 
-  Brain, Play, Activity, HelpCircle, Compass, 
+  Brain, Play, Activity, HelpCircle, Compass, Timer,
   ArrowRight, Sparkles, AlertTriangle, CheckCircle2, TrendingDown, 
   Target, Sliders, Zap, Turtle, Flame, Car, Gauge
 } from "lucide-react";
@@ -20,6 +20,8 @@ const TRAINING_DATA = [
   { id: 4, speed: 50, distance: 165, svgX: 291, svgY: 82 },
   { id: 5, speed: 60, distance: 220, svgX: 363, svgY: 35 },
 ];
+
+const TIMER_DURATION_SECONDS = 5 * 60;
 
 type LearningRatePreset = "SLOW" | "OPTIMAL" | "EXPLOSIVE";
 
@@ -90,6 +92,31 @@ export default function MachineLearningTraining9() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizError, setQuizError] = useState(false);
+
+  // 5-Minute Countdown Timer State
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (timedOut || quizSubmitted) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      return;
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [timedOut, quizSubmitted]);
 
   const currentLoss = calculateLoss(w);
   const isOptimal = Math.abs(w - OPTIMAL_W) < 0.08;
@@ -205,6 +232,8 @@ export default function MachineLearningTraining9() {
     setSelectedOption(null);
     setQuizSubmitted(false);
     setQuizError(false);
+    setSecondsLeft(TIMER_DURATION_SECONDS);
+    setTimedOut(false);
     setLossHistory([
       { epoch: 0, loss: calculateLoss(INITIAL_W), note: "Initial Random Guess" }
     ]);
@@ -263,6 +292,8 @@ export default function MachineLearningTraining9() {
     }
   };
 
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
   return (
     <LabShell
       labId="machinelearningtraining9"
@@ -271,6 +302,18 @@ export default function MachineLearningTraining9() {
       theme="ocean"
       compact={true}
       onReset={handleReset}
+      navExtra={
+        !quizSubmitted && (
+          <div className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border shadow-xs transition-colors ${
+            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
+            secondsLeft <= 60 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white border-sky-100/80 text-sky-800"
+          }`}>
+            <Timer size={14} className={timedOut || secondsLeft <= 60 ? "text-rose-600" : "text-sky-600"} />
+            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+          </div>
+        )
+      }
     >
       <Celebration 
         isActive={quizSubmitted} 
