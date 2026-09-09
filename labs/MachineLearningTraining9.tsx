@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Brain, Play, RotateCcw, Activity, HelpCircle, Compass, Timer, 
+  Brain, Play, RotateCcw, Activity, HelpCircle, Compass, 
   ArrowRight, Sparkles, AlertTriangle, CheckCircle2, TrendingDown, 
   Target, Sliders, Zap, Check, Lock
 } from "lucide-react";
@@ -263,17 +263,7 @@ export default function MachineLearningTraining9() {
       theme="ocean"
       compact={true}
       onReset={handleReset}
-      navExtra={
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-sky-100/80 shadow-xs text-xs font-bold text-sky-800">
-            <span>L36 • Artificial Intelligence</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-sky-100/80 shadow-xs text-xs font-bold text-sky-800">
-            <Timer size={14} className="text-sky-600" />
-            <span>Step {currentStage}/6</span>
-          </div>
-        </div>
-      }
+
     >
       <Celebration 
         isActive={quizSubmitted} 
