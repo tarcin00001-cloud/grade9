@@ -130,6 +130,7 @@ export default function GraphQLBasics9() {
              setTimeout(() => {
                 setPhase("IDLE");
                 setQueryResult(null);
+                setStage("5_GQL_BUILD");
              }, 3000);
           }
         }, 1000);
@@ -373,7 +374,7 @@ export default function GraphQLBasics9() {
                                        isSel ? "bg-fuchsia-100 border-fuchsia-500 text-fuchsia-700" : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
                                     } ${stage !== "5_GQL_BUILD" && !isSel ? "opacity-50" : ""}`}
                                  >
-                                    {f} {isReq && stage === "5_GQL_BUILD" && <span className="text-[10px] text-fuchsia-500 ml-1">★</span>}
+                                                                        {f} {isReq && stage === "5_GQL_BUILD" && <span className="text-[10px] text-fuchsia-500 ml-1">*</span>}
                                  </button>
                               );
                            })}
@@ -537,7 +538,7 @@ export default function GraphQLBasics9() {
                            {queryResult.payloadSize}
                         </text>
                         <text x="0" y="15" fill="#fff" fontSize={stage.includes("REST") ? 10 : 8} fontWeight="bold" textAnchor="middle">
-                           {queryResult.status === "SUCCESS" ? "PERFECT" : "BLOATED"}
+                           {queryResult.status === "SUCCESS" ? "PERFECT" : queryResult.status === "OVERFETCH" ? "BLOATED" : "MISSING DATA"}
                         </text>
                      </motion.g>
                   )}
