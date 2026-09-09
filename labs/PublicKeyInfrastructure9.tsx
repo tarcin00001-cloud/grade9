@@ -216,104 +216,104 @@ export default function PublicKeyInfrastructure9() {
             </div>
           </div>
 
-          {/* Network Diagram Area - occupies remaining space */}
-          <div className="flex-1 w-full relative flex flex-col justify-between items-center mt-4">
+          {/* Network Diagram Area - Fixed Aspect Ratio to prevent clipping */}
+          <div className="flex-1 w-full min-h-0 flex items-center justify-center">
+            <div className="w-full max-w-3xl aspect-[16/9] relative">
 
-          {/* TLS TUNNEL (Visible only at the end) */}
-          <AnimatePresence>
-            {phase === "OUTCOME" && (
-              <motion.div 
-                initial={{ opacity: 0, scaleY: 0 }}
-                animate={{ opacity: 1, scaleY: 1 }}
-                className="absolute bottom-20 left-1/4 right-1/4 h-8 bg-emerald-100 border-y-4 border-emerald-400 z-0 origin-left"
-              >
-                <div className="w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(16,185,129,0.3)_50%,transparent_100%)] animate-[pulse_2s_linear_infinite]" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Hacker Node */}
-          <AnimatePresence>
-            {(phase === "TRY_CONNECT" || phase === "FAIL_INTERCEPT" || phase === "UNDERSTAND") && (
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                className={`absolute bottom-20 left-1/2 -translate-x-1/2 w-24 h-24 bg-rose-50 border-2 border-rose-300 rounded-2xl flex flex-col items-center justify-center z-10 ${phase === "FAIL_INTERCEPT" ? "shadow-[0_0_30px_rgba(244,63,94,0.4)] border-rose-500" : ""}`}
-              >
-                <ShieldAlert className={`w-8 h-8 ${phase === "FAIL_INTERCEPT" ? "text-rose-600 animate-pulse" : "text-rose-400"}`} />
-                <span className="text-[10px] font-bold text-rose-600 mt-1 uppercase">Hacker</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Top Layer: Global CA */}
-          <div className="w-full flex justify-center relative z-20">
-            <div className="w-48 h-32 bg-white border-2 border-amber-300 rounded-2xl shadow-[0_10px_30px_rgba(245,158,11,0.1)] flex flex-col items-center justify-center relative">
-              <ShieldCheck className="w-10 h-10 text-amber-500 mb-2" />
-              <div className="text-sm font-black text-slate-800 uppercase tracking-wide">Global CA</div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase">Trusted Authority</div>
-
-              {/* Stamp Animation */}
+              {/* TLS TUNNEL */}
               <AnimatePresence>
-                {phase === "IMPROVE_STAMP" && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 3, rotate: -20 }}
-                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl backdrop-blur-sm z-30"
-                  >
-                    <div className="text-amber-600 border-4 border-amber-600 font-black text-xl px-4 py-1 rounded-lg transform -rotate-12 uppercase tracking-widest shadow-lg">
-                      SIGNED
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Bottom Layer: Web Server & Browser */}
-          <div className="w-full flex justify-between relative z-20">
-            
-            {/* Web Server */}
-            <div className="w-48 h-32 bg-white border-2 border-indigo-200 rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.1)] flex flex-col items-center justify-center relative">
-              <Server className="w-10 h-10 text-indigo-500 mb-2" />
-              <div className="text-sm font-black text-slate-800 uppercase tracking-wide">tarcin.in</div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase">Web Server</div>
-              
-              {/* Server's Certificate display */}
-              <AnimatePresence>
-                {hasCertificate && (
+                {phase === "OUTCOME" && (
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute -top-4 -right-4 w-12 h-12 bg-emerald-100 border-2 border-emerald-400 rounded-full flex items-center justify-center shadow-lg"
+                    initial={{ opacity: 0, scaleY: 0 }}
+                    animate={{ opacity: 1, scaleY: 1 }}
+                    className="absolute bottom-4 left-[15%] right-[15%] h-8 bg-emerald-100 border-y-4 border-emerald-400 z-0 origin-left"
                   >
-                    <FileBadge className="w-6 h-6 text-emerald-600" />
+                    <div className="w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(16,185,129,0.3)_50%,transparent_100%)] animate-[pulse_2s_linear_infinite]" />
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
 
-            {/* Browser */}
-            <div className="w-48 h-32 bg-white border-2 border-emerald-200 rounded-2xl shadow-[0_10px_30px_rgba(16,185,129,0.1)] flex flex-col items-center justify-center relative">
-              <Globe className="w-10 h-10 text-emerald-500 mb-2" />
-              <div className="text-sm font-black text-slate-800 uppercase tracking-wide">Browser</div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase">Trusts Global CA</div>
-              
-              {/* Browser's Lock Status */}
-              <div className="absolute -top-3 -left-3 w-12 h-12 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center shadow-md">
-                {phase === "OUTCOME" ? (
-                   <Lock className="w-6 h-6 text-emerald-500" />
-                ) : phase === "FAIL_INTERCEPT" || phase === "UNDERSTAND" ? (
-                   <Unlock className="w-6 h-6 text-rose-500" />
-                ) : (
-                   <div className="w-2 h-2 rounded-full bg-slate-300" />
+              {/* Hacker Node */}
+              <AnimatePresence>
+                {(phase === "TRY_CONNECT" || phase === "FAIL_INTERCEPT" || phase === "UNDERSTAND") && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-24 bg-rose-50 border-2 border-rose-300 rounded-2xl flex flex-col items-center justify-center z-10 ${phase === "FAIL_INTERCEPT" ? "shadow-[0_0_30px_rgba(244,63,94,0.4)] border-rose-500" : ""}`}
+                  >
+                    <ShieldAlert className={`w-8 h-8 ${phase === "FAIL_INTERCEPT" ? "text-rose-600 animate-pulse" : "text-rose-400"}`} />
+                    <span className="text-[10px] font-bold text-rose-600 mt-1 uppercase">Hacker</span>
+                  </motion.div>
                 )}
-              </div>
-            </div>
+              </AnimatePresence>
 
-          </div>
+              {/* Top Center: Global CA */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20">
+                <div className="w-48 h-28 md:h-32 bg-white border-2 border-amber-300 rounded-2xl shadow-[0_10px_30px_rgba(245,158,11,0.1)] flex flex-col items-center justify-center relative">
+                  <ShieldCheck className="w-10 h-10 text-amber-500 mb-2" />
+                  <div className="text-sm font-black text-slate-800 uppercase tracking-wide">Global CA</div>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase">Trusted Authority</div>
+
+                  {/* Stamp Animation */}
+                  <AnimatePresence>
+                    {phase === "IMPROVE_STAMP" && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 3, rotate: -20 }}
+                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl backdrop-blur-sm z-30"
+                      >
+                        <div className="text-amber-600 border-4 border-amber-600 font-black text-xl px-4 py-1 rounded-lg transform -rotate-12 uppercase tracking-widest shadow-lg">
+                          SIGNED
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Bottom Left: Web Server */}
+              <div className="absolute bottom-0 left-0 z-20">
+                <div className="w-40 md:w-48 h-28 md:h-32 bg-white border-2 border-indigo-200 rounded-2xl shadow-[0_10px_30px_rgba(99,102,241,0.1)] flex flex-col items-center justify-center relative">
+                  <Server className="w-10 h-10 text-indigo-500 mb-2" />
+                  <div className="text-sm font-black text-slate-800 uppercase tracking-wide">tarcin.in</div>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase">Web Server</div>
+                  
+                  {/* Server's Certificate display */}
+                  <AnimatePresence>
+                    {hasCertificate && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="absolute -top-4 -right-4 w-12 h-12 bg-emerald-100 border-2 border-emerald-400 rounded-full flex items-center justify-center shadow-lg"
+                      >
+                        <FileBadge className="w-6 h-6 text-emerald-600" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Bottom Right: Browser */}
+              <div className="absolute bottom-0 right-0 z-20">
+                <div className="w-40 md:w-48 h-28 md:h-32 bg-white border-2 border-emerald-200 rounded-2xl shadow-[0_10px_30px_rgba(16,185,129,0.1)] flex flex-col items-center justify-center relative">
+                  <Globe className="w-10 h-10 text-emerald-500 mb-2" />
+                  <div className="text-sm font-black text-slate-800 uppercase tracking-wide">Browser</div>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase">Trusts Global CA</div>
+                  
+                  {/* Browser's Lock Status */}
+                  <div className="absolute -top-3 -left-3 w-12 h-12 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center shadow-md">
+                    {phase === "OUTCOME" ? (
+                      <Lock className="w-6 h-6 text-emerald-500" />
+                    ) : phase === "FAIL_INTERCEPT" || phase === "UNDERSTAND" ? (
+                      <Unlock className="w-6 h-6 text-rose-500" />
+                    ) : (
+                      <HelpCircle className="w-6 h-6 text-slate-300" />
+                    )}
+                  </div>
+                </div>
+              </div>
 
           {/* Animated Packets (Absolute positioned overlay) */}
           {/* Packet 1: Unsecure Connection */}
@@ -364,6 +364,7 @@ export default function PublicKeyInfrastructure9() {
             </motion.div>
           )}
 
+          </div>
         </div>
       </div>
     </div>
