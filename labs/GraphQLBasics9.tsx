@@ -40,6 +40,7 @@ export default function GraphQLBasics9() {
 
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
+  const [gqlError, setGqlError] = useState<string | null>(null);
 
   const reportComplete = useCallback(() => {
     setIsLabComplete(true);
@@ -131,6 +132,8 @@ export default function GraphQLBasics9() {
                 setPhase("IDLE");
                 setQueryResult(null);
                 setStage("5_GQL_BUILD");
+                if (status === "UNDERFETCH") setGqlError("Missing fields! The UI needs both name and avatar.");
+                else if (status === "OVERFETCH") setGqlError("Over-fetching! Only select the exact fields needed.");
              }, 3000);
           }
         }, 1000);
@@ -141,6 +144,7 @@ export default function GraphQLBasics9() {
   const toggleField = (field: string) => {
     if (stage !== "5_GQL_BUILD") return;
     playPop();
+    setGqlError(null);
     setSelectedFields(prev => prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field]);
   };
 
@@ -362,6 +366,11 @@ export default function GraphQLBasics9() {
                         </div>
                         
                         <div className="flex flex-wrap gap-2 mb-4">
+                           {gqlError && stage === "5_GQL_BUILD" && (
+                              <div className="w-full mb-1 p-2 bg-rose-50 border border-rose-200 rounded-lg text-xs font-bold text-rose-600 flex items-center gap-2">
+                                 <AlertTriangle size={14} /> {gqlError}
+                              </div>
+                           )}
                            {ALL_FIELDS.map(f => {
                               const isReq = REQUIRED_FIELDS.includes(f);
                               const isSel = selectedFields.includes(f);
