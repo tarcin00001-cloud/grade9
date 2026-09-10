@@ -6,7 +6,7 @@ import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Database, Timer, Smartphone, ArrowRight, Check, ChevronRight, Zap, AlertTriangle, User, Image as ImageIcon, Mail, MapPin, Phone, Settings, Clock, Key, Server } from "lucide-react";
+import { Database, Timer, Smartphone, ArrowRight, Check, ChevronRight, Zap, AlertTriangle, User, Camera, Type, Sparkles, Mail, MapPin, Phone, Settings, Clock, Key, Server } from "lucide-react";
 
 type Stage = 
   | "1_INSPECT"
@@ -26,8 +26,8 @@ const REQUIRED_FIELDS = ["name", "avatar"];
 
 const FIELD_ICONS: Record<string, any> = {
   id: Key,
-  name: User,
-  avatar: ImageIcon,
+  name: Type,
+  avatar: Camera,
   email: Mail,
   address: MapPin,
   phone: Phone,
@@ -294,14 +294,24 @@ export default function GraphQLBasics9() {
                      </span>
                   </div>
                   
-                  <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 px-3 py-2 flex items-center gap-3 relative overflow-hidden">
-                     {/* Sleek Skeleton UI - Horizontal profile bar */}
-                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-fuchsia-100 to-indigo-100 border border-fuchsia-200 shadow-xs flex items-center justify-center relative z-10 text-fuchsia-500 shrink-0">
-                        <User size={18} strokeWidth={2.5} />
+                  <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 px-3 py-2.5 flex items-center gap-3 relative overflow-hidden">
+                     {/* Sleek Profile Avatar with Camera Icon */}
+                     <div className="relative shrink-0">
+                        <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-fuchsia-500 to-indigo-500 shadow-xs border-2 border-white flex items-center justify-center text-white">
+                           <Camera size={18} strokeWidth={2.2} />
+                        </div>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white border border-fuchsia-200 flex items-center justify-center text-fuchsia-600 shadow-xs">
+                           <Sparkles size={9} strokeWidth={2.5} />
+                        </span>
                      </div>
+                     
+                     {/* Name with Type Icon */}
                      <div className="flex flex-col gap-1 flex-1 min-w-0">
-                        <div className="h-3.5 w-24 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 rounded-md animate-pulse" />
-                        <span className="text-[10px] font-bold text-slate-400 truncate">Requirements: avatar + name</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100/90 rounded-lg border border-slate-200/80 w-fit">
+                           <Type size={13} className="text-fuchsia-600 shrink-0" strokeWidth={2.5} />
+                           <span className="text-xs font-black text-slate-700 tracking-tight">Alex Morgan</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 truncate pl-0.5">Required: avatar + name</span>
                      </div>
                      
                      {/* Requirements Focus Highlight */}
