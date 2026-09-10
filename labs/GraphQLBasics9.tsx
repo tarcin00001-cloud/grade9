@@ -244,16 +244,16 @@ export default function GraphQLBasics9() {
           <div className="lg:w-[380px] bg-white rounded-3xl border border-slate-200/80 shadow-lg shadow-slate-200/50 flex flex-col shrink-0 overflow-hidden relative">
             
             {stage === "7_COMPLETE" ? (
-              <div className="p-6 flex flex-col h-full justify-center">
-                <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-fuchsia-100 text-fuchsia-600 rounded-2xl flex items-center justify-center mb-5 shadow-inner">
-                  <Database size={28} />
+              <div className="p-4 md:p-5 flex flex-col h-full justify-center overflow-y-auto min-h-0">
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-fuchsia-100 text-fuchsia-600 rounded-2xl flex items-center justify-center mb-3 shadow-inner">
+                  <Database size={24} />
                 </div>
-                <h3 className="text-xl font-black text-slate-800 mb-2">Final Knowledge Check</h3>
-                <p className="text-sm text-slate-600 font-medium mb-6 leading-relaxed">
+                <h3 className="text-lg font-black text-slate-800 mb-1.5">Final Knowledge Check</h3>
+                <p className="text-xs sm:text-sm text-slate-600 font-medium mb-4 leading-relaxed">
                   What is the primary benefit of GraphQL over traditional REST APIs demonstrated in this lab?
                 </p>
                 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5">
                   {[
                     "It makes the database query run faster on the server.",
                     "It prevents over-fetching by letting the client request exactly what it needs.",
@@ -270,10 +270,10 @@ export default function GraphQLBasics9() {
                            playError();
                         }
                       }}
-                      className={`p-4 rounded-2xl text-left text-sm font-bold border-2 transition-all ${
+                      className={`p-3 rounded-xl text-left text-xs sm:text-sm font-bold border-2 transition-all ${
                         quizAnswer === ans 
                           ? (i === 1 ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md shadow-emerald-500/20" : "bg-rose-50 border-rose-500 text-rose-700 shadow-md shadow-rose-500/20")
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:border-fuchsia-300 hover:bg-fuchsia-50 hover:shadow-md"
+                          : "bg-slate-50 border-slate-200 text-slate-700 hover:border-fuchsia-300 hover:bg-fuchsia-50 hover:shadow-xs"
                       }`}
                     >
                       {ans}
@@ -283,19 +283,25 @@ export default function GraphQLBasics9() {
               </div>
             ) : (
               <>
-                {/* Top Half: Target UI Mockup */}
-                <div className="bg-slate-50/50 p-5 border-b border-slate-100 relative">
-                  <div className="flex items-center justify-between mb-4">
-                     <span className="text-xs font-black text-slate-500 flex items-center gap-1.5 uppercase tracking-wider"><Smartphone size={14} /> Target Mobile UI</span>
+                {/* Top Half: Compact Target UI Mockup */}
+                <div className="bg-slate-50/70 px-4 py-3 border-b border-slate-100 relative shrink-0">
+                  <div className="flex items-center justify-between mb-2">
+                     <span className="text-[11px] font-black text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
+                       <Smartphone size={13} /> Target Mobile UI
+                     </span>
+                     <span className="text-[10px] font-bold text-fuchsia-600 bg-fuchsia-50 px-2 py-0.5 rounded-full border border-fuchsia-100">
+                       Profile Card
+                     </span>
                   </div>
                   
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col items-center justify-center gap-4 relative overflow-hidden">
-                     {/* Sleek Skeleton UI */}
-                     <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-fuchsia-100 to-indigo-100 border-2 border-white shadow-md flex items-center justify-center relative z-10 text-fuchsia-400">
-                        <User size={24} strokeWidth={2.5} />
+                  <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 px-3 py-2 flex items-center gap-3 relative overflow-hidden">
+                     {/* Sleek Skeleton UI - Horizontal profile bar */}
+                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-fuchsia-100 to-indigo-100 border border-fuchsia-200 shadow-xs flex items-center justify-center relative z-10 text-fuchsia-500 shrink-0">
+                        <User size={18} strokeWidth={2.5} />
                      </div>
-                     <div className="h-6 w-32 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 rounded-lg border border-slate-100 flex items-center justify-center relative z-10">
-                        <div className="w-20 h-2 bg-slate-200 rounded-full"></div>
+                     <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <div className="h-3.5 w-24 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 rounded-md animate-pulse" />
+                        <span className="text-[10px] font-bold text-slate-400 truncate">Requirements: avatar + name</span>
                      </div>
                      
                      {/* Requirements Focus Highlight */}
@@ -303,122 +309,124 @@ export default function GraphQLBasics9() {
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: stage === "1_INSPECT" ? [0, 1, 0.4, 1] : 0 }} 
                         transition={{ duration: 1.5, repeat: stage === "1_INSPECT" ? Infinity : 0 }}
-                        className="absolute inset-0 border-2 border-fuchsia-400 rounded-2xl pointer-events-none" 
+                        className="absolute inset-0 border-2 border-fuchsia-400 rounded-xl pointer-events-none" 
                      />
                   </div>
                 </div>
 
                 {/* Bottom Half: Controls & Instructions */}
-                <div className="p-5 flex-1 flex flex-col bg-white">
+                <div className="p-4 flex-1 flex flex-col bg-white min-h-0 overflow-y-auto">
                   {stage === "1_INSPECT" && (
-                     <div className="flex flex-col h-full justify-between">
+                     <div className="flex flex-col h-full justify-between gap-3">
                         <div>
-                           <h3 className="text-lg font-black text-slate-800 mb-2">Identify Requirements</h3>
-                           <p className="text-sm text-slate-600 font-medium leading-relaxed">The Mobile UI above only needs two pieces of data to render correctly: the user's <span className="font-bold text-fuchsia-600 bg-fuchsia-50 px-1 rounded">name</span> and <span className="font-bold text-fuchsia-600 bg-fuchsia-50 px-1 rounded">avatar</span>.</p>
+                           <h3 className="text-base font-black text-slate-800 mb-1.5">Identify Requirements</h3>
+                           <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">The Mobile UI above only needs two pieces of data to render correctly: the user's <span className="font-bold text-fuchsia-600 bg-fuchsia-50 px-1 rounded">name</span> and <span className="font-bold text-fuchsia-600 bg-fuchsia-50 px-1 rounded">avatar</span>.</p>
                         </div>
-                        <button onClick={() => setStage("2_REST_FETCH")} className="mt-6 w-full py-3.5 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold shadow-[0_4px_0_rgba(192,38,211,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 group">
-                           Next: Try REST <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <button onClick={() => setStage("2_REST_FETCH")} className="mt-auto w-full py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold shadow-[0_3px_0_rgba(192,38,211,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 group">
+                           Next: Try REST <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                      </div>
                   )}
 
                   {stage === "2_REST_FETCH" && (
-                     <div className="flex flex-col h-full justify-between">
+                     <div className="flex flex-col h-full justify-between gap-3">
                         <div>
-                           <h3 className="text-lg font-black text-slate-800 mb-2">Standard REST Request</h3>
-                           <p className="text-sm text-slate-600 font-medium leading-relaxed mb-4">A standard REST API call to <code className="bg-slate-100 text-sky-600 px-1.5 py-0.5 rounded-md font-bold text-xs border border-slate-200">GET /users/123</code> fetches the entire user object by default.</p>
+                           <h3 className="text-base font-black text-slate-800 mb-1.5">Standard REST Request</h3>
+                           <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-2">A standard REST API call to <code className="bg-slate-100 text-sky-600 px-1.5 py-0.5 rounded-md font-bold text-xs border border-slate-200">GET /users/123</code> fetches the entire user object by default.</p>
                         </div>
-                        <button onClick={runRestFetch} disabled={phase !== "IDLE"} className="mt-auto w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold shadow-[0_4px_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-y-1">
-                           <Zap size={18} className={phase !== "IDLE" ? "animate-pulse text-sky-400" : "text-sky-400"}/> 
+                        <button onClick={runRestFetch} disabled={phase !== "IDLE"} className="mt-auto w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold shadow-[0_3px_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-y-1">
+                           <Zap size={16} className={phase !== "IDLE" ? "animate-pulse text-sky-400" : "text-sky-400"}/> 
                            {phase === "IDLE" ? "Execute REST Request" : "Fetching..."}
                         </button>
                      </div>
                   )}
 
                   {stage === "3_REST_FAIL" && (
-                     <div className="flex flex-col h-full justify-between">
+                     <div className="flex flex-col h-full justify-between gap-3">
                         <div>
-                           <div className="flex items-center gap-2 text-rose-600 font-black mb-3 bg-rose-50 p-2 rounded-lg border border-rose-100">
-                              <AlertTriangle size={18} /> OVER-FETCHING DETECTED
+                           <div className="flex items-center gap-2 text-rose-600 font-black mb-2 bg-rose-50 p-2 rounded-lg border border-rose-100 text-xs">
+                              <AlertTriangle size={16} /> OVER-FETCHING DETECTED
                            </div>
-                           <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                           <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
                               The server returned <strong className="text-rose-600">14.2 KB</strong> of data including email, address, and history! The mobile app threw away 90% of it, wasting data and battery.
                            </p>
                         </div>
-                        <button onClick={() => { setStage("4_UNDERSTAND"); setPhase("IDLE"); setQueryResult(null); }} className="mt-6 w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-[0_4px_0_rgba(225,29,72,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 group">
-                           Understand Why <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <button onClick={() => { setStage("4_UNDERSTAND"); setPhase("IDLE"); setQueryResult(null); }} className="mt-auto w-full py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-[0_3px_0_rgba(225,29,72,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 group">
+                           Understand Why <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                      </div>
                   )}
 
                   {stage === "4_UNDERSTAND" && (
-                     <div className="flex flex-col h-full justify-between">
+                     <div className="flex flex-col h-full justify-between gap-2.5">
                         <div>
-                           <h3 className="text-lg font-black text-slate-800 mb-2">The REST Limitation</h3>
-                           <p className="text-sm text-slate-600 font-medium leading-relaxed mb-3">
+                           <h3 className="text-base font-black text-slate-800 mb-1.5">The REST Limitation</h3>
+                           <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-2">
                               REST endpoints return fixed data structures. If you need 2 fields but the server defines 20, you get all 20.
                            </p>
-                           <p className="text-sm text-slate-600 font-medium leading-relaxed bg-fuchsia-50 p-3 rounded-xl border border-fuchsia-100 text-fuchsia-900">
+                           <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed bg-fuchsia-50 p-2.5 rounded-xl border border-fuchsia-100 text-fuchsia-900">
                               <strong className="text-fuchsia-700">GraphQL flips this:</strong> the Client specifies the exact shape of the response it wants.
                            </p>
                         </div>
-                        <button onClick={() => setStage("5_GQL_BUILD")} className="mt-6 w-full py-3.5 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold shadow-[0_4px_0_rgba(192,38,211,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 group">
-                           Try GraphQL <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <button onClick={() => setStage("5_GQL_BUILD")} className="mt-auto w-full py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold shadow-[0_3px_0_rgba(192,38,211,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 group">
+                           Try GraphQL <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                      </div>
                   )}
 
                   {(stage === "5_GQL_BUILD" || stage === "6_GQL_FETCH") && (
-                     <div className="flex flex-col h-full">
-                        <div className="flex items-center justify-between mb-4">
-                           <h3 className="text-base font-black text-slate-800 flex items-center gap-2"><Database size={16} className="text-fuchsia-500"/> Query Builder</h3>
-                           <span className="text-[10px] font-bold text-fuchsia-700 bg-fuchsia-100 px-2 py-1 rounded-md uppercase tracking-widest border border-fuchsia-200">GraphQL</span>
+                     <div className="flex flex-col h-full justify-between">
+                        <div>
+                           <div className="flex items-center justify-between mb-2.5">
+                              <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5"><Database size={15} className="text-fuchsia-500"/> Query Builder</h3>
+                              <span className="text-[10px] font-bold text-fuchsia-700 bg-fuchsia-100 px-2 py-0.5 rounded-md uppercase tracking-widest border border-fuchsia-200">GraphQL</span>
+                           </div>
+                           
+                           {gqlError && stage === "5_GQL_BUILD" && (
+                              <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="w-full mb-2 p-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700 flex items-start gap-1.5 shadow-xs">
+                                 <AlertTriangle size={15} className="shrink-0 mt-0.5" /> <span className="leading-tight">{gqlError}</span>
+                              </motion.div>
+                           )}
+                           
+                           <div className="flex flex-wrap gap-1.5 mb-3">
+                              {ALL_FIELDS.map(f => {
+                                 const isReq = REQUIRED_FIELDS.includes(f);
+                                 const isSel = selectedFields.includes(f);
+                                 const Icon = FIELD_ICONS[f] || Database;
+                                 return (
+                                    <button
+                                       key={f}
+                                       onClick={() => toggleField(f)}
+                                       disabled={stage !== "5_GQL_BUILD"}
+                                       className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border-2 transition-all flex items-center gap-1 shadow-xs ${
+                                          isSel ? "bg-fuchsia-50 border-fuchsia-500 text-fuchsia-700 ring-2 ring-fuchsia-500/20" : "bg-white border-slate-200 text-slate-600 hover:border-fuchsia-300 hover:bg-fuchsia-50/50"
+                                       } ${stage !== "5_GQL_BUILD" && !isSel ? "opacity-40" : ""}`}
+                                    >
+                                       <Icon size={13} className={isSel ? "text-fuchsia-500" : "text-slate-400"} />
+                                       {f} 
+                                       {isReq && stage === "5_GQL_BUILD" && <span className="text-[10px] text-fuchsia-500 ml-0.5">★</span>}
+                                    </button>
+                                 );
+                              })}
+                           </div>
                         </div>
                         
-                        {gqlError && stage === "5_GQL_BUILD" && (
-                           <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="w-full mb-3 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700 flex items-start gap-2 shadow-sm">
-                              <AlertTriangle size={16} className="shrink-0 mt-0.5" /> <span className="leading-tight">{gqlError}</span>
-                           </motion.div>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-2 mb-4">
-                           {ALL_FIELDS.map(f => {
-                              const isReq = REQUIRED_FIELDS.includes(f);
-                              const isSel = selectedFields.includes(f);
-                              const Icon = FIELD_ICONS[f] || Database;
-                              return (
-                                 <button
-                                    key={f}
-                                    onClick={() => toggleField(f)}
-                                    disabled={stage !== "5_GQL_BUILD"}
-                                    className={`px-3 py-2 rounded-xl text-xs font-bold border-2 transition-all flex items-center gap-1.5 shadow-sm ${
-                                       isSel ? "bg-fuchsia-50 border-fuchsia-500 text-fuchsia-700 ring-2 ring-fuchsia-500/20" : "bg-white border-slate-200 text-slate-600 hover:border-fuchsia-300 hover:bg-fuchsia-50/50"
-                                    } ${stage !== "5_GQL_BUILD" && !isSel ? "opacity-40" : ""}`}
-                                 >
-                                    <Icon size={14} className={isSel ? "text-fuchsia-500" : "text-slate-400"} />
-                                    {f} 
-                                    {isReq && stage === "5_GQL_BUILD" && <span className="text-[10px] text-fuchsia-500 ml-0.5">*</span>}
-                                 </button>
-                              );
-                           })}
-                        </div>
-                        
-                        <div className="mt-auto pt-2">
+                        <div className="mt-auto pt-1">
                            {stage === "5_GQL_BUILD" ? (
                               <button 
                                  onClick={() => setStage("6_GQL_FETCH")} 
                                  disabled={selectedFields.length === 0}
-                                 className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold shadow-[0_4px_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-y-1 group"
+                                 className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold shadow-[0_3px_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-y-1 group"
                               >
-                                 Confirm Schema <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                 Confirm Schema <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                               </button>
                            ) : (
                               <button 
                                  onClick={runGqlFetch} 
                                  disabled={phase !== "IDLE"}
-                                 className="w-full py-3.5 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold shadow-[0_4px_0_rgba(192,38,211,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-y-1"
+                                 className="w-full py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold shadow-[0_3px_0_rgba(192,38,211,1)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none disabled:translate-y-1"
                               >
-                                 <Zap size={18} className={phase !== "IDLE" ? "animate-pulse text-amber-300" : "text-amber-300"}/> 
+                                 <Zap size={16} className={phase !== "IDLE" ? "animate-pulse text-amber-300" : "text-amber-300"}/> 
                                  {phase === "IDLE" ? "Execute Query" : "Slicing Payload..."}
                               </button>
                            )}
