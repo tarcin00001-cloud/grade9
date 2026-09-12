@@ -128,7 +128,7 @@ export default function OauthFlow9() {
   return (
     <LabShell
       navExtra={
-        phase !== "OUTCOME" && (
+        phase !== "OUTCOME" ? (
           <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm backdrop-blur-md transition-colors font-mono ${
             timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
             secondsLeft <= 60 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
@@ -137,7 +137,7 @@ export default function OauthFlow9() {
             <Timer size={16} strokeWidth={2.5} className={secondsLeft <= 60 && !timedOut ? "animate-spin" : ""} />
             <span>{timedOut ? "0:00" : formattedTime}</span>
           </div>
-        )
+        ) : null
       }
       labId="oauthflow9"
       bgOverride="bg-slate-950"

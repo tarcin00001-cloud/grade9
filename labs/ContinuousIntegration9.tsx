@@ -1,373 +1,517 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { GitCommit, Bug, RefreshCcw, CheckCircle, XCircle, Zap, Play , Timer} from "lucide-react";
-
-// ─── Pipeline Stage Config ─────────────────────────────────────────────────────
-
-const ALL_STAGES = [
-  { id: "lint", label: "Lint", color: "#f59e0b", description: "Check code style & syntax" },
-  { id: "unit", label: "Unit Tests", color: "#a78bfa", description: "Run automated unit tests" },
-  { id: "build", label: "Build", color: "#06b6d4", description: "Compile & bundle the app" },
-  { id: "integration", label: "Integration", color: "#10b981", description: "Test component interactions" },
-  { id: "deploy", label: "Deploy", color: "#ec4899", description: "Push to production" },
-];
-
-type StageId = "lint" | "unit" | "build" | "integration" | "deploy";
-type StageStatus = "IDLE" | "RUNNING" | "PASSED" | "FAILED" | "SKIPPED";
-
-interface RunState {
-  [key: string]: StageStatus;
-}
-
-// ─── Stage Node ────────────────────────────────────────────────────────────────
-
-function StageNode({ stage, status }: { stage: typeof ALL_STAGES[0]; status: StageStatus }) {
-  const bgMap: Record<StageStatus, string> = {
-    IDLE: "bg-slate-900/40 border-slate-800 text-slate-600",
-    RUNNING: "bg-violet-950/60 border-violet-600 text-violet-300",
-    PASSED: "bg-emerald-950/40 border-emerald-700/50 text-emerald-300",
-    FAILED: "bg-rose-950/60 border-rose-700 text-rose-300",
-    SKIPPED: "bg-slate-900/20 border-slate-800/30 text-slate-700",
-  };
-
-  return (
-    <motion.div
-      animate={{ scale: status === "RUNNING" ? 1.04 : 1 }}
-      transition={{ duration: 0.3 }}
-      className={`rounded-xl border-2 p-3 flex flex-col items-center gap-1 min-w-[90px] transition-all ${bgMap[status]}`}
-    >
-      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${stage.color}22`, border: `2px solid ${status === "IDLE" || status === "SKIPPED" ? "#334155" : stage.color}` }}>
-        {status === "RUNNING" && (
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-3 h-3 border-2 border-t-transparent rounded-full" style={{ borderColor: stage.color, borderTopColor: "transparent" }}/>
-        )}
-        {status === "PASSED" && <CheckCircle size={14} className="text-emerald-400"/>}
-        {status === "FAILED" && <XCircle size={14} className="text-rose-400"/>}
-        {status === "IDLE" && <div className="w-2 h-2 rounded-full bg-slate-600"/>}
-        {status === "SKIPPED" && <div className="w-2 h-2 rounded-full bg-slate-800"/>}
-      </div>
-      <span className="text-[10px] font-black text-center leading-tight">{stage.label}</span>
-      {status === "RUNNING" && <span className="text-[8px] animate-pulse">running...</span>}
-      {status === "PASSED" && <span className="text-[8px] text-emerald-500"> passed</span>}
-      {status === "FAILED" && <span className="text-[8px] text-rose-500"> failed</span>}
-      {status === "SKIPPED" && <span className="text-[8px] text-slate-700">skipped</span>}
-    </motion.div>
-  );
-}
-
-// ─── Main Component ────────────────────────────────────────────────────────────
-
-const TIMER_DURATION_SECONDS = 5 * 60;
+import { 
+  Server, Activity, AlertTriangle, CheckCircle2, Play, Lock, 
+  ToggleLeft, ToggleRight, Radio, Flame, ServerCrash, Timer,
+  Bug, Search, Package, ArrowRight, ShieldCheck, Code2, Trash2, Cog, ShieldAlert,
+  FlaskConical, Blocks, TerminalSquare
+} from "lucide-react";
 
 export default function ContinuousIntegration9() {
-  const { reportComplete: _reportComplete } = useLMSBridge("continuousintegration9");
+  const { reportComplete } = useLMSBridge("continuousintegration9");
+  const { playPop, playError, playSuccess, playClick } = useLabAudio();
 
-  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
-  const [timedOut, setTimedOut] = useState(false);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isLabComplete, setIsLabComplete] = useState(false);
-
-  const reportComplete = useCallback((args?: any) => {
-    setIsLabComplete(true);
-    _reportComplete({ points: 100 });
-  }, [_reportComplete]);
+  // Timer State
+  const TIMER_DURATION = 5 * 60;
+  const [timeLeft, setTimeLeft] = useState(TIMER_DURATION);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (timedOut || isLabComplete) {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      return;
-    }
-    timerIntervalRef.current = setInterval(() => {
-      setSecondsLeft(prev => {
-        if (prev <= 1) {
-          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-          setTimedOut(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => prev > 0 ? prev - 1 : 0);
     }, 1000);
     return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [timedOut, isLabComplete]);
+  }, []);
 
-  useEffect(() => {
-    if (timedOut) {
-      _reportComplete({ points: 0 });
-    }
-  }, [timedOut, _reportComplete]);
-
-  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
-  const { playPop, playZap, playError, playSuccess } = useLabAudio();
-
-  const [enabledStages, setEnabledStages] = useState<Set<StageId>>(new Set(["lint", "unit", "build", "deploy"]));
-  const [running, setRunning] = useState(false);
-  const [runState, setRunState] = useState<RunState>({});
-  const [log, setLog] = useState<string[]>([]);
-  const [commitType, setCommitType] = useState<"clean" | "buggy">("clean");
-  const [hasWon, setHasWon] = useState(false);
-  const [pipelineResult, setPipelineResult] = useState<"IDLE" | "SUCCESS" | "FAILED">("IDLE");
-
-  const toggleStage = (id: StageId) => {
-    if (id === "deploy") return; // deploy always required
-    setEnabledStages(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-    playPop();
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const addLog = (msg: string) => setLog(prev => [msg, ...prev].slice(0, 20));
+  // Lab State
+  const [phase, setPhase] = useState(0); 
+  const [scanners, setScanners] = useState({ lint: false, test: false, build: false });
+  const [payload, setPayload] = useState<{ 
+    type: 'clean' | 'buggy' | null, 
+    pos: number, 
+    status: 'idle' | 'moving' | 'scanning' | 'rejected' | 'deployed' | 'crashed' 
+  }>({ type: null, pos: 0, status: 'idle' });
 
-  const runPipeline = async (isBuggy: boolean) => {
-    if (running) return;
-    setRunning(true);
-    setRunState({});
-    setLog([]);
-    setPipelineResult("IDLE");
-    const type = isBuggy ? "buggy" : "clean";
-    setCommitType(type);
-    playZap();
-    addLog(`[${new Date().toLocaleTimeString()}] Pipeline triggered: ${isBuggy ? " buggy commit" : " clean commit"}`);
+  // Main Simulation Function
+  const pushCode = async (type: 'clean' | 'buggy') => {
+    if (payload.status !== 'idle' && payload.status !== 'rejected' && payload.status !== 'deployed' && payload.status !== 'crashed') return;
+    
+    // Update phase logic
+    if (phase === 0 && type === 'buggy') setPhase(1);
+    if (phase === 5 && type === 'buggy') setPhase(6);
+    
+    setPayload({ type, pos: 0, status: 'moving' });
+    playClick();
 
-    let failed = false;
+    const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-    for (const stage of ALL_STAGES) {
-      if (!enabledStages.has(stage.id as StageId)) {
-        setRunState(s => ({ ...s, [stage.id]: "SKIPPED" }));
-        addLog(`  → ${stage.label}: SKIPPED (disabled in pipeline)`);
-        continue;
-      }
+    await wait(400); // Give it a moment to spawn
 
-      setRunState(s => ({ ...s, [stage.id]: "RUNNING" }));
-      addLog(`  → ${stage.label}: running...`);
-      await new Promise(r => setTimeout(r, 700 + Math.random() * 400));
+    const stations = [
+      { key: 'lint', pos: 1 },
+      { key: 'test', pos: 2 },
+      { key: 'build', pos: 3 },
+    ];
 
-      // Unit tests catch bugs; integration tests also catch bugs
-      const willFail = isBuggy && (stage.id === "unit" || stage.id === "integration");
+    for (const station of stations) {
+      // Move to station
+      setPayload(p => ({ ...p, pos: station.pos, status: 'moving' }));
+      await wait(600); // Travel time
 
-      if (willFail) {
-        setRunState(s => ({ ...s, [stage.id]: "FAILED" }));
-        addLog(`   ${stage.label}: FAILED — ${stage.id === "unit" ? "test_auth.spec.js failed: expected 200 got 401" : "integration check failed: API contract broken"}`);
-        playError();
-        failed = true;
+      // @ts-ignore
+      if (scanners[station.key]) {
+        // Scanner is ON
+        setPayload(p => ({ ...p, status: 'scanning' }));
+        await wait(800); // Scan time
 
-        // Mark remaining stages as skipped
-        const remainingIdx = ALL_STAGES.findIndex(s => s.id === stage.id) + 1;
-        ALL_STAGES.slice(remainingIdx).forEach(s => {
-          if (enabledStages.has(s.id as StageId)) {
-            setRunState(prev => ({ ...prev, [s.id]: "SKIPPED" }));
-            addLog(`  → ${s.label}: SKIPPED (pipeline halted)`);
+        if (type === 'buggy') {
+          // Reject at the first active scanner
+          setPayload(p => ({ ...p, status: 'rejected' }));
+          playError();
+          
+          if (phase === 5) {
+            setTimeout(() => setPhase(6), 2000);
           }
-        });
-        break;
-      } else {
-        setRunState(s => ({ ...s, [stage.id]: "PASSED" }));
-        addLog(`   ${stage.label}: PASSED`);
-        playPop();
+          return; // Stop the belt
+        } else {
+          // Pass
+          playSuccess();
+          await wait(300);
+        }
       }
     }
 
-    if (failed) {
-      setPipelineResult("FAILED");
-      addLog(`\n Pipeline FAILED — bug caught before deployment!`);
-      if (isBuggy && enabledStages.has("unit") && !hasWon) {
-        setHasWon(true);
-        setTimeout(reportComplete, 1500);
+    // Move to Deploy Launchpad
+    setPayload(p => ({ ...p, pos: 4, status: 'moving' }));
+    await wait(600);
+
+    if (type === 'buggy') {
+      setPayload(p => ({ ...p, status: 'crashed' }));
+      playError();
+      if (phase === 0 || phase === 1) {
+        setPhase(2);
+        setTimeout(() => setPhase(3), 3000);
       }
     } else {
-      setPipelineResult("SUCCESS");
-      addLog(`\n Pipeline PASSED — deployed to production!`);
+      setPayload(p => ({ ...p, status: 'deployed' }));
       playSuccess();
+      if (phase >= 6) {
+        setPhase(7);
+        reportComplete();
+      }
     }
-
-    setRunning(false);
   };
 
-  const reset = () => {
-    setRunning(false);
-    setRunState({});
-    setLog([]);
-    setPipelineResult("IDLE");
-    setEnabledStages(new Set(["lint", "unit", "build", "deploy"]));
-    setHasWon(false);
-    playZap();
+  const toggleScanner = (key: 'lint' | 'test' | 'build') => {
+    if (phase < 3) return;
+    playClick();
+    setScanners(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      if (phase === 3 && next.lint && next.test && next.build) {
+        setPhase(4);
+        setTimeout(() => setPhase(5), 1000);
+      }
+      return next;
+    });
+  };
+
+  const getInstruction = () => {
+    switch(phase) {
+      case 0: return "You have code ready to ship. Push the Buggy Code payload onto the conveyor belt to see what happens.";
+      case 1: return "The payload is moving down the assembly line towards the production server...";
+      case 2: return "CRITICAL DISASTER! The buggy code reached production and crashed the server!";
+      case 3: return "Without quality control, every bug hits production. Toggle the CI/CD Pipeline Scanners ON to protect the server.";
+      case 4: return "Activating the CI/CD Safety Net...";
+      case 5: return "All scanners are ONLINE. Push the Buggy Code again to test the automated safety trap.";
+      case 6: return "Bug caught automatically! The scanner rejected it before it reached production. Now, push Clean Code.";
+      case 7: return "MISSION SUCCESS! Clean code passed all CI/CD checks and safely deployed to production.";
+      default: return "";
+    }
+  };
+
+  const getPosPercent = (pos: number) => {
+    switch(pos) {
+      case 0: return "5%";
+      case 1: return "25%";
+      case 2: return "45%";
+      case 3: return "65%";
+      case 4: return "85%";
+      default: return "5%";
+    }
   };
 
   return (
     <LabShell
+      labId="continuousintegration9"
+      title="Continuous Integration (CI/CD)"
+      compact={true}
+      onReset={() => {
+        setPhase(0);
+        setPayload({ type: null, pos: 0, status: 'idle' });
+        setScanners({ lint: false, test: false, build: false });
+        setTimeLeft(TIMER_DURATION);
+      }}
+      bgOverride="bg-slate-100"
+      theme="ocean"
       navExtra={
-        !isLabComplete && (
-          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
-            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
-            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-            "bg-white border-sky-100/80 text-sky-700"
-          }`}>
-            <Timer size={16} strokeWidth={2.5} />
-            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+        <div className="flex items-center gap-1.5 text-sky-700 bg-white hover:bg-sky-50 border border-sky-100 shadow-sm px-3 md:px-4 h-9 md:h-10 rounded-full font-mono text-sm font-bold transition-colors">
+          <Timer size={16} strokeWidth={2.5} />
+          {formatTime(timeLeft)}
+        </div>
+      }
+    >
+      <div className="relative z-10 w-full h-full flex flex-col p-2 sm:p-4 gap-3 sm:gap-4 overflow-y-auto">
+        
+        {/* Dynamic Instruction Banner */}
+        <div className={`w-full border-2 rounded-2xl p-3 sm:p-4 shadow-sm flex items-start sm:items-center gap-3 sm:gap-4 shrink-0 transition-all duration-500
+          ${(phase === 1 || phase === 2) ? 'bg-rose-50 border-rose-300 text-rose-900 shadow-rose-100' : 
+            (phase === 3 || phase === 4) ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-amber-100' :
+            (phase === 6 || phase === 7) ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-emerald-100' :
+            'bg-white border-sky-200 text-sky-900 shadow-sky-50'}`
+        }>
+          <div className={`p-2 rounded-xl shrink-0 transition-colors 
+            ${(phase === 1 || phase === 2) ? 'bg-rose-100 text-rose-600 shadow-inner' : 
+              (phase === 3 || phase === 4) ? 'bg-amber-100 text-amber-600 shadow-inner animate-pulse' :
+              (phase === 6 || phase === 7) ? 'bg-emerald-100 text-emerald-600 shadow-inner' :
+              'bg-sky-100 text-sky-600 shadow-inner'}`}
+          >
+            {(phase === 1 || phase === 2) ? <AlertTriangle size={24} strokeWidth={2.5} /> :
+             (phase === 3 || phase === 4) ? <ShieldAlert size={24} strokeWidth={2.5} /> :
+             (phase === 6 || phase === 7) ? <CheckCircle2 size={24} strokeWidth={2.5} /> :
+             <Play size={24} strokeWidth={2.5} />}
           </div>
-        )
-      } labId="continuousintegration9" theme="studio" title="Continuous Integration (CI/CD)" subtitle="L46 · DevOps"
-      instruction="Build your own CI/CD pipeline by toggling which stages to include. Then push clean or buggy code. Automated stages run sequentially — if a stage fails, the pipeline halts before deploy. Disable the Unit Tests stage and push buggy code to see what happens when QA is removed!" compact>
-
-      <Celebration isActive={hasWon} message="Bug Caught Before Production! Your automated Unit Test stage detected the bug and halted the pipeline before Deploy. Without CI/CD, a developer would manually upload the buggy code and it would reach real users. Auto-System removes human error from the deployment process." onReplay={reset} />
-
-      <div className="w-full flex flex-col xl:flex-row flex-1 min-h-0 gap-3 pt-1">
-
-        {/* ── LEFT: Pipeline Builder ── */}
-        <div className="xl:w-[300px] shrink-0 flex flex-col gap-3">
-
-          {/* Stage Toggles */}
-          <div className="panel-glass rounded-2xl border-blue-900/40 p-4 flex flex-col gap-2">
-            <div className="text-xs font-bold text-slate-400 mb-1">Pipeline Stages (toggle to include/exclude)</div>
-            {ALL_STAGES.map(stage => {
-              const isEnabled = enabledStages.has(stage.id as StageId);
-              const isRequired = stage.id === "deploy";
-              return (
-                <button
-                  key={stage.id}
-                  onClick={() => !isRequired && toggleStage(stage.id as StageId)}
-                  disabled={running || isRequired}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-all text-xs ${
-                    isEnabled
-                      ? "border-opacity-50 bg-opacity-10"
-                      : "border-slate-800/50 bg-slate-900/20 text-slate-600 opacity-50"
-                  } ${running || isRequired ? "cursor-default" : "hover:scale-[1.01] cursor-pointer"}`}
-                  style={isEnabled ? { borderColor: `${stage.color}60`, backgroundColor: `${stage.color}0f` } : {}}
-                >
-                  <div className="w-3 h-3 rounded-sm border-2 flex items-center justify-center shrink-0" style={{ borderColor: isEnabled ? stage.color : "#334155", backgroundColor: isEnabled ? stage.color : "transparent" }}>
-                    {isEnabled && <div className="w-1.5 h-1.5 rounded-sm bg-black"/>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold" style={{ color: isEnabled ? stage.color : "#475569" }}>{stage.label}</div>
-                    <div className="text-[9px] text-slate-600">{stage.description}</div>
-                  </div>
-                  {isRequired && <span className="text-[8px] text-slate-600 shrink-0">always on</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Push Buttons */}
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => runPipeline(false)}
-              disabled={running}
-              className="w-full py-3 rounded-xl font-black text-sm bg-blue-600 border-2 border-blue-400 text-white hover:bg-blue-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.4)]"
-            >
-              <GitCommit size={16}/> Push Clean Code
-            </button>
-            <button
-              onClick={() => runPipeline(true)}
-              disabled={running}
-              className="w-full py-3 rounded-xl font-black text-sm bg-rose-700 border-2 border-rose-500 text-white hover:bg-rose-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Bug size={16}/> Push Buggy Code
-            </button>
-            <button onClick={reset} className="w-full py-2 rounded-xl text-xs font-bold bg-slate-800/60 border border-slate-700 text-slate-400 hover:bg-slate-700 transition-all flex items-center justify-center gap-1">
-              <RefreshCcw size={12}/> Reset
-            </button>
-          </div>
+          <p className="text-sm sm:text-base font-bold leading-snug tracking-tight">
+            {getInstruction()}
+          </p>
         </div>
 
-        {/* ── RIGHT: Pipeline Visualizer + Log ── */}
-        <div className="flex-1 flex flex-col gap-3 min-h-0">
-
-          {/* Stage Flow */}
-          <div className="shrink-0 panel-glass rounded-2xl border-blue-900/40 p-4">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {ALL_STAGES.map((stage, i) => {
-                const status = runState[stage.id] as StageStatus ?? "IDLE";
-                const isEnabled = enabledStages.has(stage.id as StageId);
-                return (
-                  <div key={stage.id} className="flex items-center gap-2 shrink-0">
-                    <StageNode stage={stage} status={!isEnabled && status === "IDLE" ? "SKIPPED" : status} />
-                    {i < ALL_STAGES.length - 1 && (
-                      <div className={`w-6 h-0.5 rounded ${
-                        runState[stage.id] === "PASSED" ? "bg-emerald-500" :
-                        runState[stage.id] === "FAILED" ? "bg-rose-500" :
-                        "bg-slate-800"
-                      }`}/>
-                    )}
+        <div className="flex-1 w-full flex flex-col md:flex-row gap-3 sm:gap-4 min-h-0 pb-2">
+          
+          {/* CONTROL DECK (LEFT) */}
+          <div className="w-full md:w-80 lg:w-96 flex flex-col shrink-0">
+            <div className={`bg-white border-2 rounded-3xl shadow-xl p-3 sm:p-4 flex flex-col h-full relative z-10 transition-colors duration-500 ${
+              phase >= 5 ? 'border-emerald-300' : 'border-slate-200'
+            }`}>
+              
+              {/* Telemetry Header */}
+              <div className="flex items-center justify-between pb-2 sm:pb-3 border-b-2 border-slate-100 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-2 rounded-xl bg-slate-800 text-white shadow-md">
+                    <Cog size={18} strokeWidth={2.5} className={phase < 5 && phase >= 3 ? "animate-spin-slow" : ""} />
                   </div>
-                );
-              })}
-            </div>
+                  <div>
+                    <div className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Automation</div>
+                    <div className="text-xs sm:text-sm font-black text-slate-800 tracking-tight">CI/CD Pipeline</div>
+                  </div>
+                </div>
+                <span className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-wider shadow-sm border ${
+                  phase < 3 ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                  phase < 5 ? 'bg-amber-50 text-amber-600 border-amber-200 animate-pulse' :
+                  'bg-emerald-50 text-emerald-600 border-emerald-200'
+                }`}>
+                  <Radio size={10} strokeWidth={3} className={phase < 5 && phase >= 3 ? "animate-pulse" : ""} />
+                  {phase < 3 ? "OFFLINE" : phase < 5 ? "CONFIGURING" : "ACTIVE"}
+                </span>
+              </div>
 
-            {/* Pipeline status badge */}
-            <AnimatePresence>
-              {pipelineResult !== "IDLE" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`mt-3 p-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
-                    pipelineResult === "SUCCESS"
-                      ? "bg-emerald-950/40 text-emerald-300 border border-emerald-800/40"
-                      : "bg-rose-950/40 text-rose-300 border border-rose-800/40"
-                  }`}
+              {/* Toggles */}
+              <div className="flex flex-col gap-2 my-2 shrink-0">
+                
+                {/* Lint Scanner */}
+                <button 
+                  onClick={() => toggleScanner('lint')}
+                  disabled={phase < 3}
+                  className={`flex items-center justify-between p-2 sm:p-3 rounded-2xl border-2 transition-all duration-300 ${
+                    scanners.lint 
+                      ? 'bg-white border-cyan-400 shadow-[0_4px_15px_rgba(34,211,238,0.2)]' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  } ${phase < 3 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                 >
-                  {pipelineResult === "SUCCESS" ? <Zap size={13}/> : <XCircle size={13}/>}
-                  {pipelineResult === "SUCCESS" ? " Deployed to production successfully!" : " Pipeline halted — bug caught, production protected!"}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <div className="flex items-center gap-2 sm:gap-3 text-left">
+                    <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${scanners.lint ? 'bg-cyan-50 text-cyan-500' : 'bg-white text-slate-400 shadow-sm border border-slate-100'}`}>
+                      <TerminalSquare size={18} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <div className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-slate-700">1. Lint Code</div>
+                      <div className="text-[9px] sm:text-[10px] font-semibold text-slate-400 mt-0.5">Scan for syntax errors</div>
+                    </div>
+                  </div>
+                  {scanners.lint ? <ToggleRight size={24} className="text-cyan-500" /> : <ToggleLeft size={24} className="text-slate-300" />}
+                </button>
+
+                {/* Unit Tests */}
+                <button 
+                  onClick={() => toggleScanner('test')}
+                  disabled={phase < 3}
+                  className={`flex items-center justify-between p-2 sm:p-3 rounded-2xl border-2 transition-all duration-300 ${
+                    scanners.test 
+                      ? 'bg-white border-purple-400 shadow-[0_4px_15px_rgba(168,85,247,0.2)]' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  } ${phase < 3 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                >
+                  <div className="flex items-center gap-2 sm:gap-3 text-left">
+                    <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${scanners.test ? 'bg-purple-50 text-purple-500' : 'bg-white text-slate-400 shadow-sm border border-slate-100'}`}>
+                      <FlaskConical size={18} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <div className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-slate-700">2. Unit Tests</div>
+                      <div className="text-[9px] sm:text-[10px] font-semibold text-slate-400 mt-0.5">Verify code logic</div>
+                    </div>
+                  </div>
+                  {scanners.test ? <ToggleRight size={24} className="text-purple-500" /> : <ToggleLeft size={24} className="text-slate-300" />}
+                </button>
+
+                {/* Build Assembler */}
+                <button 
+                  onClick={() => toggleScanner('build')}
+                  disabled={phase < 3}
+                  className={`flex items-center justify-between p-2 sm:p-3 rounded-2xl border-2 transition-all duration-300 ${
+                    scanners.build 
+                      ? 'bg-white border-amber-400 shadow-[0_4px_15px_rgba(251,191,36,0.2)]' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  } ${phase < 3 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                >
+                  <div className="flex items-center gap-2 sm:gap-3 text-left">
+                    <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${scanners.build ? 'bg-amber-50 text-amber-500' : 'bg-white text-slate-400 shadow-sm border border-slate-100'}`}>
+                      <Blocks size={18} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <div className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-slate-700">3. Build App</div>
+                      <div className="text-[9px] sm:text-[10px] font-semibold text-slate-400 mt-0.5">Compile & bundle app</div>
+                    </div>
+                  </div>
+                  {scanners.build ? <ToggleRight size={24} className="text-amber-500" /> : <ToggleLeft size={24} className="text-slate-300" />}
+                </button>
+
+              </div>
+
+              {/* Dynamic Action Buttons */}
+              <div className="flex-1 flex flex-col justify-end gap-2 mt-1 min-h-0">
+                <button 
+                  onClick={() => pushCode('clean')}
+                  disabled={phase < 6 || (payload.status !== 'idle' && payload.status !== 'rejected' && payload.status !== 'deployed' && payload.status !== 'crashed')}
+                  className={`w-full py-2.5 sm:py-3 px-3 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 transition-all font-black text-xs sm:text-sm uppercase tracking-widest
+                    ${phase >= 6 
+                      ? 'bg-gradient-to-b from-sky-400 to-sky-600 text-white shadow-[0_4px_0_#0284c7] active:shadow-none active:translate-y-[4px]' 
+                      : 'bg-slate-50 text-slate-400 border-2 border-slate-200 shadow-none opacity-60 cursor-not-allowed'
+                    } ${phase === 6 && payload.status !== 'moving' ? 'animate-bounce shadow-[0_4px_0_#0284c7,0_10px_15px_rgba(14,165,233,0.4)]' : ''}`}
+                >
+                  <Code2 size={18} strokeWidth={3} /> PUSH CLEAN CODE
+                </button>
+
+                <button 
+                  onClick={() => pushCode('buggy')}
+                  disabled={(phase > 5) || (payload.status !== 'idle' && payload.status !== 'rejected' && payload.status !== 'deployed' && payload.status !== 'crashed')}
+                  className={`w-full py-2.5 sm:py-3 px-3 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 transition-all font-black text-xs sm:text-sm uppercase tracking-widest
+                    ${phase <= 5 
+                      ? 'bg-gradient-to-b from-rose-500 to-rose-700 text-white shadow-[0_4px_0_#9f1239] active:shadow-none active:translate-y-[4px]' 
+                      : 'hidden'
+                    } ${(phase === 0 || phase === 5) && payload.status !== 'moving' ? 'animate-bounce shadow-[0_4px_0_#9f1239,0_10px_15px_rgba(244,63,94,0.4)]' : ''}`}
+                >
+                  <Bug size={18} strokeWidth={3} /> PUSH BUGGY CODE
+                </button>
+              </div>
+
+            </div>
           </div>
 
-          {/* Console Log */}
-          <div className="flex-1 min-h-0 panel-glass rounded-2xl border-slate-800/40 bg-black/50 overflow-hidden flex flex-col">
-            <div className="shrink-0 px-4 py-2 border-b border-slate-800/50 text-xs font-bold text-slate-500 font-mono flex items-center gap-2">
-              <Play size={10}/> Pipeline Console
+          {/* FACTORY STAGE (RIGHT) */}
+          <div className="flex-1 flex flex-col relative z-0 min-h-[300px] md:min-h-[450px] bg-white border-2 border-slate-200 rounded-3xl shadow-xl overflow-hidden">
+            
+            {/* Title Bar - elevated z-index to block ceiling struts */}
+            <div className="bg-slate-900 px-5 py-3 flex items-center justify-between border-b-4 border-slate-950 shrink-0 z-20 relative shadow-md">
+              <div className="flex items-center gap-3">
+                <Cog className="text-slate-500 animate-spin-slow" size={18} strokeWidth={2.5} />
+                <h2 className="text-xs sm:text-sm font-black text-slate-100 uppercase tracking-widest">QA Factory Floor</h2>
+              </div>
             </div>
-            <div className="flex-1 overflow-auto p-4 font-mono text-[10px] leading-relaxed">
-              {log.length === 0 ? (
-                <div className="text-slate-700">$ awaiting commit push...</div>
-              ) : (
-                log.map((line, i) => (
+
+            {/* Stage Field */}
+            <div className="flex-1 relative overflow-hidden select-none bg-slate-50 z-0">
+              
+              {/* Background Grid */}
+              <svg className="absolute inset-0 w-full h-full opacity-[0.15]" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="grid-factory" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
+                    <path d="M 0 40 L 40 40 L 40 0" fill="none" stroke="#475569" strokeWidth="0.5" opacity="0.5" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid-factory)" />
+              </svg>
+
+              {/* The Conveyor Belt Track */}
+              <div className="absolute top-[50%] left-0 w-full h-8 sm:h-12 bg-slate-800 border-y-4 border-slate-900 flex items-center overflow-hidden z-0 shadow-2xl">
+                {/* Moving treads via CSS gradient */}
+                <div className="absolute inset-0 opacity-30 bg-[linear-gradient(90deg,transparent_0px,transparent_15px,#000_15px,#000_30px)] bg-[length:30px_100%] animate-conveyor" />
+                <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+              </div>
+              
+              {/* Belt Drop Shadow */}
+              <div className="absolute top-[50%] mt-8 sm:mt-12 left-0 w-full h-8 bg-black/10 blur-xl z-0" />
+
+              {/* Reject Bin (Incinerator) - Tighter height */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[85%] sm:w-[70%] h-10 sm:h-12 bg-gradient-to-b from-rose-500 to-rose-700 border-x-4 border-t-4 border-rose-800 rounded-t-3xl flex items-center justify-center z-20 shadow-[inset_0_10px_20px_rgba(0,0,0,0.3)]">
+                <div className="flex items-center gap-2 text-white font-black uppercase text-xs sm:text-sm tracking-widest drop-shadow-md">
+                  <Flame size={18} strokeWidth={3} className="text-rose-200" /> REJECT INCINERATOR
+                </div>
+                {/* Hazard Stripes */}
+                <div className="absolute inset-0 opacity-10 bg-[linear-gradient(45deg,transparent_25%,#000_25%,#000_50%,transparent_50%,transparent_75%,#000_75%,#000_100%)] bg-[length:20px_20px] rounded-t-[20px]" />
+              </div>
+
+              {/* SCANNERS (NODES) */}
+              
+              {/* 1. Lint Scanner */}
+              <div className="absolute top-[25%] left-[25%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+                <div className="absolute bottom-[100%] w-4 h-[250px] bg-gradient-to-b from-slate-200 to-slate-400 border-x-2 border-slate-500 shadow-inner z-0" />
+                <div className={`relative z-10 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-500 ${
+                  scanners.lint ? 'bg-white border-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.6)]' : 'bg-slate-100 border-slate-300 shadow-lg'
+                } ${payload.status === 'scanning' && payload.pos === 1 ? 'animate-pulse' : ''}`}>
+                  <TerminalSquare className={`w-6 h-6 sm:w-7 sm:h-7 ${scanners.lint ? 'text-cyan-500' : 'text-slate-400'}`} strokeWidth={3} />
+                  <span className={`text-[8px] sm:text-[9px] font-black uppercase mt-0.5 tracking-widest ${scanners.lint ? 'text-cyan-700' : 'text-slate-500'}`}>Lint</span>
+                </div>
+                {/* Laser beam */}
+                <div className={`w-3 sm:w-4 transition-all duration-300 origin-top z-0 ${
+                  payload.status === 'scanning' && payload.pos === 1 && scanners.lint 
+                    ? 'h-20 sm:h-24 bg-gradient-to-b from-cyan-400 to-transparent opacity-100' 
+                    : scanners.lint ? 'h-8 sm:h-10 bg-gradient-to-b from-cyan-400 to-transparent opacity-40' : 'h-0'
+                }`} />
+              </div>
+
+              {/* 2. Test Scanner */}
+              <div className="absolute top-[25%] left-[45%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+                <div className="absolute bottom-[100%] w-4 h-[250px] bg-gradient-to-b from-slate-200 to-slate-400 border-x-2 border-slate-500 shadow-inner z-0" />
+                <div className={`relative z-10 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-500 ${
+                  scanners.test ? 'bg-white border-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.6)]' : 'bg-slate-100 border-slate-300 shadow-lg'
+                } ${payload.status === 'scanning' && payload.pos === 2 ? 'animate-pulse' : ''}`}>
+                  <FlaskConical className={`w-6 h-6 sm:w-7 sm:h-7 ${scanners.test ? 'text-purple-500' : 'text-slate-400'}`} strokeWidth={3} />
+                  <span className={`text-[8px] sm:text-[9px] font-black uppercase mt-0.5 tracking-widest ${scanners.test ? 'text-purple-700' : 'text-slate-500'}`}>Test</span>
+                </div>
+                <div className={`w-3 sm:w-4 transition-all duration-300 origin-top z-0 ${
+                  payload.status === 'scanning' && payload.pos === 2 && scanners.test 
+                    ? 'h-20 sm:h-24 bg-gradient-to-b from-purple-400 to-transparent opacity-100' 
+                    : scanners.test ? 'h-8 sm:h-10 bg-gradient-to-b from-purple-400 to-transparent opacity-40' : 'h-0'
+                }`} />
+              </div>
+
+              {/* 3. Build Scanner */}
+              <div className="absolute top-[25%] left-[65%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+                <div className="absolute bottom-[100%] w-4 h-[250px] bg-gradient-to-b from-slate-200 to-slate-400 border-x-2 border-slate-500 shadow-inner z-0" />
+                <div className={`relative z-10 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-500 ${
+                  scanners.build ? 'bg-white border-amber-400 shadow-[0_0_30px_rgba(251,191,36,0.6)]' : 'bg-slate-100 border-slate-300 shadow-lg'
+                } ${payload.status === 'scanning' && payload.pos === 3 ? 'animate-pulse' : ''}`}>
+                  <Blocks className={`w-6 h-6 sm:w-7 sm:h-7 ${scanners.build ? 'text-amber-500' : 'text-slate-400'}`} strokeWidth={3} />
+                  <span className={`text-[8px] sm:text-[9px] font-black uppercase mt-0.5 tracking-widest ${scanners.build ? 'text-amber-700' : 'text-slate-500'}`}>Build</span>
+                </div>
+                <div className={`w-3 sm:w-4 transition-all duration-300 origin-top z-0 ${
+                  payload.status === 'scanning' && payload.pos === 3 && scanners.build 
+                    ? 'h-20 sm:h-24 bg-gradient-to-b from-amber-400 to-transparent opacity-100' 
+                    : scanners.build ? 'h-8 sm:h-10 bg-gradient-to-b from-amber-400 to-transparent opacity-40' : 'h-0'
+                }`} />
+              </div>
+
+              {/* PRODUCTION LAUNCHPAD */}
+              {/* Perfectly aligned vertically with top-[50%] to match the track */}
+              <div className="absolute top-[50%] left-[85%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+                <div className={`w-20 h-24 sm:w-26 sm:h-28 rounded-2xl border-4 flex flex-col items-center justify-center transition-all duration-500 shadow-2xl ${
+                  payload.status === 'crashed' ? 'bg-gradient-to-br from-rose-100 to-rose-200 border-rose-500 shadow-rose-500/50 animate-pulse' :
+                  payload.status === 'deployed' ? 'bg-gradient-to-br from-emerald-100 to-emerald-200 border-emerald-500 shadow-emerald-500/40' :
+                  'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-300'
+                }`}>
+                  {payload.status === 'crashed' ? (
+                    <ServerCrash className="text-rose-600 mb-1 sm:mb-2 w-8 h-8 sm:w-10 sm:h-10" strokeWidth={2.5} />
+                  ) : payload.status === 'deployed' ? (
+                    <Server className="text-emerald-600 mb-1 sm:mb-2 w-8 h-8 sm:w-10 sm:h-10" strokeWidth={2.5} />
+                  ) : (
+                    <Server className="text-indigo-500 mb-1 sm:mb-2 w-8 h-8 sm:w-10 sm:h-10" strokeWidth={2.5} />
+                  )}
+                  <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center px-1 leading-tight ${
+                    payload.status === 'crashed' ? 'text-rose-900' :
+                    payload.status === 'deployed' ? 'text-emerald-900' :
+                    'text-indigo-900'
+                  }`}>
+                    Production
+                  </span>
+                  {payload.status === 'crashed' && (
+                    <div className="absolute -top-4 bg-rose-600 text-white text-[10px] sm:text-xs font-black px-2 py-1 rounded shadow-lg animate-pulse whitespace-nowrap border-2 border-rose-400">
+                      CRASHED
+                    </div>
+                  )}
+                </div>
+              </div>
+
+
+              {/* THE PAYLOAD (Animated Code Box) */}
+              <AnimatePresence>
+                {payload.type && (
                   <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className={`${
-                      line.includes("FAILED") || line.includes("") ? "text-rose-400" :
-                      line.includes("PASSED") || line.includes("") ? "text-emerald-400" :
-                      line.includes("SKIPPED") ? "text-slate-600" :
-                      line.includes("running") ? "text-violet-400" :
-                      "text-slate-400"
+                    className={`absolute w-10 h-10 sm:w-14 sm:h-14 rounded-xl border-4 shadow-xl flex items-center justify-center z-30 ${
+                      payload.type === 'buggy' ? 'bg-rose-100 border-rose-500 text-rose-600 shadow-rose-500/50' : 'bg-sky-100 border-sky-500 text-sky-600 shadow-sky-500/50'
                     }`}
+                    initial={{ left: "5%", top: "50%", y: "-100%", x: "-50%", opacity: 0, scale: 0.5 }}
+                    animate={{ 
+                      left: getPosPercent(payload.pos),
+                      top: payload.status === 'rejected' ? "100%" : "50%",
+                      opacity: payload.status === 'crashed' ? 0 : payload.status === 'rejected' ? 0 : 1,
+                      scale: payload.status === 'crashed' ? [1, 1.5, 0] : payload.status === 'rejected' ? 0.5 : 1,
+                      rotate: payload.status === 'rejected' ? 180 : 0
+                    }}
+                    transition={{ 
+                      duration: payload.status === 'crashed' ? 0.4 : payload.status === 'rejected' ? 0.6 : 0.6,
+                      ease: "easeInOut"
+                    }}
+                    style={{ y: "-100%", x: "-50%" }}
                   >
-                    {line}
+                    {payload.type === 'buggy' ? <Bug size={24} strokeWidth={3} /> : <Code2 size={24} strokeWidth={3} />}
                   </motion.div>
-                ))
-              )}
+                )}
+              </AnimatePresence>
+
             </div>
           </div>
-
         </div>
       </div>
-    
-      {timedOut && !isLabComplete && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
-            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-              <Timer className="w-7 h-7" />
-            </div>
-            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
-            <p className="text-sm font-medium text-slate-600 mb-4">
-              You did not complete the lab in time.
-            </p>
-            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
-              Try Again
-            </button>
-          </div>
-        </div>
-      )}
-</LabShell>
+
+      {/* Global CSS for conveyor belt animation */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes conveyor {
+          from { background-position: 0 0; }
+          to { background-position: -30px 0; }
+        }
+        .animate-conveyor {
+          animation: conveyor 1s linear infinite;
+        }
+      `}} />
+
+      {/* Victory Celebration */}
+      <AnimatePresence>
+        {phase === 7 && (
+          <Celebration
+            isActive={phase === 7}
+            message="Pipeline Secure! Your automated Smart Factory successfully rejected the bugs and deployed the clean code to production."
+            onReplay={() => {
+              setPhase(0);
+              setPayload({ type: null, pos: 0, status: 'idle' });
+              setScanners({ lint: false, test: false, build: false });
+              setTimeLeft(TIMER_DURATION);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </LabShell>
   );
 }

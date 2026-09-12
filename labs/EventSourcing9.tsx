@@ -1,16 +1,16 @@
 "use client";
-
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { TrendingUp, TrendingDown, RefreshCcw, Rewind, ArrowLeft, ArrowRight, Zap , Timer} from "lucide-react";
+import { Timer, Rewind, FastForward, ShieldAlert, Trash2, History, Banknote, ShieldCheck, Plus, AlertTriangle } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type EventType = "ACCOUNT_OPENED" | "DEPOSIT" | "WITHDRAWAL" | "INTEREST" | "FEE";
+type EventType = "ACCOUNT_OPENED" | "DEPOSIT" | "WITHDRAWAL" | "SYSTEM_GLITCH" | "REFUND";
+type Phase = "STEP1_BUY" | "STEP2_TRAP" | "STEP3_FIX" | "COMPLETE";
 
 interface BankEvent {
   id: number;
@@ -20,12 +20,12 @@ interface BankEvent {
   timestamp: string;
 }
 
-const EVENT_COLORS: Record<EventType, { bg: string; border: string; text: string }> = {
-  ACCOUNT_OPENED: { bg: "#1e1b4b", border: "#6366f1", text: "#818cf8" },
-  DEPOSIT:        { bg: "#064e3b", border: "#10b981", text: "#34d399" },
-  WITHDRAWAL:     { bg: "#4c0519", border: "#f43f5e", text: "#fb7185" },
-  INTEREST:       { bg: "#422006", border: "#f59e0b", text: "#fbbf24" },
-  FEE:            { bg: "#1c0a0f", border: "#e11d48", text: "#fb7185" },
+const EVENT_STYLES: Record<EventType, { bg: string; border: string; text: string; badgeText: string; badgeBg: string }> = {
+  ACCOUNT_OPENED: { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-700", badgeText: "text-slate-700", badgeBg: "bg-slate-200" },
+  DEPOSIT:        { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", badgeText: "text-emerald-700", badgeBg: "bg-emerald-200" },
+  WITHDRAWAL:     { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700", badgeText: "text-rose-700", badgeBg: "bg-rose-200" },
+  SYSTEM_GLITCH:  { bg: "bg-red-50", border: "border-red-400", text: "text-red-900", badgeText: "text-red-100", badgeBg: "bg-red-600" },
+  REFUND:         { bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-800", badgeText: "text-indigo-800", badgeBg: "bg-indigo-200" },
 };
 
 function formatTime(ms: number) {
@@ -33,78 +33,51 @@ function formatTime(ms: number) {
   return `${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}:${d.getSeconds().toString().padStart(2,"0")}`;
 }
 
-// ─── Event Row ─────────────────────────────────────────────────────────────────
-
-function EventRow({
-  event,
-  isCurrent,
-  runningBalance,
-}: {
-  event: BankEvent;
-  isCurrent: boolean;
-  runningBalance: number;
-}) {
-  const col = EVENT_COLORS[event.type];
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${isCurrent ? "ring-2 ring-violet-500/50 scale-[1.01]" : ""}`}
-      style={{ backgroundColor: col.bg, borderColor: col.border + "60" }}
-    >
-      {/* ID + time */}
-      <div className="shrink-0 text-center">
-        <div className="text-[9px] font-mono text-slate-600">#{event.id}</div>
-        <div className="text-[9px] font-mono text-slate-700">{event.timestamp}</div>
-      </div>
-
-      {/* Event type */}
-      <div className="shrink-0 px-2 py-1 rounded-lg text-[10px] font-black min-w-[90px] text-center" style={{ color: col.text, backgroundColor: col.border + "20" }}>
-        {event.type}
-      </div>
-
-      {/* Note */}
-      <div className="flex-1 min-w-0 text-[10px] text-slate-400 truncate">{event.note}</div>
-
-      {/* Amount */}
-      <div className={`shrink-0 font-black text-sm tabular-nums ${event.amount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-        {event.amount >= 0 ? "+" : ""}${event.amount}
-      </div>
-
-      {/* Running balance */}
-      <div className="shrink-0 text-right">
-        <div className="text-[8px] text-slate-600">balance</div>
-        <div className="text-xs font-bold text-slate-300 tabular-nums">${runningBalance}</div>
-      </div>
-    </motion.div>
-  );
-}
-
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 const INITIAL_EVENTS: BankEvent[] = [
-  { id: 1001, type: "ACCOUNT_OPENED", amount: 0, note: "Account created for alice@school.com", timestamp: "09:00:00" },
-  { id: 1002, type: "DEPOSIT", amount: 500, note: "Initial deposit — cash", timestamp: "09:01:14" },
-  { id: 1003, type: "INTEREST", amount: 12, note: "Monthly interest (2.4% APR)", timestamp: "09:02:30" },
+  { id: 1001, type: "ACCOUNT_OPENED", amount: 0, note: "Account created", timestamp: "09:00:00" },
+  { id: 1002, type: "DEPOSIT", amount: 1000, note: "Initial allowance", timestamp: "09:01:14" },
 ];
 
 const TIMER_DURATION_SECONDS = 5 * 60;
 
 export default function EventSourcing9() {
   const { reportComplete: _reportComplete } = useLMSBridge("eventsourcing9");
+  const { playPop, playZap, playError, playSuccess } = useLabAudio();
 
   const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
   const [timedOut, setTimedOut] = useState(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isLabComplete, setIsLabComplete] = useState(false);
+  
+  const [phase, setPhase] = useState<Phase>("STEP1_BUY");
+  const [events, setEvents] = useState<BankEvent[]>(INITIAL_EVENTS);
+  const [playheadIdx, setPlayheadIdx] = useState<number>(INITIAL_EVENTS.length - 1);
+  const [shakeDelete, setShakeDelete] = useState<number | null>(null);
+  const [composerType, setComposerType] = useState<EventType>("WITHDRAWAL");
+  const [composerAmount, setComposerAmount] = useState<string>("300");
+  const [composerError, setComposerError] = useState<string | null>(null);
+  const submitLockRef = useRef(false);
 
-  const reportComplete = useCallback((args?: any) => {
-    setIsLabComplete(true);
+
+  // Compute running balance up to each event index
+  const runningBalances = events.reduce<number[]>((acc, ev, i) => {
+    const prev = i === 0 ? 0 : acc[i - 1];
+    acc.push(prev + ev.amount);
+    return acc;
+  }, []);
+
+  const currentBalance = runningBalances[playheadIdx] ?? 0;
+  const isAtHead = playheadIdx === events.length - 1;
+  const hasGlitch = events.some(e => e.type === "SYSTEM_GLITCH");
+
+  const reportComplete = useCallback(() => {
     _reportComplete({ points: 100 });
   }, [_reportComplete]);
 
+  // Global Timer
   useEffect(() => {
-    if (timedOut || isLabComplete) {
+    if (timedOut || phase === "COMPLETE") {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       return;
     }
@@ -121,208 +94,321 @@ export default function EventSourcing9() {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [timedOut, isLabComplete]);
+  }, [timedOut, phase]);
 
   useEffect(() => {
-    if (timedOut) {
-      _reportComplete({ points: 0 });
-    }
+    if (timedOut) _reportComplete({ points: 0 });
   }, [timedOut, _reportComplete]);
 
   const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
-  const { playPop, playZap, playError, playSuccess } = useLabAudio();
 
-  const [events, setEvents] = useState<BankEvent[]>(INITIAL_EVENTS);
-  const [playheadIdx, setPlayheadIdx] = useState<number>(INITIAL_EVENTS.length - 1); // index of current "viewed" event
-  const [hasWon, setHasWon] = useState(false);
+  // ─── Actions ───
 
-  let idCounter = events.length > 0 ? events[events.length - 1].id + 1 : 1001;
+  const handleCompose = () => {
+    if (submitLockRef.current) return; // Prevent rapid-click race conditions
+    if (!isAtHead || phase === "COMPLETE") return;
+    const amt = parseInt(composerAmount, 10);
+    if (isNaN(amt) || amt <= 0) {
+      playError();
+      return;
+    }
 
-  // Compute running balance up to each event index
-  const runningBalances = events.reduce<number[]>((acc, ev, i) => {
-    const prev = i === 0 ? 0 : acc[i - 1];
-    acc.push(prev + ev.amount);
-    return acc;
-  }, []);
+    const actualAmount = (composerType === "WITHDRAWAL" || composerType === "SYSTEM_GLITCH") ? -amt : amt;
+    
+    // PRE-VALIDATION: Prevent spamming incorrect refunds in Phase 3
+    if (phase === "STEP3_FIX") {
+      if (composerType !== "REFUND" || actualAmount !== 300) {
+        playError();
+        setComposerError(`Invalid fix! To correctly cancel out the SYSTEM GLITCH, you must append a REFUND of exactly $300.`);
+        setTimeout(() => setComposerError(null), 4000);
+        return; // Block appending
+      }
+    }
 
-  const currentBalance = runningBalances[playheadIdx] ?? 0;
-  const isAtHead = playheadIdx === events.length - 1;
+    setComposerError(null);
+    const note = composerType === "WITHDRAWAL" ? "Purchased Laptop" : composerType === "REFUND" ? "Refund for glitch" : "Deposit";
+    
+    // Generate ID securely inside the state callback to prevent closure staleness causing duplicate keys
+    setEvents(prev => {
+      const nextId = prev.length > 0 ? prev[prev.length - 1].id + 1 : 1001;
+      const newEv: BankEvent = { id: nextId, type: composerType, amount: actualAmount, note, timestamp: formatTime(Date.now()) };
+      setPlayheadIdx(prev.length);
+      return [...prev, newEv];
+    });
 
-  const addEvent = (type: EventType, amount: number, note: string) => {
-    if (!isAtHead) return; // must be at head to add events
-    const now = formatTime(Date.now());
-    const newEv: BankEvent = { id: idCounter++, type, amount, note, timestamp: now };
-    setEvents(prev => [...prev, newEv]);
-    setPlayheadIdx(prev => prev + 1);
-    if (amount > 0) { playSuccess(); } else { playError(); }
-
-    if (events.length >= 5 && !hasWon) {
-      setHasWon(true);
+    if (phase === "STEP1_BUY" && composerType === "WITHDRAWAL" && actualAmount === -300) {
+      submitLockRef.current = true; // Lock until hacker event finishes
+      playSuccess();
+      setPhase("STEP2_TRAP");
+      
+      // Auto trigger hacker attack
+      setTimeout(() => {
+        setEvents(prev => {
+          const nextId = prev.length > 0 ? prev[prev.length - 1].id + 1 : 1001;
+          const glitchEv: BankEvent = { id: nextId, type: "SYSTEM_GLITCH", amount: -300, note: "FATAL: Duplicate Charge", timestamp: formatTime(Date.now()) };
+          setPlayheadIdx(prev.length);
+          return [...prev, glitchEv];
+        });
+        playError();
+        setComposerType("REFUND");
+        setComposerAmount("300");
+        submitLockRef.current = false; // Unlock for user
+      }, 1500);
+    } 
+    else if (phase === "STEP3_FIX") {
+      submitLockRef.current = true; // Lock permanently for COMPLETE phase
+      playSuccess();
+      setPhase("COMPLETE");
       setTimeout(reportComplete, 1500);
+    } else {
+      playSuccess();
     }
   };
 
-  const stepBack = () => {
-    if (playheadIdx > 0) { setPlayheadIdx(p => p - 1); playPop(); }
+  const attemptDelete = (eventId: number) => {
+    playError();
+    setShakeDelete(eventId);
+    setTimeout(() => setShakeDelete(null), 500);
+    if (phase === "STEP2_TRAP") {
+      setPhase("STEP3_FIX");
+    }
   };
-  const stepForward = () => {
-    if (playheadIdx < events.length - 1) { setPlayheadIdx(p => p + 1); playPop(); }
-  };
-  const jumpToStart = () => { setPlayheadIdx(0); playZap(); };
-  const jumpToEnd = () => { setPlayheadIdx(events.length - 1); playZap(); };
 
-  const reset = () => {
-    setEvents(INITIAL_EVENTS);
-    setPlayheadIdx(INITIAL_EVENTS.length - 1);
-    setHasWon(false);
-    playZap();
+  const getInstruction = () => {
+    switch (phase) {
+      case "STEP1_BUY": return "Learn & Try: Event ledgers keep a receipt of everything. Use the Event Composer to append a Withdrawal of $300 to buy a laptop.";
+      case "STEP2_TRAP": return "Fail Safely: A system glitch just duplicated your charge! Try to click the Trash icon on the glitch to delete it from the database.";
+      case "STEP3_FIX": return "Understand & Improve: Ledgers are IMMUTABLE. You cannot erase history! To fix the math, you must use the Composer to append a Compensating Event (Refund) that cancels the glitch.";
+      case "COMPLETE": return "Outcome: You fixed the balance without erasing history! Auditors now have a perfect record of both the glitch and the fix.";
+    }
   };
 
   return (
     <LabShell
       navExtra={
-        !isLabComplete && (
-          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+        phase !== "COMPLETE" && (
+          <div className={`flex items-center gap-1.5 px-3.5 h-9 rounded-full text-sm font-bold border shadow-sm ${
             timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
             secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-            "bg-white border-sky-100/80 text-sky-700"
+            "bg-white border-slate-200 text-slate-700"
           }`}>
-            <Timer size={16} strokeWidth={2.5} />
+            <Timer size={15} strokeWidth={2.5} className={secondsLeft <= 60 && !timedOut ? "animate-spin" : ""} />
             <span>{timedOut ? "Time's Up" : formattedTime}</span>
           </div>
         )
-      } labId="eventsourcing9" theme="ocean" title="Event Sourcing (CQRS)" subtitle="L47 · Data Architecture"
-      instruction="In Event Sourcing, the database NEVER overwrites data — it only appends events to an immutable ledger. The balance is calculated by replaying all events. Use the playhead to time-travel backwards to any past state. Notice: the actual balance number doesn't exist in the DB — only the event history does!" compact>
+      }
+      labId="eventsourcing9"
+      theme="ocean"
+      title="Event Sourcing (CQRS)"
+      instruction={getInstruction()}
+      compact
+      onReset={() => {
+        setPhase("STEP1_BUY");
+        setEvents(INITIAL_EVENTS);
+        setPlayheadIdx(INITIAL_EVENTS.length - 1);
+        setSecondsLeft(TIMER_DURATION_SECONDS);
+        setTimedOut(false);
+        setComposerType("WITHDRAWAL");
+        setComposerAmount("300");
+      }}
+    >
+      <Celebration isActive={phase === "COMPLETE"} message="Audit Trail Perfect! You fixed the balance by appending a compensating event. You now understand how enterprise systems use Event Sourcing to prevent data loss and ensure total accountability." />
 
-      <Celebration isActive={hasWon} message="Audit Trail Complete! Unlike SQL (which overwrites and loses history), Event Sourcing keeps every transaction forever. This means you can time-travel to any past state, run compliance audits, and even replay events into a different system. Real banks use this exact architecture." onReplay={reset} />
-
-      <div className="w-full flex flex-col xl:flex-row flex-1 min-h-0 gap-3 pt-1">
-
-        {/* ── LEFT: Balance Display + Actions ── */}
-        <div className="xl:w-[280px] shrink-0 flex flex-col gap-3">
-
-          {/* Balance */}
-          <div className={`panel-glass rounded-2xl border p-4 transition-all ${!isAtHead ? "border-amber-700/50 bg-amber-950/10" : "border-sky-900/40"}`}>
-            <div className="text-xs text-slate-500 mb-1 flex items-center gap-1.5">
-              {!isAtHead ? (
-                <><Rewind size={11} className="text-amber-400"/> Viewing historical state (event #{events[playheadIdx]?.id})</>
-              ) : (
-                <><Zap size={11} className="text-sky-400"/> Current live balance</>
-              )}
+      <div className="w-full flex flex-col md:flex-row flex-1 min-h-0 gap-4 pt-1">
+        
+        {/* ── LEFT: State View & Event Composer ── */}
+        <div className="md:w-[320px] shrink-0 flex flex-col gap-4">
+          
+          {/* Current State (Bank Display) */}
+          <div className={`bg-white rounded-2xl border-2 p-5 shadow-sm transition-all ${!isAtHead ? "border-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.2)]" : "border-slate-200"}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`p-1.5 rounded-lg ${!isAtHead ? "bg-indigo-100 text-indigo-600" : "bg-emerald-100 text-emerald-600"}`}>
+                {!isAtHead ? <Rewind size={16} /> : <Banknote size={16} />}
+              </div>
+              <span className={`text-xs font-black uppercase tracking-widest ${!isAtHead ? "text-indigo-600" : "text-emerald-700"}`}>
+                {!isAtHead ? "Historical State" : "Live Bank Balance"}
+              </span>
             </div>
+            
             <motion.div
-              key={`${playheadIdx}-${currentBalance}`}
-              initial={{ scale: 1.08 }}
-              animate={{ scale: 1 }}
-              className={`text-4xl font-black tabular-nums mb-1 ${!isAtHead ? "text-amber-300" : currentBalance >= 0 ? "text-emerald-400" : "text-rose-400"}`}
+              key={currentBalance}
+              initial={{ scale: 1.05, filter: "blur(4px)" }}
+              animate={{ scale: 1, filter: "blur(0px)" }}
+              className={`text-5xl font-black tabular-nums tracking-tight ${currentBalance >= 0 ? "text-slate-800" : "text-rose-600"}`}
             >
               ${currentBalance}
             </motion.div>
-            <div className="text-[10px] text-slate-600">Calculated by replaying {playheadIdx + 1} event{playheadIdx !== 0 ? "s" : ""}</div>
-          </div>
-
-          {/* Time-Travel Playhead */}
-          <div className="panel-glass rounded-2xl border-violet-900/40 p-3 flex flex-col gap-2">
-            <div className="text-xs font-bold text-violet-300 mb-1">⏱ Time-Travel Playhead</div>
-            <div className="flex items-center gap-1">
-              <button onClick={jumpToStart} className="p-1.5 rounded-lg bg-violet-900/40 border border-violet-800/40 text-violet-400 hover:bg-violet-800/40 transition-all" title="Jump to start">
-                <ArrowLeft size={11}/>
-              </button>
-              <button onClick={stepBack} disabled={playheadIdx === 0} className="flex-1 py-2 rounded-lg bg-violet-900/30 border border-violet-800/30 text-violet-400 hover:bg-violet-800/40 transition-all disabled:opacity-30 flex items-center justify-center gap-1 text-xs font-bold">
-                ◀ Back
-              </button>
-              <button onClick={stepForward} disabled={isAtHead} className="flex-1 py-2 rounded-lg bg-violet-900/30 border border-violet-800/30 text-violet-400 hover:bg-violet-800/40 transition-all disabled:opacity-30 flex items-center justify-center gap-1 text-xs font-bold">
-                Fwd ▶
-              </button>
-              <button onClick={jumpToEnd} className="p-1.5 rounded-lg bg-violet-900/40 border border-violet-800/40 text-violet-400 hover:bg-violet-800/40 transition-all" title="Jump to latest">
-                <ArrowRight size={11}/>
-              </button>
-            </div>
-            <div className="text-[9px] text-slate-600 text-center">
-              Event {playheadIdx + 1} of {events.length} · {!isAtHead ? "time-travelling" : "live"}
+            
+            <div className="mt-2 text-[11px] font-medium text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
+              Calculated dynamically by replaying <strong>{playheadIdx + 1}</strong> event{playheadIdx !== 0 ? "s" : ""} from the ledger.
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="panel-glass rounded-2xl border-sky-900/40 p-3 flex flex-col gap-2">
-            <div className="text-xs font-bold text-slate-400 mb-1">Append to Ledger {!isAtHead && <span className="text-amber-400 text-[9px]">(go to HEAD first)</span>}</div>
-            <button onClick={() => addEvent("DEPOSIT", 100, "Paycheck deposit")} disabled={!isAtHead}
-              className="w-full py-2.5 rounded-xl text-xs font-black bg-emerald-950/60 border border-emerald-700/50 text-emerald-300 hover:bg-emerald-900/60 transition-all disabled:opacity-30 flex items-center justify-center gap-2">
-              <TrendingUp size={13}/> Deposit +$100
-            </button>
-            <button onClick={() => addEvent("WITHDRAWAL", -75, "Monthly subscription bill")} disabled={!isAtHead}
-              className="w-full py-2.5 rounded-xl text-xs font-black bg-rose-950/60 border border-rose-700/50 text-rose-300 hover:bg-rose-900/60 transition-all disabled:opacity-30 flex items-center justify-center gap-2">
-              <TrendingDown size={13}/> Withdraw -$75
-            </button>
-            <button onClick={() => addEvent("FEE", -5, "Monthly account maintenance fee")} disabled={!isAtHead}
-              className="w-full py-2.5 rounded-xl text-xs font-black bg-slate-50/90 border border-slate-700/50 text-slate-400 hover:bg-slate-800/60 transition-all disabled:opacity-30 flex items-center justify-center gap-2">
-              Bank Fee -$5
-            </button>
-            <button onClick={reset} className="w-full py-2 rounded-xl text-xs font-bold bg-slate-800/60 border border-slate-700 text-slate-500 hover:bg-slate-700 transition-all flex items-center justify-center gap-1">
-              <RefreshCcw size={11}/> Reset
-            </button>
-          </div>
-        </div>
-
-        {/* ── RIGHT: Event Ledger ── */}
-        <div className="flex-1 min-h-0 flex flex-col gap-2">
-
-          <div className="shrink-0 flex items-center justify-between px-1">
-            <div className="text-xs font-bold text-slate-400"> Immutable Event Ledger (append-only, never overwritten)</div>
-            <div className="text-[9px] font-mono text-slate-600">{events.length} events total</div>
-          </div>
-
-          <div className="flex-1 overflow-auto flex flex-col gap-1.5 pr-1">
-            <AnimatePresence>
-              {events.map((ev, i) => {
-                const isVisible = i <= playheadIdx;
-                const isCurrent = i === playheadIdx;
-                return isVisible ? (
-                  <EventRow
-                    key={ev.id}
-                    event={ev}
-                    isCurrent={isCurrent}
-                    runningBalance={runningBalances[i]}
-                  />
-                ) : (
-                  <motion.div
-                    key={ev.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.2 }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-800/20 bg-slate-900/10"
+          {/* Event Composer Widget */}
+          <div className={`bg-white rounded-2xl border-2 p-4 shadow-sm flex-1 flex flex-col transition-all ${phase === "STEP3_FIX" ? "border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]" : "border-slate-200"}`}>
+            <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <Plus size={14} /> Event Composer
+            </h3>
+            
+            {phase === "COMPLETE" ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                <ShieldCheck className="w-8 h-8 text-emerald-500 mb-2" />
+                <p className="text-xs font-bold text-emerald-700">Ledger Sealed & Audited.</p>
+                <p className="text-[10px] text-emerald-600 mt-1">Outcome achieved! You may still use the Time Machine below to review the immutable history.</p>
+              </div>
+            ) : phase === "STEP2_TRAP" ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4 bg-rose-50 rounded-xl border border-dashed border-rose-300">
+                <ShieldAlert className="w-8 h-8 text-rose-500 mb-2 animate-bounce" />
+                <p className="text-xs font-bold text-rose-700">COMPOSER LOCKED</p>
+                <p className="text-[10px] text-rose-600 mt-1">A system glitch has been detected! Try to delete the bad event directly from the Ledger list using the Trash icon.</p>
+              </div>
+            ) : !isAtHead ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                <History className="w-8 h-8 text-indigo-300 mb-2" />
+                <p className="text-xs font-bold text-slate-500">You are time-traveling.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Return to the Present (Live) to append new transactions.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Event Type</label>
+                  <select 
+                    value={composerType} 
+                    onChange={e => setComposerType(e.target.value as EventType)}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg p-2.5 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   >
-                    <div className="text-[9px] font-mono text-slate-700">#{ev.id} · {ev.type} · FUTURE (not yet replayed)</div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+                    <option value="DEPOSIT">Deposit (+)</option>
+                    <option value="WITHDRAWAL">Withdrawal (-)</option>
+                    <option value="REFUND">Refund (+)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Amount ($)</label>
+                  <input 
+                    type="number" 
+                    value={composerAmount}
+                    onChange={e => setComposerAmount(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-lg p-2.5 text-sm font-black tabular-nums focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    placeholder="Enter amount"
+                  />
+                </div>
+                
+                <button 
+                  onClick={handleCompose}
+                  className="w-full mt-2 py-3 px-4 rounded-xl text-sm font-black bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck size={16} /> Append to Ledger
+                </button>
+                <AnimatePresence>
+                  {composerError && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5, height: 0 }}
+                      animate={{ opacity: 1, y: 0, height: 'auto' }}
+                      exit={{ opacity: 0, y: -5, height: 0 }}
+                      className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 p-2 rounded-lg flex items-start gap-1 mt-1 leading-snug"
+                    >
+                      <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                      <span>{composerError}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
-
-          {/* Insight */}
-          <div className="shrink-0 p-2.5 rounded-xl bg-sky-950/20 border border-sky-800/30 text-[10px] text-sky-400 flex items-start gap-2">
-            <Rewind size={11} className="shrink-0 mt-0.5"/>
-            <span>Playhead is at event #{events[playheadIdx]?.id ?? "?"}. Balance ${currentBalance} = sum of events 1–{playheadIdx + 1}. The number "$balance" doesn't exist in the DB — only these events do.</span>
-          </div>
-
         </div>
-      </div>
-    
-      {timedOut && !isLabComplete && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
-            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-              <Timer className="w-7 h-7" />
+
+        {/* ── RIGHT: Immutable Ledger & Scrubber ── */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
+          
+          {/* Ledger List */}
+          <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative">
+            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+              <h2 className="text-sm font-black text-slate-700 flex items-center gap-2">
+                <History size={16} className="text-slate-400" />
+                Immutable Event Ledger
+              </h2>
+              {phase === "STEP3_FIX" && (
+                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full animate-pulse">
+                  Ledger is Locked (Append-Only)
+                </span>
+              )}
             </div>
-            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
-            <p className="text-sm font-medium text-slate-600 mb-4">
-              You did not complete the lab in time.
-            </p>
-            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
-              Try Again
-            </button>
+            
+            {/* The "Receipt Tape" wrapper */}
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 relative bg-slate-50/30">
+              {/* Timeline spine */}
+              <div className="absolute left-7 top-0 bottom-0 w-px bg-slate-200 pointer-events-none" />
+              
+              <AnimatePresence initial={false}>
+                {events.map((ev, i) => {
+                  const style = EVENT_STYLES[ev.type];
+                  const isCurrent = i <= playheadIdx;
+                  return (
+                    <motion.div
+                      key={ev.id}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={shakeDelete === ev.id ? { x: [-5, 5, -5, 5, 0] } : { opacity: 1, y: 0 }}
+                      className={`flex items-center gap-2 sm:gap-4 p-3 rounded-xl border-2 transition-all ${style.bg} ${style.border} ${isCurrent ? "shadow-sm" : "opacity-40 grayscale-[0.5]"}`}
+                    >
+                      <div className="shrink-0 text-center w-12 relative bg-white border border-slate-200 py-1 rounded shadow-sm z-10">
+                        <div className="text-[9px] font-mono text-slate-400 uppercase tracking-widest">ID</div>
+                        <div className="text-[10px] font-mono font-black text-slate-700">#{ev.id}</div>
+                      </div>
+                      <div className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-black min-w-[90px] text-center tracking-wide ${style.badgeText} ${style.badgeBg}`}>
+                        {ev.type}
+                      </div>
+                      <div className={`flex-1 min-w-0 text-xs font-bold truncate ${style.text}`}>{ev.note}</div>
+                      <div className={`shrink-0 font-black text-sm md:text-base tabular-nums ${ev.amount > 0 ? "text-emerald-600" : ev.amount < 0 ? "text-rose-600" : "text-slate-600"}`}>
+                        {ev.amount > 0 ? "+" : ev.amount < 0 ? "-" : ""}${Math.abs(ev.amount)}
+                      </div>
+                      
+                      {/* Trash Icon (Visible on Glitch or when testing) */}
+                      {isCurrent && ev.type !== "ACCOUNT_OPENED" && ev.type !== "DEPOSIT" && (
+                        <button
+                          onClick={() => attemptDelete(ev.id)}
+                          className="shrink-0 p-1.5 rounded hover:bg-rose-100 text-slate-300 hover:text-rose-500 transition-colors"
+                          title="Try to delete event"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
+            </div>
           </div>
+
+          {/* Time-Travel Scrubber */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 shrink-0 flex flex-col gap-3">
+            <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-indigo-500">
+              <span className="flex items-center gap-1.5"><Rewind size={14}/> Time Machine</span>
+              {isAtHead ? <span className="text-emerald-500">Present (Live)</span> : <span className="text-amber-500 animate-pulse">Viewing History</span>}
+            </div>
+            
+            <div className="relative pt-2 pb-1 px-1">
+              <input 
+                type="range" 
+                min={0} 
+                max={events.length - 1} 
+                step={1}
+                value={playheadIdx}
+                onChange={(e) => {
+                  setPlayheadIdx(parseInt(e.target.value, 10));
+                  playPop();
+                }}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-500 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                style={{ 
+                  background: `linear-gradient(to right, #4f46e5 ${(playheadIdx / Math.max(1, events.length - 1)) * 100}%, #e2e8f0 ${(playheadIdx / Math.max(1, events.length - 1)) * 100}%)` 
+                }}
+              />
+            </div>
+          </div>
+
         </div>
-      )}
-</LabShell>
+
+      </div>
+    </LabShell>
   );
 }

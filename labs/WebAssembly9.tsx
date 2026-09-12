@@ -1,232 +1,60 @@
 "use client";
-
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Play, Cpu, RefreshCcw, Zap, Code2, Binary , Timer} from "lucide-react";
-
-// ─── Source Code Snippets ──────────────────────────────────────────────────────
-
-const JS_CODE = `// physics_sim.js  (runs in V8 JavaScript Engine)
-// Must be PARSED → COMPILED → OPTIMIZED every load
-
-function runPhysicsTick(bodies) {
-  for (let i = 0; i < bodies.length; i++) {
-    for (let j = i + 1; j < bodies.length; j++) {
-      const dx = bodies[j].x - bodies[i].x;
-      const dy = bodies[j].y - bodies[i].y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const force = (G * bodies[i].m * bodies[j].m) / (dist * dist);
-      bodies[i].vx += force * dx / dist / bodies[i].m;
-      bodies[i].vy += force * dy / dist / bodies[i].m;
-    }
-  }
-  // V8 struggles: type-checking + GC pressure
-  // Result: ~14-18 FPS  
-}`;
-
-const CPP_CODE = `// physics_sim.cpp  (compiles → physics.wasm)
-// WASM = pre-compiled binary, skips JS engine entirely
-
-#include <cmath>
-struct Body { double x, y, vx, vy, m; };
-
-extern "C" void runPhysicsTick(Body* bodies, int n) {
-  for (int i = 0; i < n; i++) {
-    for (int j = i + 1; j < n; j++) {
-      double dx = bodies[j].x - bodies[i].x;
-      double dy = bodies[j].y - bodies[i].y;
-      double dist = sqrt(dx*dx + dy*dy);
-      double force = G * bodies[i].m * bodies[j].m / (dist*dist);
-      bodies[i].vx += force * dx / dist / bodies[i].m;
-      bodies[i].vy += force * dy / dist / bodies[i].m;
-    }
-  }
-  // Compiled to native machine code — zero overhead
-  // Result: 60 FPS  
-}`;
-
-const WASM_BYTES = `; physics.wasm  (compiled binary)
-; Emscripten output — native machine code in browser
-
-00000000: 0061 736d 0100 0000 0105 0160 0000 0303
-0000200a: d7d9 4ae2 6c1b e7a3 c85f 2900 28fc 1c16
-0000400a: 3800 0941 0228 fd00 3839 0000 4100 2804
-0000600a: fd28 2800 fc14 0028 0004 1c28 2800 4101
-0000800a: 2804 0009 3900 0041 0028 0003 1c28 2800
-; ...2.8KB of dense binary, runs at native CPU speed
-; No parsing. No JIT. No GC.  Straight to silicon.`;
-
-// ─── Compile Step Animation ────────────────────────────────────────────────────
-
-const COMPILE_STEPS = [
-  { label: "Lexing & Tokenizing C++...", color: "#a78bfa", ms: 600 },
-  { label: "Building Abstract Syntax Tree...", color: "#818cf8", ms: 700 },
-  { label: "Optimizing with -O3 flags...", color: "#6366f1", ms: 800 },
-  { label: "Emitting WebAssembly bytecode...", color: "#3b82f6", ms: 600 },
-  { label: "Linking memory segments...", color: "#06b6d4", ms: 500 },
-  { label: " physics.wasm ready (2.8 KB)", color: "#10b981", ms: 0 },
-];
-
-// ─── FPS Meter ────────────────────────────────────────────────────────────────
-
-function FpsMeter({ fps, maxFps, label, color }: { fps: number; maxFps: number; label: string; color: string }) {
-  const pct = Math.min(fps / maxFps, 1);
-  return (
-    <div className="flex-1 min-w-0">
-      <div className="flex items-baseline justify-between mb-1.5">
-        <span className="text-xs font-bold text-slate-300">{label}</span>
-        <motion.span
-          className="text-2xl font-black tabular-nums"
-          style={{ color }}
-          key={fps}
-          initial={{ scale: 1.2 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.15 }}
-        >
-          {fps}<span className="text-sm ml-0.5 font-normal text-slate-400">fps</span>
-        </motion.span>
-      </div>
-      <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          animate={{ width: `${pct * 100}%` }}
-          transition={{ duration: 0.3, ease: "linear" }}
-        />
-      </div>
-      <div className="flex justify-between mt-0.5 text-[9px] text-slate-600">
-        <span>0</span><span>30fps</span><span>60fps</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Particle Canvas ──────────────────────────────────────────────────────────
-
-type RunMode = "IDLE" | "JS" | "COMPILING" | "WASM";
-
-function ParticleViz({ mode }: { mode: RunMode }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<number>(0);
-  const tRef = useRef(0);
-
-  useEffect(() => {
-    if (mode === "IDLE" || mode === "COMPILING") {
-      cancelAnimationFrame(frameRef.current);
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        if (ctx) { ctx.clearRect(0, 0, canvas.width, canvas.height); }
-      }
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    const W = canvas.width;
-    const H = canvas.height;
-    const N = mode === "JS" ? 40 : 180; // JS can only handle fewer bodies smoothly
-    const isJS = mode === "JS";
-
-    // Init particles
-    const bodies = Array.from({ length: N }, (_, i) => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
-      r: Math.random() * 3 + 1.5,
-      hue: 200 + Math.random() * 120,
-    }));
-
-    let lastTime = performance.now();
-    let frameCount = 0;
-    const stutterInterval = isJS ? 8 : 999999; // JS "stutters" every 8 frames
-
-    function draw(now: number) {
-      frameCount++;
-      tRef.current = now;
-
-      // JS stutter: freeze for ~80ms every N frames
-      if (isJS && frameCount % stutterInterval === 0) {
-        const blockUntil = performance.now() + 80; // simulate GC pause / recompile
-        while (performance.now() < blockUntil) { /* spin */ }
-      }
-
-      ctx.fillStyle = "rgba(2, 6, 23, 0.18)";
-      ctx.fillRect(0, 0, W, H);
-
-      for (const b of bodies) {
-        b.x += b.vx;
-        b.y += b.vy;
-        if (b.x < 0 || b.x > W) b.vx *= -1;
-        if (b.y < 0 || b.y > H) b.vy *= -1;
-
-        // Orbit effect
-        const cx = W / 2, cy = H / 2;
-        const dx = cx - b.x, dy = cy - b.y;
-        const d = Math.sqrt(dx*dx + dy*dy);
-        b.vx += (dx / d) * 0.015;
-        b.vy += (dy / d) * 0.015;
-
-        // speed cap
-        const speed = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
-        if (speed > 3.5) { b.vx *= 3.5 / speed; b.vy *= 3.5 / speed; }
-
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${b.hue}, 80%, 65%, 0.85)`;
-        ctx.fill();
-      }
-
-      frameRef.current = requestAnimationFrame(draw);
-    }
-
-    frameRef.current = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(frameRef.current); };
-  }, [mode]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={480}
-      height={220}
-      className="w-full h-full rounded-xl"
-      style={{ imageRendering: "pixelated" }}
-    />
-  );
-}
-
-// ─── Main Component ────────────────────────────────────────────────────────────
+import { Timer, ArrowRight, Activity, Code2, Play, Zap, Cpu, AlertTriangle, SlidersHorizontal } from "lucide-react";
 
 const TIMER_DURATION_SECONDS = 5 * 60;
 
+type Phase = 
+  | "LEARN" 
+  | "TRY_JS" 
+  | "FAIL_LAG" 
+  | "CHALLENGE_SLIDER" 
+  | "COMPROMISE"
+  | "IMPROVE_WASM" 
+  | "OUTCOME";
+
 export default function WebAssembly9() {
   const { reportComplete: _reportComplete } = useLMSBridge("webassembly9");
+  const { playPop, playZap, playError, playSuccess, playChime } = useLabAudio();
 
+  const [phase, setPhase] = useState<Phase>("LEARN");
   const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
   const [timedOut, setTimedOut] = useState(false);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isLabComplete, setIsLabComplete] = useState(false);
+  const [fps, setFps] = useState(0);
+  const [particleCount, setParticleCount] = useState(2000);
 
-  const reportComplete = useCallback((args?: any) => {
-    setIsLabComplete(true);
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const simIntervalRef = useRef<number | null>(null);
+
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+    if (simIntervalRef.current) cancelAnimationFrame(simIntervalRef.current);
+  }, []);
+
+  useEffect(() => {
+    return () => clearTimers();
+  }, [clearTimers]);
+
+  const reportComplete = useCallback(() => {
     _reportComplete({ points: 100 });
   }, [_reportComplete]);
 
+  // Global Timer
   useEffect(() => {
-    if (timedOut || isLabComplete) {
+    if (timedOut || phase === "OUTCOME") {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       return;
     }
     timerIntervalRef.current = setInterval(() => {
-      setSecondsLeft(prev => {
+      setSecondsLeft((prev) => {
         if (prev <= 1) {
-          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
           setTimedOut(true);
           return 0;
         }
@@ -236,320 +64,293 @@ export default function WebAssembly9() {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [timedOut, isLabComplete]);
+  }, [timedOut, phase]);
 
   useEffect(() => {
-    if (timedOut) {
-      _reportComplete({ points: 0 });
-    }
+    if (timedOut) _reportComplete({ points: 0 });
   }, [timedOut, _reportComplete]);
 
-  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
-  const { playPop, playZap, playError, playSuccess } = useLabAudio();
+  // Particle Simulator Logic (Visual)
+  // To keep DOM light, we only render max 50 visual dots, but the "math" simulates more.
+  const visualDots = Math.min(50, Math.max(5, Math.floor(particleCount / 40)));
+  const [particles, setParticles] = useState<{x: number, y: number}[]>(Array(visualDots).fill({x: 0, y: 0}));
+  const timeRef = useRef(0);
 
-  const [lang, setLang] = useState<"JS" | "CPP">("JS");
-  const [mode, setMode] = useState<RunMode>("IDLE");
-  const [compileStep, setCompileStep] = useState(-1);
-  const [jsFps, setJsFps] = useState(0);
-  const [wasmFps, setWasmFps] = useState(0);
-  const [hasWon, setHasWon] = useState(false);
-  const fpsRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const stopFps = () => {
-    if (fpsRef.current) { clearInterval(fpsRef.current); fpsRef.current = null; }
-  };
-
-  const runJS = () => {
-    if (mode !== "IDLE") return;
-    setLang("JS");
-    setMode("JS");
-    setWasmFps(0);
-    playPop();
-
-    // Simulate erratic JS FPS
-    let t = 0;
-    const targets = [18, 14, 16, 8, 18, 12, 15, 9, 17, 13];
-    fpsRef.current = setInterval(() => {
-      setJsFps(targets[t % targets.length]);
-      t++;
-    }, 400);
-  };
-
-  const compileToWasm = async () => {
-    if (mode === "COMPILING" || lang !== "CPP") return;
-    stopFps();
-    setMode("COMPILING");
-    setCompileStep(0);
-    playZap();
-
-    for (let i = 0; i < COMPILE_STEPS.length; i++) {
-      await new Promise(r => setTimeout(r, COMPILE_STEPS[i].ms + 100));
-      setCompileStep(i);
-      if (i < COMPILE_STEPS.length - 1) playPop();
+  useEffect(() => {
+    if (phase === "LEARN") {
+      setFps(0);
+      return;
     }
 
-    playSuccess();
-    setMode("WASM");
-    setJsFps(0);
-
-    // Smooth 60 FPS
-    let t = 0;
-    const wTargets = [58, 60, 60, 59, 60, 60, 58, 60, 60, 59];
-    fpsRef.current = setInterval(() => {
-      setWasmFps(wTargets[t % wTargets.length]);
-      t++;
-      if (t === 5 && !hasWon) {
-        setHasWon(true);
-        setTimeout(reportComplete, 1500);
+    let lastFrameTime = performance.now();
+    
+    const renderLoop = (currentTime: number) => {
+      const delta = currentTime - lastFrameTime;
+      
+      // Calculate target FPS based on particle count and engine
+      let targetFps = 60;
+      if (phase !== "OUTCOME") {
+        // JS Engine: Lags heavily above 500 particles
+        if (particleCount > 500) {
+          targetFps = Math.max(12, 60 - ((particleCount - 500) / 30));
+        }
       }
-    }, 350);
+
+      const frameDelay = 1000 / targetFps;
+
+      if (delta >= frameDelay) {
+        setFps(Math.floor(targetFps));
+        lastFrameTime = currentTime - (delta % frameDelay);
+        timeRef.current += 0.1;
+        
+        const newParticles = Array(visualDots).fill(0).map((_, i) => ({
+          x: Math.cos(timeRef.current + i * 0.1) * (40 + (i % 3) * 20),
+          y: Math.sin(timeRef.current + i * 0.1) * (40 + (i % 3) * 20)
+        }));
+        setParticles(newParticles);
+      }
+      
+      simIntervalRef.current = requestAnimationFrame(renderLoop);
+    };
+
+    simIntervalRef.current = requestAnimationFrame(renderLoop);
+    return () => {
+      if (simIntervalRef.current) cancelAnimationFrame(simIntervalRef.current);
+    };
+  }, [phase, particleCount, visualDots]);
+
+  // Monitor Slider Challenge
+  useEffect(() => {
+    if (phase === "CHALLENGE_SLIDER" && particleCount <= 500) {
+      setPhase("COMPROMISE");
+      playChime();
+    }
+  }, [particleCount, phase, playChime]);
+
+  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
+  const getInstruction = () => {
+    switch (phase) {
+      case "LEARN": return "Start the engine to run the 2,000-particle physics simulation using JavaScript.";
+      case "TRY_JS": return "Reading and translating the JavaScript manual...";
+      case "FAIL_LAG": return "LAG DETECTED! The browser is struggling to read text while calculating 2,000 particles.";
+      case "CHALLENGE_SLIDER": return "CHALLENGE: Reduce the particles using the slider until the engine hits 60 FPS.";
+      case "COMPROMISE": return "It's 60 FPS, but the simulation looks empty! We can't sacrifice quality for speed. Reset to 2,000.";
+      case "IMPROVE_WASM": return "Let's compile to WebAssembly. The browser won't have to read text anymore.";
+      case "OUTCOME": return "Success! 2,000 particles at 60 FPS. WASM is a pre-built binary engine that runs at pure speed.";
+    }
   };
 
-  const reset = () => {
-    stopFps();
-    setMode("IDLE");
-    setLang("JS");
-    setCompileStep(-1);
-    setJsFps(0);
-    setWasmFps(0);
-    setHasWon(false);
+  const handleRunJS = () => {
+    if (phase !== "LEARN") return;
+    setPhase("TRY_JS");
+    playPop();
+    timersRef.current.push(setTimeout(() => {
+      setPhase("FAIL_LAG");
+      playError();
+      timersRef.current.push(setTimeout(() => {
+        setPhase("CHALLENGE_SLIDER");
+      }, 3000));
+    }, 1500));
+  };
+
+  const handleResetParticles = () => {
+    if (phase !== "COMPROMISE") return;
+    setParticleCount(2000);
+    setPhase("IMPROVE_WASM");
+    playPop();
+  };
+
+  const handleCompileWASM = () => {
+    if (phase !== "IMPROVE_WASM") return;
     playZap();
+    setPhase("OUTCOME");
+    timersRef.current.push(setTimeout(() => {
+      playSuccess();
+      timersRef.current.push(setTimeout(() => {
+        reportComplete();
+      }, 4500));
+    }, 1000));
   };
 
-  const shownCode = lang === "JS" ? JS_CODE : lang === "CPP" && mode !== "WASM" ? CPP_CODE : WASM_BYTES;
-  const codeLabel = lang === "JS" ? "physics_sim.js" : mode === "WASM" ? "physics.wasm  ← compiled binary" : "physics_sim.cpp";
+  const isWASM = phase === "OUTCOME";
 
   return (
     <LabShell
       navExtra={
-        !isLabComplete && (
-          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
+        phase !== "OUTCOME" ? (
+          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm backdrop-blur-md transition-colors font-mono ${
             timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
-            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-            "bg-white border-sky-100/80 text-sky-700"
+            secondsLeft <= 60 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
+            "bg-white/10 border-white/20 text-white"
           }`}>
-            <Timer size={16} strokeWidth={2.5} />
-            <span>{timedOut ? "Time's Up" : formattedTime}</span>
+            <Timer size={16} strokeWidth={2.5} className={secondsLeft <= 60 && !timedOut ? "animate-spin" : ""} />
+            <span>{timedOut ? "0:00" : formattedTime}</span>
           </div>
-        )
-      } labId="webassembly9" theme="studio" title="WebAssembly (WASM) Speed" subtitle="L44 · Browser Engines"
-      instruction="A physics simulator needs to hit 60 FPS. Running it as JavaScript hits V8's parse/compile bottlenecks and stutters. Switch source to C++, compile it to WebAssembly, and inject the .wasm binary into the browser — bypassing the JS engine entirely for near-native speed." compact>
+        ) : null
+      }
+      labId="webassembly9"
+      theme="cosmos"
+      title="WebAssembly (WASM) Speed"
+      instruction={getInstruction()}
+      hint="JavaScript is slow because it's text. WebAssembly is fast because it's a pre-built binary."
+      compact
+      onReset={() => {
+        setPhase("LEARN");
+        setParticleCount(2000);
+        setTimedOut(false);
+        setSecondsLeft(TIMER_DURATION_SECONDS);
+        clearTimers();
+      }}
+    >
+      {phase === "OUTCOME" && <Celebration isActive={true} />}
 
-      <Celebration isActive={hasWon} message="60 FPS Unlocked! WebAssembly bypasses V8's JavaScript engine entirely. Because it's already compiled native machine code, there's zero parsing, zero JIT compilation, and zero garbage collection pauses — the browser runs it at hardware speed." onReplay={reset} />
-
-      <div className="w-full flex flex-col flex-1 min-h-0 gap-3 pt-1">
-
-        {/* ── Top Controls ── */}
-        <div className="shrink-0 panel-glass rounded-2xl border-violet-900/40 p-3 flex flex-wrap items-center gap-3">
-
-          {/* Language Selector */}
-          <div className="flex items-center gap-1 p-1 bg-black/30 rounded-xl border border-slate-800">
-            <button
-              onClick={() => { if (mode === "IDLE") { setLang("JS"); } }}
-              className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${lang === "JS" ? "bg-amber-500/20 border border-amber-500/50 text-amber-300" : "text-slate-500 hover:text-slate-300"}`}
-            >
-              <span className="flex items-center gap-1.5"><Code2 size={12}/> JavaScript</span>
-            </button>
-            <button
-              onClick={() => { if (mode !== "WASM" && mode !== "COMPILING") { setLang("CPP"); stopFps(); setMode("IDLE"); setJsFps(0); } }}
-              className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${lang === "CPP" ? "bg-violet-500/20 border border-violet-500/50 text-violet-300" : "text-slate-500 hover:text-slate-300"}`}
-            >
-              <span className="flex items-center gap-1.5"><Cpu size={12}/> C++</span>
-            </button>
+      {/* Main Viewport */}
+      <div className="w-full flex flex-col flex-1 min-h-0 pt-6 md:pt-10 px-6 pb-6 relative z-10 items-center overflow-hidden">
+        
+        {/* TOP TOOLBAR */}
+        <div className="w-full max-w-5xl shrink-0 flex flex-col md:flex-row items-center justify-between bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl px-8 py-5 relative z-50 gap-6">
+          <div className="flex-1 w-full text-center md:text-left">
+            <h3 className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1.5 flex items-center justify-center md:justify-start gap-2 drop-shadow-md">
+              <ArrowRight size={14} strokeWidth={3} /> Mission Objective
+            </h3>
+            <p className="text-base font-bold text-white leading-snug drop-shadow-sm">
+              {getInstruction()}
+            </p>
           </div>
-
-          <div className="h-6 w-px bg-slate-700/60"/>
-
-          {lang === "JS" ? (
-            <button
-              onClick={runJS}
-              disabled={mode === "JS"}
-              className="px-5 py-2 rounded-xl text-xs font-black bg-amber-600/20 border border-amber-600/50 text-amber-300 hover:bg-amber-600/30 transition-all disabled:opacity-40 flex items-center gap-1.5"
-            >
-              <Play size={13}/> Run in JavaScript
-            </button>
-          ) : (
-            <button
-              onClick={compileToWasm}
-              disabled={mode === "COMPILING" || mode === "WASM"}
-              className="px-5 py-2 rounded-xl text-xs font-black bg-violet-600 border border-violet-400 text-white hover:bg-violet-500 transition-all disabled:opacity-40 flex items-center gap-1.5 shadow-[0_0_15px_rgba(139,92,246,0.4)]"
-            >
-              <Binary size={13}/> Compile → WebAssembly
-            </button>
-          )}
-
-          {mode === "WASM" && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold">
-              <Zap size={13}/> physics.wasm injected into browser
-            </div>
-          )}
-
-          <div className="ml-auto">
-            <button onClick={reset} className="p-2 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-400 hover:bg-slate-700 transition-all">
-              <RefreshCcw size={14}/>
-            </button>
+          
+          <div className="shrink-0 flex items-center justify-center min-w-[240px]">
+            {phase === "LEARN" && (
+                <button onClick={handleRunJS} className="w-full px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 active:scale-95 text-white font-black rounded-2xl transition-all shadow-[0_0_30px_rgba(245,158,11,0.4)] flex items-center justify-center gap-3 text-sm uppercase tracking-widest border-t border-white/20">
+                  <Play size={20} strokeWidth={2.5} /> Run JS Engine
+                </button>
+            )}
+            {phase === "COMPROMISE" && (
+                <button onClick={handleResetParticles} className="w-full px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 active:scale-95 text-white font-black rounded-2xl transition-all shadow-[0_0_30px_rgba(99,102,241,0.4)] flex items-center justify-center gap-3 text-sm uppercase tracking-widest border-t border-white/20 animate-pulse">
+                  <Activity size={20} strokeWidth={2.5} /> Reset to 2,000
+                </button>
+            )}
+            {phase === "IMPROVE_WASM" && (
+                <button onClick={handleCompileWASM} className="w-full px-6 py-4 bg-gradient-to-r from-lime-500 to-emerald-600 hover:from-lime-400 hover:to-emerald-500 active:scale-95 text-slate-950 font-black rounded-2xl transition-all shadow-[0_0_40px_rgba(132,204,22,0.6)] flex items-center justify-center gap-3 text-sm uppercase tracking-widest border-t border-white/40 animate-pulse">
+                  <Cpu size={20} strokeWidth={2.5} /> Compile to WASM
+                </button>
+            )}
+            {(phase === "FAIL_LAG" || phase === "TRY_JS") && (
+                <div className="px-6 py-4 bg-slate-800/50 text-slate-400 font-black rounded-2xl border border-slate-700/50 flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+                  Processing...
+                </div>
+            )}
+            {phase === "CHALLENGE_SLIDER" && (
+                <div className="px-6 py-4 bg-amber-500/10 text-amber-500 font-black rounded-2xl border border-amber-500/50 flex items-center justify-center gap-3 text-sm uppercase tracking-widest animate-pulse">
+                  Use Slider Below ↓
+                </div>
+            )}
           </div>
         </div>
 
-        {/* ── Main Area: Code + Visualizer ── */}
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3">
+        {/* MAIN SPLIT AREA */}
+        <div className="w-full max-w-5xl relative z-20 flex-1 min-h-[350px] max-h-[500px] flex flex-col md:flex-row gap-6 mt-6 md:mt-8">
+          
+          {/* LEFT: Code Panel */}
+          <div className="flex-1 bg-[#0f172a] border border-slate-700 rounded-3xl overflow-hidden flex flex-col shadow-2xl relative">
+             <div className="h-12 bg-slate-800 border-b border-slate-700 flex items-center px-4 shrink-0">
+                <Code2 className={`w-5 h-5 mr-3 ${isWASM ? "text-lime-400" : "text-amber-500"}`} />
+                <span className="text-sm font-mono font-bold text-slate-300">
+                  {isWASM ? "⚙️ physics_engine.wasm" : "📄 physics_engine.js"}
+                </span>
+             </div>
+             <div className="flex-1 p-6 relative overflow-hidden font-mono text-[11px] leading-relaxed break-all">
+                
+                <AnimatePresence>
+                  {!isWASM && (
+                    <motion.div exit={{ opacity: 0, y: -20, filter: "blur(10px)" }} className="absolute inset-0 p-6 text-amber-200/80">
+                      <div className="text-slate-500 mb-4">// TEXT MANUAL (Browser must read & build this while running)</div>
+                      <div>function computePhysics(bodies) {'{'}</div>
+                      <div className="pl-4">for (let i = 0; i &lt; bodies.length; i++) {'{'}</div>
+                      <div className="pl-8">let body = bodies[i];</div>
+                      <div className="pl-8">body.vx += body.fx / body.mass;</div>
+                      <div className="pl-8">body.vy += body.fy / body.mass;</div>
+                      <div className="pl-8">body.x += body.vx;</div>
+                      <div className="pl-8">body.y += body.vy;</div>
+                      <div className="pl-4">{'}'}</div>
+                      <div>{'}'}</div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-          {/* Code Pane */}
-          <div className="lg:w-[400px] shrink-0 flex flex-col panel-glass rounded-2xl border-violet-900/40 overflow-hidden">
-            <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-violet-900/40 bg-violet-950/20">
-              {mode === "WASM"
-                ? <Binary size={13} className="text-emerald-400"/>
-                : lang === "CPP" ? <Cpu size={13} className="text-violet-400"/> : <Code2 size={13} className="text-amber-400"/>
-              }
-              <span className={`text-xs font-bold font-mono ${mode === "WASM" ? "text-emerald-300" : lang === "CPP" ? "text-violet-300" : "text-amber-300"}`}>
-                {codeLabel}
-              </span>
-            </div>
-            <div className="flex-1 overflow-auto p-4">
-              <AnimatePresence mode="wait">
-                <motion.pre
-                  key={codeLabel}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.25 }}
-                  className={`text-[10.5px] leading-relaxed whitespace-pre-wrap font-mono ${
-                    mode === "WASM" ? "text-emerald-400/90" : lang === "CPP" ? "text-violet-300/90" : "text-amber-300/90"
-                  }`}
-                >
-                  {shownCode}
-                </motion.pre>
-              </AnimatePresence>
-            </div>
-
-            {/* Compiler log */}
-            <AnimatePresence>
-              {mode === "COMPILING" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="border-t border-violet-900/40 overflow-hidden"
-                >
-                  <div className="p-3 font-mono text-xs flex flex-col gap-1 bg-black/40">
-                    <div className="text-slate-500 text-[10px] mb-1">emcc -O3 -o physics.wasm physics_sim.cpp</div>
-                    {COMPILE_STEPS.slice(0, compileStep + 1).map((step, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        style={{ color: step.color }}
-                        className="text-[10px]"
-                      >
-                        {i < compileStep ? "" : "›"} {step.label}
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                <AnimatePresence>
+                  {isWASM && (
+                    <motion.div initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }} animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }} className="absolute inset-0 p-6 text-lime-400/90 font-black tracking-widest leading-loose">
+                      <div className="text-slate-500 mb-4 tracking-normal font-normal">// PRE-BUILT BINARY (Runs instantly at full speed)</div>
+                      00 61 73 6D 01 00 00 00 01 0B 02 60 01 7F 00 60 00 00 03 02 01 00 07 0C 01 08 63 6F 6D 70 75 74 65 00 00 0A 1B 01 19 00 20 00 41 00 28 02 00 41 04 28 02 00 6A 36 02 00 20 00 0F 0B
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent pointer-events-none" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+             </div>
           </div>
 
-          {/* Right: Simulation + FPS */}
-          <div className="flex-1 flex flex-col gap-3 min-h-0">
-
-            {/* Particle Canvas */}
-            <div className="flex-1 min-h-0 panel-glass rounded-2xl border-violet-900/40 bg-[#020617] overflow-hidden relative">
-              {mode === "IDLE" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500">
-                  <Cpu size={36} strokeWidth={1}/>
-                  <p className="text-sm font-bold">Select a language and run the physics simulator</p>
-                  <p className="text-xs text-slate-600">200 orbiting particles — needs 60 FPS to look smooth</p>
+          {/* RIGHT: Physics Simulator */}
+          <div className="flex-1 flex flex-col gap-4">
+             {/* Simulator Canvas */}
+             <div className="flex-1 bg-black border-2 border-slate-800 rounded-3xl overflow-hidden relative shadow-2xl flex items-center justify-center">
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:20px_20px]" />
+                
+                <div className="relative w-[200px] h-[200px] flex items-center justify-center">
+                  {(phase !== "LEARN") && particles.map((p, i) => (
+                    <div key={i} className={`absolute w-2 h-2 rounded-full shadow-lg ${isWASM ? "bg-lime-400" : "bg-amber-500"}`} style={{ transform: `translate(${p.x}px, ${p.y}px)` }} />
+                  ))}
+                  {phase === "LEARN" && (
+                    <div className="text-slate-600 font-mono text-sm flex flex-col items-center">
+                       <Activity className="w-12 h-12 mb-2 opacity-50" />
+                       ENGINE STANDBY
+                    </div>
+                  )}
                 </div>
-              )}
-              {mode === "COMPILING" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                  >
-                    <Binary size={40} className="text-violet-400"/>
-                  </motion.div>
-                  <p className="text-sm font-bold text-violet-300">Compiling to WebAssembly...</p>
-                  <p className="text-xs text-violet-500 font-mono">emcc -O3 physics_sim.cpp → physics.wasm</p>
+
+                <AnimatePresence>
+                  {(phase === "FAIL_LAG" || phase === "CHALLENGE_SLIDER") && fps < 30 && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-red-950/40 border-4 border-red-500/50 flex flex-col items-center justify-center z-20 pointer-events-none">
+                      <AlertTriangle className="w-16 h-16 text-red-500 mb-2 animate-ping" />
+                      <div className="bg-red-950 text-red-500 font-black px-4 py-2 rounded border border-red-500 tracking-widest uppercase">CPU Overload</div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+             </div>
+
+             {/* INTERACTIVE CONTROLS */}
+             <div className={`h-24 bg-[#0f172a] rounded-2xl flex items-center px-6 relative shrink-0 shadow-lg gap-6 transition-all duration-300 ${phase === "CHALLENGE_SLIDER" ? "border-2 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)]" : "border border-slate-700"}`}>
+                
+                {/* Slider */}
+                <div className="flex-1 flex flex-col justify-center">
+                   <div className="flex justify-between items-end mb-2">
+                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                       <SlidersHorizontal size={12} /> Particles
+                     </div>
+                     <div className="text-sm font-black text-white font-mono">{particleCount}</div>
+                   </div>
+                   <input 
+                     type="range" 
+                     min="100" max="2000" step="100"
+                     value={particleCount}
+                     onChange={(e) => setParticleCount(Number(e.target.value))}
+                     disabled={phase !== "CHALLENGE_SLIDER"}
+                     className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${phase === "CHALLENGE_SLIDER" ? "bg-amber-500/30 accent-amber-500" : "bg-slate-800 opacity-50"}`}
+                   />
                 </div>
-              )}
-              <ParticleViz mode={mode} />
 
-              {/* FPS overlay when running */}
-              {(mode === "JS" || mode === "WASM") && (
-                <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-lg font-mono text-xs font-black border ${
-                  mode === "JS" ? "bg-rose-950/80 border-rose-700/50 text-rose-300" : "bg-emerald-950/80 border-emerald-700/50 text-emerald-300"
-                }`}>
-                  {mode === "JS" ? `~${jsFps} FPS ` : `${wasmFps} FPS `}
+                {/* FPS Gauge */}
+                <div className="w-24 shrink-0 border-l border-slate-700 pl-6 flex flex-col justify-center items-center">
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">FPS</div>
+                  <div className={`text-3xl font-black font-mono tracking-tighter ${isWASM || fps >= 60 ? "text-lime-400" : fps > 0 ? "text-red-500" : "text-slate-600"}`}>
+                    {fps}
+                  </div>
                 </div>
-              )}
-
-              {/* Mode label */}
-              {(mode === "JS" || mode === "WASM") && (
-                <div className={`absolute bottom-3 left-3 px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
-                  mode === "JS" ? "bg-amber-950/70 border-amber-800/50 text-amber-400" : "bg-violet-950/70 border-violet-700/50 text-violet-300"
-                }`}>
-                  {mode === "JS" ? "V8 JavaScript Engine" : "WebAssembly Runtime (native)"}
-                </div>
-              )}
-            </div>
-
-            {/* FPS Meters */}
-            <div className="shrink-0 panel-glass rounded-2xl border-violet-900/40 p-4 flex gap-5 items-start">
-              <FpsMeter fps={jsFps} maxFps={60} label="JavaScript (V8)" color="#f59e0b"/>
-              <div className="w-px h-14 bg-slate-700/50 self-center"/>
-              <FpsMeter fps={wasmFps} maxFps={60} label="WebAssembly" color="#10b981"/>
-            </div>
-
-            {/* Insight Box */}
-            <AnimatePresence>
-              {mode === "WASM" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="shrink-0 p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-xs text-emerald-300 flex items-start gap-2"
-                >
-                  <Zap size={14} className="shrink-0 mt-0.5 text-emerald-400"/>
-                  <span>
-                    <strong>Why so fast?</strong> The <code className="text-emerald-200">.wasm</code> binary is already machine code — the browser skips parsing, JIT compilation, and garbage collection entirely. It runs <strong>4× more bodies</strong> at <strong>4× higher FPS</strong>.
-                  </span>
-                </motion.div>
-              )}
-              {mode === "JS" && jsFps > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="shrink-0 p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-300 flex items-start gap-2"
-                >
-                  <Play size={14} className="shrink-0 mt-0.5 text-amber-400"/>
-                  <span>
-                    <strong>V8 is struggling!</strong> Every time the simulation runs, V8 must parse your source text, JIT-compile hot functions, and pause for garbage collection. Switch to <strong>C++ → Compile → WASM</strong> to fix this!
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
+             </div>
 
           </div>
         </div>
       </div>
-    
-      {timedOut && !isLabComplete && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
-            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-              <Timer className="w-7 h-7" />
-            </div>
-            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
-            <p className="text-sm font-medium text-slate-600 mb-4">
-              You did not complete the lab in time.
-            </p>
-            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
-              Try Again
-            </button>
-          </div>
-        </div>
-      )}
-</LabShell>
+    </LabShell>
   );
 }

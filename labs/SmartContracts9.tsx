@@ -1,275 +1,385 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLMSBridge } from "@/hooks/useLMSBridge";
 import { useLabAudio } from "@/hooks/useLabAudio";
 import Celebration from "@/components/Celebration";
 import LabShell from "@/components/LabShell";
-import { Bitcoin, Code, ArrowDownCircle , Timer} from "lucide-react";
-
-// ─── SVG Smart Contract Visualizer ────────────────────────────────────────────
-
-function SmartContractSVG({
-  coinValue,
-  machineState
-}: {
-  coinValue: number;
-  machineState: "IDLE" | "EVALUATING" | "REJECTED" | "DISPENSING";
-}) {
-  const isDispensing = machineState === "DISPENSING";
-  const isEvaluating = machineState === "EVALUATING";
-
-  return (
-    <svg viewBox="0 0 900 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <filter id="glow-eth">
-          <feGaussianBlur stdDeviation="3" result="b" />
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="glow-code">
-          <feGaussianBlur stdDeviation="2" result="b" />
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <pattern id="gridSc" width="30" height="30" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1" fill="#1e293b" />
-        </pattern>
-      </defs>
-
-      <rect width="900" height="500" fill="url(#gridSc)" />
-
-      {/* ── 1. The Smart Contract "Vending Machine" (Center) ── */}
-      <g transform="translate(300, 50)">
-        <rect x="0" y="0" width="300" height="400" fill="#0f172a" rx="16" stroke="#ec4899" strokeWidth="4" />
-        <rect x="20" y="20" width="260" height="60" fill="#1e1b4b" rx="8" />
-        <text x="150" y="55" fill="#a5b4fc" fontSize="24" fontWeight="black" textAnchor="middle">SMART CONTRACT</text>
-
-        {/* Code Block (The "Law") */}
-        <rect x="20" y="100" width="260" height="120" fill="#020617" rx="8" stroke="#312e81" strokeWidth="2" />
-        <text x="30" y="130" fill="#fbbf24" fontSize="14" fontFamily="monospace" fontWeight="bold">function buyNFT() payable {"{"}</text>
-        
-        {/* Physical Evaluation Glow */}
-        <rect x="30" y="145" width="240" height="25" fill={isEvaluating ? "#312e81" : "transparent"} rx="4" />
-        <text x="50" y="162" fill={isEvaluating ? "#fff" : "#cbd5e1"} fontSize="14" fontFamily="monospace" filter={isEvaluating ? "url(#glow-code)" : "none"} style={{ transition: "all 0.3s" }}>
-          require(msg.value == 2 ETH);
-        </text>
-        
-        <text x="50" y="190" fill="#cbd5e1" fontSize="14" fontFamily="monospace">dispenseAsset(msg.sender);</text>
-        <text x="30" y="210" fill="#fbbf24" fontSize="14" fontFamily="monospace" fontWeight="bold">{"}"}</text>
-
-        {/* Coin Slot */}
-        <rect x="125" y="250" width="50" height="10" fill="#000" rx="4" stroke="#475569" strokeWidth="2" />
-        <text x="150" y="240" fill="#64748b" fontSize="10" fontWeight="bold" textAnchor="middle">INSERT ETH</text>
-
-        {/* Dispenser Tray */}
-        <path d="M 100,320 L 200,320 L 220,380 L 80,380 Z" fill="#1e293b" stroke="#334155" strokeWidth="2" />
-        
-        {/* Gears (Turn when dispensing) */}
-        <g transform="translate(150, 290)">
-          <path d="M -15,-15 L 15,-15 L 15,15 L -15,15 Z" fill="none" stroke="#ec4899" strokeWidth="4" strokeDasharray="4 4" className={isDispensing ? "animate-[spin_1s_linear_infinite]" : ""} />
-        </g>
-      </g>
-
-      {/* ── 2. The Interactive Coin ── */}
-      <AnimatePresence>
-        {coinValue > 0 && machineState !== "IDLE" && (
-          <motion.g
-            initial={{ x: 450, y: -50, scale: 0 }}
-            animate={
-              machineState === "EVALUATING" ? { x: 450, y: 255, scale: 1 } : // Drops into slot
-              machineState === "REJECTED" ? { x: 450, y: 450, scale: 1 } : // Spits out bottom
-              { x: 450, y: 255, scale: 0, opacity: 0 } // Consumed by contract
-            }
-            transition={{ duration: 0.8, type: "spring", bounce: 0.3 }}
-            exit={{ opacity: 0 }}
-          >
-            <circle cx="0" cy="0" r="20" fill="#f472b6" stroke="#93c5fd" strokeWidth="3" filter="url(#glow-eth)" />
-            <text x="0" y="5" fill="#fff" fontSize="14" fontWeight="black" textAnchor="middle">{coinValue} E</text>
-          </motion.g>
-        )}
-      </AnimatePresence>
-
-      {/* ── 3. The Digital Asset (NFT) Dispensing ── */}
-      <AnimatePresence>
-        {isDispensing && (
-          <motion.g
-            initial={{ x: 450, y: 300, scale: 0, opacity: 0 }}
-            animate={{ x: 450, y: 350, scale: 1, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 1, type: "spring" }}
-          >
-            <rect x="-30" y="-30" width="60" height="60" fill="#f59e0b" rx="8" stroke="#fef3c7" strokeWidth="3" filter="url(#glow-eth)" />
-            <text x="0" y="5" fill="#fff" fontSize="12" fontWeight="black" textAnchor="middle">NFT</text>
-          </motion.g>
-        )}
-      </AnimatePresence>
-
-      {/* Rejection Notification */}
-      {machineState === "REJECTED" && (
-        <text x="450" y="290" fill="#f87171" fontSize="16" fontWeight="black" textAnchor="middle" className="animate-bounce">TRANSACTION REVERTED</text>
-      )}
-
-    </svg>
-  );
-}
-
-// ─── Main Component ─────────────────────────────────────────────────────────────
-
-const TIMER_DURATION_SECONDS = 5 * 60;
+import { Wallet, Diamond, ArrowRight, Code, XOctagon, CheckCircle2, ShieldAlert, Coins, Timer, Lightbulb } from "lucide-react";
 
 export default function SmartContracts9() {
-  const { reportComplete: _reportComplete } = useLMSBridge("smartcontracts9");
+  const { reportComplete } = useLMSBridge("smartcontracts9");
+  const { playPop, playError, playSuccess, playClick } = useLabAudio();
 
-  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION_SECONDS);
-  const [timedOut, setTimedOut] = useState(false);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isLabComplete, setIsLabComplete] = useState(false);
-
-  const reportComplete = useCallback((args?: any) => {
-    setIsLabComplete(true);
-    _reportComplete({ points: 100 });
-  }, [_reportComplete]);
+  // Timer State
+  const TIMER_DURATION = 5 * 60;
+  const [timeLeft, setTimeLeft] = useState(TIMER_DURATION);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (timedOut || isLabComplete) {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      return;
-    }
-    timerIntervalRef.current = setInterval(() => {
-      setSecondsLeft(prev => {
-        if (prev <= 1) {
-          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-          setTimedOut(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => prev > 0 ? prev - 1 : 0);
     }, 1000);
     return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [timedOut, isLabComplete]);
+  }, []);
 
-  useEffect(() => {
-    if (timedOut) {
-      _reportComplete({ points: 0 });
-    }
-  }, [timedOut, _reportComplete]);
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
-  const formattedTime = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
-  const { playPop, playZap, playError, playSuccess, playDrop } = useLabAudio();
+  // State
+  const [phase, setPhase] = useState(0); // 0: Intro, 1: Try 1 ETH, 2: Reverted, 3: Try 2 ETH, 4: Success
+  const [ethBalance, setEthBalance] = useState(5);
+  const [hasNFT, setHasNFT] = useState(false);
+  const [txState, setTxState] = useState<"idle" | "evaluating" | "reverted" | "success">("idle");
+  const [activeLine, setActiveLine] = useState(-1);
+  const [coinPos, setCoinPos] = useState<"wallet" | "contract" | "returned">("wallet");
+  
+  // Learning Mechanisms
+  const [viewMode, setViewMode] = useState<"code" | "english">("code");
+  const [hasReadEnglish, setHasReadEnglish] = useState(false);
 
-  const [machineState, setMachineState] = useState<"IDLE" | "EVALUATING" | "REJECTED" | "DISPENSING">("IDLE");
-  const [coinValue, setCoinValue] = useState(0);
-  const [hasWon, setHasWon] = useState(false);
+  const codeLines = [
+    "function buyNFT() payable {",
+    "  require(msg.value == 2 ETH, 'Not enough ETH');",
+    "  dispenseAsset(msg.sender);",
+    "}"
+  ];
 
-  const insertCoin = (val: number) => {
-    if (machineState !== "IDLE") return;
-    setCoinValue(val);
-    setMachineState("EVALUATING");
-    playPop();
+  const englishLines = [
+    "When anyone tries to buy the NFT:",
+    "  RULE: Must pay exactly 2 ETH. If not, cancel everything.",
+    "  ACTION: Give the digital asset to the payer.",
+    "" // Blank line to perfectly match code height
+  ];
+
+  const handleSend1Eth = () => {
+    if (phase !== 0 && phase !== 2) return;
+    if (phase === 0 && !hasReadEnglish) return;
+    
+    playClick();
+    setPhase(1);
+    setTxState("evaluating");
+    setEthBalance(prev => prev - 1);
+    setCoinPos("contract");
+    setActiveLine(0);
 
     setTimeout(() => {
-      if (val === 2) {
-        // Contract logic passes
-        playZap();
-        setMachineState("DISPENSING");
-        setTimeout(() => {
-          playSuccess();
-          if (!hasWon) {
-            setHasWon(true);
-            setTimeout(reportComplete, 1500);
-          }
-        }, 1500);
-      } else {
-        // Contract logic fails (revert)
+      playPop();
+      setActiveLine(1); // Hits require
+      
+      setTimeout(() => {
         playError();
-        setMachineState("REJECTED");
-        setTimeout(() => setMachineState("IDLE"), 2000);
-      }
-    }, 1200);
+        setTxState("reverted");
+        setCoinPos("returned");
+        setPhase(2); // Understand why
+        
+        // Refund and Reset state for next try
+        setTimeout(() => {
+          setEthBalance(prev => prev + 1);
+          setCoinPos("wallet");
+          setActiveLine(-1);
+          setTxState("idle");
+        }, 1500);
+      }, 1200);
+    }, 800);
   };
 
-  const reset = () => {
-    setMachineState("IDLE");
-    setHasWon(false);
-    setCoinValue(0);
+  const handleSend2Eth = () => {
+    if (phase < 2) return;
+    playClick();
+    setPhase(3);
+    setTxState("evaluating");
+    setEthBalance(prev => prev - 2);
+    setCoinPos("contract");
+    setActiveLine(0);
+
+    setTimeout(() => {
+      playPop();
+      setActiveLine(1); // Hits require
+      
+      setTimeout(() => {
+        playPop();
+        setActiveLine(2); // Hits dispense
+        
+        setTimeout(() => {
+          playSuccess();
+          setTxState("success");
+          setHasNFT(true);
+          setActiveLine(3);
+          setPhase(4);
+          setCoinPos("wallet"); // Trigger coin drop animation
+          reportComplete();
+        }, 800);
+      }, 1200);
+    }, 800);
   };
+
+  const resetLab = () => {
+    setPhase(0);
+    setEthBalance(5);
+    setHasNFT(false);
+    setTxState("idle");
+    setActiveLine(-1);
+    setCoinPos("wallet");
+    setTimeLeft(TIMER_DURATION);
+    setViewMode("code");
+    setHasReadEnglish(false);
+  };
+
+  let currentInstruction = "";
+  if (phase === 0) {
+    currentInstruction = hasReadEnglish 
+      ? "Great! The 'require' rule acts as a strict bouncer. Let's test it out. Click 'Send 1 ETH' to try and buy the Diamond."
+      : "A Smart Contract is a digital vending machine made of strict rules. Toggle the code to ENGLISH to learn how it works.";
+  } else if (phase === 1) {
+    currentInstruction = "Evaluating transaction on the blockchain...";
+  } else if (phase === 2) {
+    currentInstruction = "Transaction Reverted! The code strictly requires 2 ETH. Your 1 ETH was safely refunded. Now try sending exactly 2 ETH.";
+  } else if (phase === 3) {
+    currentInstruction = "Evaluating transaction...";
+  } else if (phase === 4) {
+    currentInstruction = "Success! The requirement was met, the code executed, and you received the asset!";
+  }
+
+  const currentLines = viewMode === "code" ? codeLines : englishLines;
 
   return (
     <LabShell
+      labId="smartcontracts9"
+      title="Smart Contracts Mechanics"
+      instruction={currentInstruction}
+      compact={true}
+      onReset={resetLab}
+      bgOverride="bg-slate-50"
+      theme="ocean"
       navExtra={
-        !isLabComplete && (
-          <div className={`flex items-center gap-1.5 px-4 h-9 md:h-10 rounded-full text-sm font-bold border shadow-sm ${
-            timedOut ? "bg-rose-50 border-rose-200 text-rose-600" :
-            secondsLeft <= 30 ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse" :
-            "bg-white border-sky-100/80 text-sky-700"
-          }`}>
-            <Timer size={16} strokeWidth={2.5} />
-            <span>{timedOut ? "Time's Up" : formattedTime}</span>
-          </div>
-        )
-      } labId="smartcontracts9" theme="studio" title="Smart Contracts Mechanics" subtitle="L29 · Blockchain Technology"
-      instruction="A Smart Contract is just code that holds money like a physical vending machine. Try sending 1 ETH. Notice how the code evaluates and physically 'reverts' the transaction. Then send 2 ETH to fulfill the condition." compact>
-      
-      <Celebration isActive={hasWon} message="Code is Law! The Smart Contract autonomously verified the condition (2 ETH) without any human broker, consumed the funds securely, and dispensed the digital asset trustlessly." onReplay={reset} />
-
-      <div className="w-full flex flex-col flex-1 min-h-0 pt-1 gap-3">
-        
-        {/* Interactive Controls */}
-        <div className="shrink-0 panel-glass rounded-2xl border-pink-900/50 p-4 flex flex-col md:flex-row items-center justify-between gap-6">
-          
-          <div className="flex items-center gap-3">
-            <Code className="text-pink-500" size={24} />
-            <div>
-              <p className="text-pink-400 font-black text-sm uppercase tracking-wider">Execute Transaction</p>
-              <p className="text-white/50 text-xs">Call the buyNFT() function with ETH attached.</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => insertCoin(1)} 
-              disabled={machineState !== "IDLE"}
-              className="px-6 py-3 rounded-xl font-black bg-stone-800 border-2 border-stone-600 text-stone-300 hover:bg-stone-700 transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              <ArrowDownCircle size={18}/> Send 1 ETH
-            </button>
-            <button 
-              onClick={() => insertCoin(2)} 
-              disabled={machineState !== "IDLE"}
-              className="px-6 py-3 rounded-xl font-black bg-pink-500/20 border-2 border-pink-500/50 text-pink-400 hover:bg-pink-500/30 transition-all hover:scale-[1.02] shadow-[0_0_15px_rgba(99,102,241,0.3)] disabled:opacity-50 flex items-center gap-2"
-            >
-              <ArrowDownCircle size={18}/> Send 2 ETH
-            </button>
-          </div>
-
+        <div className="flex items-center gap-1.5 text-sky-700 bg-white hover:bg-sky-50 border border-sky-100 shadow-sm px-3 md:px-4 h-9 md:h-10 rounded-full font-mono text-sm font-bold transition-colors">
+          <Timer size={16} strokeWidth={2.5} />
+          {formatTime(timeLeft)}
         </div>
-
-        {/* Main SVG Area */}
-        <div className="flex-1 panel-glass rounded-3xl overflow-x-auto overflow-y-hidden relative border-pink-900/40 bg-[#0c0a09] shadow-[inset_0_0_80px_rgba(0,0,0,0.9)] flex items-center justify-center">
-          <div className="w-full max-w-5xl aspect-[2.2] min-w-[800px]">
-            <SmartContractSVG coinValue={coinValue} machineState={machineState} />
-          </div>
-        </div>
-
+      }
+    >
+      {/* Ocean Theme Background Grid */}
+      <div className="absolute inset-0 bg-slate-50 overflow-hidden z-0 pointer-events-none">
+        <svg className="w-full h-full opacity-[0.15]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid-sc" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#64748b" strokeWidth="1" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid-sc)" />
+        </svg>
       </div>
-    
-      {timedOut && !isLabComplete && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-2xl">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 max-w-sm text-center mx-4">
-            <div className="w-14 h-14 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-              <Timer className="w-7 h-7" />
+
+      <div className="relative z-10 w-full h-full flex flex-col p-3 sm:p-4 gap-3 sm:gap-4 overflow-y-auto">
+        
+        {/* Dynamic Instruction Banner */}
+        <div className="w-full bg-white border-2 border-sky-200 text-sky-900 rounded-xl p-3 shadow-sm flex items-start sm:items-center gap-3 shrink-0 transition-all duration-300">
+          <div className={`p-2 rounded-lg shrink-0 transition-colors ${phase === 0 && !hasReadEnglish ? 'bg-amber-100' : 'bg-sky-100'}`}>
+            {txState === "reverted" ? <XOctagon className="text-rose-600" size={20} /> :
+             txState === "success" ? <CheckCircle2 className="text-emerald-600" size={20} /> :
+             phase === 0 && !hasReadEnglish ? <Lightbulb className="text-amber-600 animate-pulse" size={20} /> :
+             <Lightbulb className="text-sky-600" size={20} />}
+          </div>
+          <p className="text-sm sm:text-base font-semibold leading-snug">
+            {currentInstruction}
+          </p>
+        </div>
+
+        <div className="flex-1 w-full flex flex-col sm:flex-row gap-3 sm:gap-4 min-h-0 pb-4">
+          
+          {/* USER WALLET (LEFT) */}
+          <div className="w-full sm:w-1/3 flex flex-col gap-4 shrink-0">
+            <div className="bg-white border-2 border-slate-200 rounded-2xl shadow-sm p-4 flex flex-col h-full relative z-10">
+              <div className="flex items-center gap-2 mb-4 shrink-0">
+                <div className="bg-slate-100 p-2 rounded-lg">
+                  <Wallet className="text-slate-600" size={20} />
+                </div>
+                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-widest">Your Wallet</h2>
+              </div>
+              
+              <div className="mb-4 shrink-0">
+                <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Balance</div>
+                <div className="text-2xl sm:text-3xl font-black text-slate-800 flex items-center gap-2">
+                  {ethBalance} <span className="text-base sm:text-lg text-amber-500">ETH</span>
+                </div>
+              </div>
+
+              <div className="mb-4 flex-1 flex flex-col justify-center min-h-[60px]">
+                <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assets</div>
+                <div className={`w-16 h-16 rounded-xl border-2 border-dashed flex items-center justify-center transition-all duration-500 ${hasNFT ? 'bg-indigo-50 border-indigo-300 shadow-inner' : 'bg-slate-50 border-slate-300'}`}>
+                  <AnimatePresence>
+                    {hasNFT && (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        className="text-indigo-500 drop-shadow-md"
+                      >
+                        <Diamond size={32} fill="currentColor" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-auto shrink-0">
+                <button 
+                  onClick={handleSend1Eth}
+                  disabled={txState !== "idle" || phase >= 3 || (!hasReadEnglish && phase === 0)}
+                  className="w-full bg-slate-800 hover:bg-slate-900 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors text-sm sm:text-base"
+                >
+                  Send 1 ETH
+                  <ArrowRight size={16} />
+                </button>
+                <button 
+                  onClick={handleSend2Eth}
+                  disabled={txState !== "idle" || phase < 2 || hasNFT}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors text-sm sm:text-base"
+                >
+                  Send 2 ETH
+                  <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
-            <h3 className="text-lg font-black text-slate-800 mb-1.5">Time's Up!</h3>
-            <p className="text-sm font-medium text-slate-600 mb-4">
-              You did not complete the lab in time.
-            </p>
-            <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:translate-y-1 shadow-[0_4px_0_rgba(79,70,229,1)] active:shadow-none text-white rounded-xl text-sm font-bold transition-all cursor-pointer">
-              Try Again
-            </button>
+          </div>
+
+          {/* SMART CONTRACT VENDING MACHINE (RIGHT) */}
+          <div className="flex-1 flex flex-col relative z-0 min-h-[300px]">
+            <div className="bg-white border-2 border-slate-200 rounded-2xl shadow-xl flex flex-col h-full overflow-hidden">
+              
+              {/* Machine Header */}
+              <div className="bg-slate-800 p-3 flex items-center justify-between border-b-4 border-slate-900 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Code className="text-cyan-400" size={18} />
+                  <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest">Digital Vending Machine</h2>
+                </div>
+                <div className="bg-slate-700 px-2 sm:px-3 py-1 rounded-full text-[10px] font-mono text-slate-300">
+                  0x8f3...a1b
+                </div>
+              </div>
+
+              {/* Code Diagnostic Screen */}
+              <div className="p-3 sm:p-4 bg-slate-900 flex-1 relative font-mono text-[11px] sm:text-xs md:text-sm leading-relaxed overflow-y-auto">
+                
+                {/* Header & Toggle */}
+                <div className="flex items-center justify-between mb-2 shrink-0">
+                  <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-widest font-sans font-bold">Contract Logic</div>
+                  
+                  <div className="flex bg-slate-800 rounded p-0.5">
+                    <button 
+                      onClick={() => setViewMode("code")}
+                      className={`px-3 py-1 rounded text-[10px] font-sans font-bold transition-all ${viewMode === "code" ? "bg-slate-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+                    >
+                      CODE
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setViewMode("english");
+                        setHasReadEnglish(true);
+                      }}
+                      className={`px-3 py-1 rounded text-[10px] font-sans font-bold transition-all ${viewMode === "english" ? "bg-sky-500 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+                    >
+                      ENGLISH
+                    </button>
+                  </div>
+                </div>
+
+                {/* Code Lines */}
+                {currentLines.map((line, i) => (
+                  <div 
+                    key={i} 
+                    className={`px-2 py-1 rounded transition-all duration-300 mb-1 ${
+                      activeLine === i && txState === "reverted" && i === 1 ? "bg-rose-500/20 text-rose-300 border-l-4 border-rose-500 shadow-[inset_0_0_15px_rgba(244,63,94,0.2)]" :
+                      activeLine === i && txState !== "reverted" ? "bg-emerald-500/20 text-emerald-300 border-l-4 border-emerald-500 shadow-[inset_0_0_15px_rgba(16,185,129,0.2)]" :
+                      viewMode === "english" ? "text-sky-100 border-l-4 border-transparent font-sans" :
+                      "text-slate-300 border-l-4 border-transparent"
+                    }`}
+                    style={{ whiteSpace: 'pre' }}
+                  >
+                    {line}
+                  </div>
+                ))}
+                
+                {/* Overlay for TX Reverted */}
+                <AnimatePresence>
+                  {txState === "reverted" && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-rose-950/80 backdrop-blur-sm flex flex-col items-center justify-center border-t border-rose-500/30 z-10"
+                    >
+                      <XOctagon className="text-rose-500 mb-2 sm:mb-3" size={36} />
+                      <span className="text-base sm:text-lg font-bold text-rose-100 tracking-wider">TX REVERTED</span>
+                      <span className="text-[10px] sm:text-xs font-medium text-rose-300 mt-1">Conditions not met</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Dispenser Area */}
+              <div className="bg-slate-100 p-3 sm:p-4 flex flex-col items-center justify-center border-t-2 border-slate-200 h-24 sm:h-28 relative overflow-hidden shrink-0">
+                <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Output Dispenser</div>
+                
+                <div className="relative flex justify-center w-full">
+                  {/* Dispenser Slot */}
+                  <div className="w-20 sm:w-28 h-3 sm:h-4 bg-slate-300 rounded-full shadow-inner relative z-10"></div>
+                  
+                  {/* NFT Asset inside machine */}
+                  <AnimatePresence>
+                    {!hasNFT && (
+                      <motion.div
+                        exit={{ y: 80, opacity: 0, scale: 0.5 }}
+                        transition={{ duration: 0.8, ease: "backIn" }}
+                        className="absolute left-1/2 -translate-x-1/2 -top-10 sm:-top-12 text-indigo-400 opacity-50 blur-[2px]"
+                      >
+                        <Diamond size={28} fill="currentColor" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Animated Coin */}
+                  <AnimatePresence>
+                    {coinPos === "contract" && (
+                      <motion.div
+                        initial={{ y: -100, x: -100, opacity: 0, scale: 2 }}
+                        animate={{ y: -12, x: -14, opacity: 1, scale: 1 }}
+                        exit={{ 
+                          y: txState === "reverted" ? -150 : 30, 
+                          x: txState === "reverted" ? -150 : -14,
+                          opacity: 0,
+                          rotate: txState === "reverted" ? -180 : 0
+                        }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        className="absolute left-1/2 -translate-x-1/2 -top-2 z-20 text-amber-500 drop-shadow-md"
+                      >
+                        <Coins size={28} fill="currentColor" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
-</LabShell>
+      </div>
+
+      {/* Victory Celebration */}
+      <AnimatePresence>
+        {phase === 4 && (
+          <Celebration
+            isActive={phase === 4}
+            message="Smart Contract Executed! Because you matched the strict rules of the code, the transaction succeeded and the digital asset was dispensed. No middleman required!"
+            onReplay={resetLab}
+          />
+        )}
+      </AnimatePresence>
+    </LabShell>
   );
 }
